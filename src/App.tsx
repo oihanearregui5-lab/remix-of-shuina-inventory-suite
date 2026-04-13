@@ -14,12 +14,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-primary">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mx-auto mb-3 animate-pulse">
-            <span className="text-primary-foreground font-bold text-lg">S</span>
+          <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center mx-auto mb-3 animate-pulse">
+            <span className="text-secondary-foreground font-extrabold text-lg">T</span>
           </div>
-          <p className="text-muted-foreground text-sm">Cargando...</p>
+          <p className="text-primary-foreground/70 text-sm">Cargando...</p>
         </div>
       </div>
     );

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, LogIn, UserPlus } from "lucide-react";
+import { Truck, LogIn, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,20 +42,19 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-primary p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4">
-            <Package className="w-9 h-9 text-primary-foreground" />
+          <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Truck className="w-10 h-10 text-secondary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold">
-            <span className="text-foreground">SUHI</span>
-            <span className="text-primary">NA</span>
+          <h1 className="text-3xl font-extrabold tracking-wider text-primary-foreground">
+            TRANSTUBARI
           </h1>
-          <p className="text-muted-foreground mt-2">Sistema de Gestión Empresarial</p>
+          <p className="text-primary-foreground/70 mt-2 text-sm">Sistema de Fichajes</p>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="bg-card border border-border rounded-xl p-6 shadow-xl">
           <h2 className="text-lg font-semibold text-foreground mb-6">
             {isLogin ? "Iniciar Sesión" : "Crear Cuenta"}
           </h2>
@@ -80,7 +79,7 @@ const Auth = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@suhina.com"
+                placeholder="tu@transtubari.com"
                 required
               />
             </div>

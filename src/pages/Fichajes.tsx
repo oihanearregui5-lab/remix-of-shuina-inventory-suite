@@ -115,7 +115,7 @@ const Fichajes = () => {
       </div>
 
       {/* Clock Card */}
-      <div className="bg-card border border-border rounded-xl p-6 mb-6 text-center">
+      <div className="bg-card border border-border rounded-xl p-8 mb-6 text-center shadow-sm">
         <div className="text-5xl font-bold text-foreground mb-1 tabular-nums">
           {format(currentTime, "HH:mm:ss")}
         </div>
@@ -149,7 +149,7 @@ const Fichajes = () => {
             onClick={handleClockIn}
             disabled={loading}
             size="lg"
-            className="text-base px-8 py-6"
+            className="text-base px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90"
           >
             <LogIn className="w-5 h-5 mr-2" />
             Fichar Entrada
@@ -157,7 +157,7 @@ const Fichajes = () => {
         )}
       </div>
 
-      {/* Today's entries */}
+      {/* Recent entries */}
       <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
         <Calendar className="w-5 h-5" /> Registro reciente
       </h2>
@@ -169,7 +169,7 @@ const Fichajes = () => {
         {entries.map((entry) => (
           <div
             key={entry.id}
-            className="bg-card border border-border rounded-lg p-4 flex items-center justify-between"
+            className="bg-card border border-border rounded-lg p-4 flex items-center justify-between shadow-sm"
           >
             <div>
               <p className="text-sm text-muted-foreground">

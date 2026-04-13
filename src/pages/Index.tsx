@@ -1,40 +1,17 @@
 import { useState } from "react";
-import { Menu, Clock } from "lucide-react";
-import InventorySidebar from "@/components/InventorySidebar";
-import DashboardView from "@/components/DashboardView";
-import CategoryView from "@/components/CategoryView";
+import { Menu, Clock, ShieldCheck, LogOut, Truck } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import Fichajes from "@/pages/Fichajes";
 import AdminFichajes from "@/pages/AdminFichajes";
 
 const Index = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentSection, setCurrentSection] = useState<"inventory" | "fichajes" | "admin">("inventory");
+  const [currentSection, setCurrentSection] = useState<"fichajes" | "admin">("fichajes");
+  const { isAdmin, profile, signOut } = useAuth();
 
-  const handleSelectCategory = (id: string | null) => {
-    setSelectedCategory(id);
-    setMobileMenuOpen(false);
-  };
-
-  const handleSectionChange = (section: "inventory" | "fichajes" | "admin") => {
+  const handleSectionChange = (section: "fichajes" | "admin") => {
     setCurrentSection(section);
     setMobileMenuOpen(false);
-  };
-
-  const renderContent = () => {
-    switch (currentSection) {
-      case "fichajes":
-        return <Fichajes />;
-      case "admin":
-        return <AdminFichajes />;
-      default:
-        return selectedCategory ? (
-          <CategoryView categoryId={selectedCategory} />
-        ) : (
-          <DashboardView />
-        );
-    }
   };
 
   return (
@@ -46,49 +23,143 @@ const Index = () => {
         />
       )}
 
-      <div className="hidden md:block h-screen sticky top-0">
-        <InventorySidebar
-          selectedCategory={selectedCategory}
-          onSelectCategory={handleSelectCategory}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          currentSection={currentSection}
-          onSectionChange={handleSectionChange}
-        />
-      </div>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex h-screen sticky top-0 w-64 bg-primary flex-col border-r border-primary/20">
+        <div className="h-16 flex items-center gap-3 px-5 border-b border-primary-foreground/10">
+          <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
+            <Truck className="w-5 h-5 text-secondary-foreground" />
+          </div>
+          <span className="font-extrabold text-primary-foreground tracking-wider text-lg">TRANSTUBARI</span>
+        </div>
 
+        <nav className="flex-1 py-4">
+          <div className="px-4 mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-primary-foreground/50">
+              Secciones
+            </span>
+          </div>
+
+          <button
+            onClick={() => handleSectionChange("fichajes")}
+            className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+              currentSection === "fichajes"
+                ? "text-secondary bg-primary-foreground/10 border-l-3 border-secondary"
+                : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/5"
+            }`}
+          >
+            <Clock className="w-5 h-5 flex-shrink-0" />
+            <span>Fichajes</span>
+          </button>
+
+          {isAdmin && (
+            <button
+              onClick={() => handleSectionChange("admin")}
+              className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                currentSection === "admin"
+                  ? "text-secondary bg-primary-foreground/10 border-l-3 border-secondary"
+                  : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/5"
+              }`}
+            >
+              <ShieldCheck className="w-5 h-5 flex-shrink-0" />
+              <span>Admin Fichajes</span>
+            </button>
+          )}
+        </nav>
+
+        <div className="p-4 border-t border-primary-foreground/10">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-primary-foreground truncate">
+                {profile?.full_name ?? "Usuario"}
+              </p>
+              <p className="text-xs text-primary-foreground/50">Transtubari v1.0</p>
+            </div>
+            <button
+              onClick={signOut}
+              className="p-2 rounded-md text-primary-foreground/50 hover:text-destructive hover:bg-primary-foreground/10 transition-colors"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Sidebar */}
       <div
         className={`fixed inset-y-0 left-0 z-50 md:hidden transition-transform duration-300 ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <InventorySidebar
-          selectedCategory={selectedCategory}
-          onSelectCategory={handleSelectCategory}
-          collapsed={false}
-          onToggleCollapse={() => {}}
-          currentSection={currentSection}
-          onSectionChange={handleSectionChange}
-        />
+        <aside className="h-full w-64 bg-primary flex flex-col">
+          <div className="h-16 flex items-center gap-3 px-5 border-b border-primary-foreground/10">
+            <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
+              <Truck className="w-5 h-5 text-secondary-foreground" />
+            </div>
+            <span className="font-extrabold text-primary-foreground tracking-wider">TRANSTUBARI</span>
+          </div>
+
+          <nav className="flex-1 py-4">
+            <button
+              onClick={() => handleSectionChange("fichajes")}
+              className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                currentSection === "fichajes"
+                  ? "text-secondary bg-primary-foreground/10"
+                  : "text-primary-foreground/70 hover:text-primary-foreground"
+              }`}
+            >
+              <Clock className="w-5 h-5" />
+              <span>Fichajes</span>
+            </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => handleSectionChange("admin")}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                  currentSection === "admin"
+                    ? "text-secondary bg-primary-foreground/10"
+                    : "text-primary-foreground/70 hover:text-primary-foreground"
+                }`}
+              >
+                <ShieldCheck className="w-5 h-5" />
+                <span>Admin Fichajes</span>
+              </button>
+            )}
+          </nav>
+
+          <div className="p-4 border-t border-primary-foreground/10">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-primary-foreground truncate">
+                {profile?.full_name ?? "Usuario"}
+              </p>
+              <button onClick={signOut} className="p-2 text-primary-foreground/50 hover:text-destructive">
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </aside>
       </div>
 
+      {/* Main */}
       <main className="flex-1 min-h-screen">
         <header className="md:hidden h-14 flex items-center justify-between px-4 border-b border-border bg-card sticky top-0 z-30">
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-1">
-            <span className="font-bold text-foreground tracking-wider">SUHI</span>
-            <span className="font-bold text-primary tracking-wider">NA</span>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md bg-secondary flex items-center justify-center">
+              <Truck className="w-4 h-4 text-secondary-foreground" />
+            </div>
+            <span className="font-extrabold text-foreground tracking-wider text-sm">TRANSTUBARI</span>
           </div>
           <div className="w-9" />
         </header>
 
-        <div className="p-4 md:p-8 max-w-7xl">
-          {renderContent()}
+        <div className="p-4 md:p-8 max-w-4xl mx-auto">
+          {currentSection === "admin" ? <AdminFichajes /> : <Fichajes />}
         </div>
       </main>
     </div>
