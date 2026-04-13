@@ -76,7 +76,7 @@ const AdminFichajes = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `fichajes_${dateFrom}_${dateTo}.csv`;
+    a.download = `fichajes_transtubari_${dateFrom}_${dateTo}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("CSV exportado");
@@ -90,7 +90,6 @@ const AdminFichajes = () => {
     );
   }
 
-  // Group entries by employee
   const byEmployee = entries.reduce<Record<string, { name: string; entries: EntryWithProfile[] }>>(
     (acc, e) => {
       const name = e.profiles?.full_name ?? "Desconocido";
@@ -127,21 +126,21 @@ const AdminFichajes = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <div className="bg-card border border-border rounded-lg p-5">
+        <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-5 h-5 text-primary" />
             <span className="text-sm text-muted-foreground">Empleados</span>
           </div>
           <p className="text-2xl font-bold text-foreground">{Object.keys(byEmployee).length}</p>
         </div>
-        <div className="bg-card border border-border rounded-lg p-5">
+        <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Calendar className="w-5 h-5 text-info" />
             <span className="text-sm text-muted-foreground">Fichajes</span>
           </div>
           <p className="text-2xl font-bold text-foreground">{entries.length}</p>
         </div>
-        <div className="bg-card border border-border rounded-lg p-5">
+        <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-5 h-5 text-success" />
             <span className="text-sm text-muted-foreground">Total Horas</span>
@@ -166,7 +165,7 @@ const AdminFichajes = () => {
             </div>
             <div className="space-y-2">
               {empEntries.map((e) => (
-                <div key={e.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between">
+                <div key={e.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between shadow-sm">
                   <div>
                     <p className="text-sm text-muted-foreground">
                       {format(new Date(e.clock_in), "EEEE d MMM", { locale: es })}
