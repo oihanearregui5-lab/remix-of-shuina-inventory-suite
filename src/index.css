@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@layer base {
+  :root {
+    --background: 220 15% 10%;
+    --foreground: 40 10% 92%;
+
+    --card: 220 14% 14%;
+    --card-foreground: 40 10% 92%;
+
+    --popover: 220 14% 14%;
+    --popover-foreground: 40 10% 92%;
+
+    --primary: 45 95% 53%;
+    --primary-foreground: 220 15% 10%;
+
+    --secondary: 220 12% 18%;
+    --secondary-foreground: 40 10% 85%;
+
+    --muted: 220 12% 18%;
+    --muted-foreground: 220 10% 55%;
+
+    --accent: 45 95% 53%;
+    --accent-foreground: 220 15% 10%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 40 10% 92%;
+
+    --border: 220 12% 22%;
+    --input: 220 12% 22%;
+    --ring: 45 95% 53%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 16% 8%;
+    --sidebar-foreground: 40 10% 85%;
+    --sidebar-primary: 45 95% 53%;
+    --sidebar-primary-foreground: 220 15% 10%;
+    --sidebar-accent: 220 14% 14%;
+    --sidebar-accent-foreground: 40 10% 92%;
+    --sidebar-border: 220 12% 16%;
+    --sidebar-ring: 45 95% 53%;
+
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+}
