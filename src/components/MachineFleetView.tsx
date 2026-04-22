@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import MachineDetailDialog, { type MachineDialogItem } from "@/components/machines/MachineDetailDialog";
 import { toast } from "sonner";
 
 const machineImages: Record<string, string> = {
@@ -49,6 +50,7 @@ const MachineFleetView = () => {
   const db = supabase as any;
   const [notes, setNotes] = useState<Record<string, Array<{ id: string; machine_id: string; note: string; is_highlight: boolean; created_at: string }>>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [selectedMachine, setSelectedMachine] = useState<MachineDialogItem | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -155,7 +157,19 @@ const MachineFleetView = () => {
               </div>
 
               <div className="space-y-4 p-5">
-                <div className="flex items-start justify-between gap-3">
+                <button type="button" onClick={() => setSelectedMachine({
+                  id: machine.id,
+                  name: machine.name,
+                  plate: machine.plate,
+                  family: machine.family,
+                  status: machine.status,
+                  focus: machine.focus,
+                  provider: machine.family.includes("Camión") ? "Proveedor de carretera" : "Proveedor de maquinaria",
+                  nextInspection: machine.status === "inspection" ? "Esta semana" : "Próximo control mensual",
+                  nextIvt: machine.plate === "Sin matrícula" ? "ITV interna según uso" : "Revisión documental pendiente según vencimiento",
+                  fluids: ["Aceite motor", "Aceite hidráulico", "Anticongelante"],
+                  notes: machineNotes,
+                })} className="flex w-full items-start justify-between gap-3 text-left">
                   <div>
                     <h2 className="font-semibold text-foreground">{machine.name}</h2>
                     <p className="text-sm text-muted-foreground">{machine.plate} · {machine.family}</p>
@@ -163,7 +177,7 @@ const MachineFleetView = () => {
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusTone[machine.status]}`}>
                     {statusLabel[machine.status]}
                   </span>
-                </div>
+                </button>
 
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Seguimiento clave</p>
@@ -206,6 +220,7 @@ const MachineFleetView = () => {
           );
         })}
       </section>
+      <MachineDetailDialog open={Boolean(selectedMachine)} machine={selectedMachine} onOpenChange={(open) => !open && setSelectedMachine(null)} />
     </div>
   );
 };
