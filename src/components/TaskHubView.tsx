@@ -263,7 +263,7 @@ const TaskHubView = () => {
                 <div key={event.id} className="rounded-lg bg-muted p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-medium text-foreground">{event.title}</p>
-                    <span className="text-xs font-medium uppercase text-muted-foreground">{event.event_type.replaceAll("_", " ")}</span>
+                    <span className="text-xs font-medium uppercase text-muted-foreground">{event.event_type.split("_").join(" ")}</span>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{format(new Date(event.start_at), "EEEE d MMMM yyyy", { locale: es })}</p>
                   {event.description && <p className="mt-2 text-sm text-foreground">{event.description}</p>}

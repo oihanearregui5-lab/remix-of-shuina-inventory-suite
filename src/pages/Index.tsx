@@ -1,17 +1,36 @@
 import { useState } from "react";
-import { Menu, Clock, ShieldCheck, LogOut, Truck } from "lucide-react";
+import { Menu, Clock, ShieldCheck, LogOut, Truck, ClipboardList, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Fichajes from "@/pages/Fichajes";
 import AdminFichajes from "@/pages/AdminFichajes";
+import TaskHubView from "@/components/TaskHubView";
+import MachineFleetView from "@/components/MachineFleetView";
+import AdminHubView from "@/components/AdminHubView";
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentSection, setCurrentSection] = useState<"fichajes" | "admin">("fichajes");
+  const [currentSection, setCurrentSection] = useState<"dashboard" | "fichajes" | "tasks" | "machines" | "admin">("dashboard");
   const { isAdmin, profile, signOut } = useAuth();
 
-  const handleSectionChange = (section: "fichajes" | "admin") => {
+  const handleSectionChange = (section: "dashboard" | "fichajes" | "tasks" | "machines" | "admin") => {
     setCurrentSection(section);
     setMobileMenuOpen(false);
+  };
+
+  const renderCurrentSection = () => {
+    switch (currentSection) {
+      case "dashboard":
+        return <AdminHubView />;
+      case "tasks":
+        return <TaskHubView />;
+      case "machines":
+        return <MachineFleetView />;
+      case "admin":
+        return <AdminFichajes />;
+      case "fichajes":
+      default:
+        return <Fichajes />;
+    }
   };
 
   return (
@@ -40,6 +59,18 @@ const Index = () => {
           </div>
 
           <button
+            onClick={() => handleSectionChange("dashboard")}
+            className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+              currentSection === "dashboard"
+                ? "text-secondary bg-primary-foreground/10 border-l-3 border-secondary"
+                : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/5"
+            }`}
+          >
+            <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
+            <span>Resumen</span>
+          </button>
+
+          <button
             onClick={() => handleSectionChange("fichajes")}
             className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
               currentSection === "fichajes"
@@ -49,6 +80,30 @@ const Index = () => {
           >
             <Clock className="w-5 h-5 flex-shrink-0" />
             <span>Fichajes</span>
+          </button>
+
+          <button
+            onClick={() => handleSectionChange("tasks")}
+            className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+              currentSection === "tasks"
+                ? "text-secondary bg-primary-foreground/10 border-l-3 border-secondary"
+                : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/5"
+            }`}
+          >
+            <ClipboardList className="w-5 h-5 flex-shrink-0" />
+            <span>Tareas</span>
+          </button>
+
+          <button
+            onClick={() => handleSectionChange("machines")}
+            className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+              currentSection === "machines"
+                ? "text-secondary bg-primary-foreground/10 border-l-3 border-secondary"
+                : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/5"
+            }`}
+          >
+            <Truck className="w-5 h-5 flex-shrink-0" />
+            <span>Máquinas</span>
           </button>
 
           {isAdmin && (
@@ -101,6 +156,18 @@ const Index = () => {
 
           <nav className="flex-1 py-4">
             <button
+              onClick={() => handleSectionChange("dashboard")}
+              className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                currentSection === "dashboard"
+                  ? "text-secondary bg-primary-foreground/10"
+                  : "text-primary-foreground/70 hover:text-primary-foreground"
+              }`}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              <span>Resumen</span>
+            </button>
+
+            <button
               onClick={() => handleSectionChange("fichajes")}
               className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
                 currentSection === "fichajes"
@@ -110,6 +177,30 @@ const Index = () => {
             >
               <Clock className="w-5 h-5" />
               <span>Fichajes</span>
+            </button>
+
+            <button
+              onClick={() => handleSectionChange("tasks")}
+              className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                currentSection === "tasks"
+                  ? "text-secondary bg-primary-foreground/10"
+                  : "text-primary-foreground/70 hover:text-primary-foreground"
+              }`}
+            >
+              <ClipboardList className="w-5 h-5" />
+              <span>Tareas</span>
+            </button>
+
+            <button
+              onClick={() => handleSectionChange("machines")}
+              className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                currentSection === "machines"
+                  ? "text-secondary bg-primary-foreground/10"
+                  : "text-primary-foreground/70 hover:text-primary-foreground"
+              }`}
+            >
+              <Truck className="w-5 h-5" />
+              <span>Máquinas</span>
             </button>
 
             {isAdmin && (
@@ -159,7 +250,7 @@ const Index = () => {
         </header>
 
         <div className="p-4 md:p-8 max-w-4xl mx-auto">
-          {currentSection === "admin" ? <AdminFichajes /> : <Fichajes />}
+          {renderCurrentSection()}
         </div>
       </main>
     </div>
