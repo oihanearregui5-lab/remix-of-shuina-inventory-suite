@@ -121,67 +121,71 @@ const Auth = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Nombre completo</Label>
+                  <Input
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Juan García"
+                    required
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
-                <Label htmlFor="fullName">Nombre completo</Label>
+                <Label htmlFor="email">Correo electrónico</Label>
                 <Input
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Juan García"
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tu@transtubari.com"
                   required
                 />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Correo electrónico</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@transtubari.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                minLength={6}
-                required
-              />
-            </div>
 
-            <Button type="submit" variant="premium" size="xl" className="w-full" disabled={loading}>
-              {loading ? (
-                "Cargando..."
-              ) : isLogin ? (
-                <>
-                  <LogIn className="w-4 h-4" /> Entrar
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-4 h-4" /> Registrarse
-                </>
-              )}
-            </Button>
-            <Button type="button" variant="surface" size="xl" className="w-full" disabled={loading} onClick={() => void handleGoogleAccess()}>
-              Entrar con Google
-            </Button>
-          </form>
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  minLength={6}
+                  required
+                />
+              </div>
 
-          <div className="mt-5 text-center xl:text-left">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              {isLogin ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Inicia sesión"}
-            </button>
+              <Button type="submit" variant="premium" size="xl" className="w-full" disabled={loading}>
+                {loading ? (
+                  "Cargando..."
+                ) : isLogin ? (
+                  <>
+                    <LogIn className="w-4 h-4" /> Entrar
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4" /> Registrarse
+                  </>
+                )}
+              </Button>
+
+              <Button type="button" variant="surface" size="xl" className="w-full" disabled={loading} onClick={() => void handleGoogleAccess()}>
+                Entrar con Google
+              </Button>
+            </form>
+
+            <div className="mt-5 text-center xl:text-left">
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                {isLogin ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Inicia sesión"}
+              </button>
+            </div>
           </div>
         </section>
       </div>
