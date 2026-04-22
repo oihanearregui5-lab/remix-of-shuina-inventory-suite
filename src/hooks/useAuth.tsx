@@ -76,6 +76,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase.from("profiles").select("full_name").eq("user_id", userId).single(),
     ]);
+
+    if (rolesRes.error) {
+      console.error("Error cargando roles", rolesRes.error);
+    }
+
+    if (profileRes.error) {
+      console.error("Error cargando perfil", profileRes.error);
+    }
+
     setIsAdmin(rolesRes.data?.some((r) => r.role === "admin") ?? false);
     setProfile(profileRes.data ?? null);
     setLoading(false);
