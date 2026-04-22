@@ -129,7 +129,7 @@ const StaffHubView = () => {
         </div>
         <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
           <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground"><SunMedium className="h-4 w-4 text-warning" /> Visibilidad actual</div>
-          <p className="text-sm font-medium text-foreground">Todos pueden consultar turnos. {isAdmin ? "Administración puede revisar solicitudes." : "Tus solicitudes quedan registradas para revisión."}</p>
+          <p className="text-sm font-medium text-foreground">Todos pueden consultar turnos. {isAdmin ? "Administración puede revisar solicitudes." : "Tus solicitudes quedan registradas para revisión y administración recibe pendientes para aceptar o declinar."}</p>
         </div>
       </section>
 
