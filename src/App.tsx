@@ -14,12 +14,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-primary">
-        <div className="text-center">
-          <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center mx-auto mb-3 animate-pulse">
-            <span className="text-secondary-foreground font-extrabold text-lg">T</span>
+      <div className="min-h-screen flex items-center justify-center bg-background px-6">
+        <div className="hero-surface w-full max-w-md rounded-[28px] px-6 py-10 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] animate-pulse">
+            <span className="font-extrabold text-lg">T</span>
           </div>
-          <p className="text-primary-foreground/70 text-sm">Cargando...</p>
+          <div className="space-y-2">
+            <p className="text-lg font-semibold text-foreground">Preparando tu espacio de trabajo</p>
+            <p className="text-sm text-muted-foreground">Cargando accesos, permisos y datos operativos de Transtubari.</p>
+          </div>
         </div>
       </div>
     );
