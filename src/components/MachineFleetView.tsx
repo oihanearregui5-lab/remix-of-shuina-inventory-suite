@@ -77,7 +77,18 @@ const MachineFleetView = () => {
     setNotes(grouped);
   };
 
-  const assetByCode = useMemo(() => Object.fromEntries(machineSeed.map((machine) => [machine.id, machine])), []);
+  const [machineIdsByCode, setMachineIdsByCode] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await db.from("machine_assets").select("id, asset_code");
+      const mapped = (data ?? []).reduce((acc: Record<string, string>, item: any) => {
+        if (item.asset_code) acc[item.asset_code] = item.id;
+        return acc;
+      }, {});
+      setMachineIdsByCode(mapped);
+    })();
+  }, []);
 
   const saveNote = async (assetCode: string) => {
     if (!user || !drafts[assetCode]?.trim()) return;
@@ -130,7 +141,7 @@ const MachineFleetView = () => {
       <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {machineSeed.map((machine) => {
           const imageSrc = machine.image ? machineImages[machine.image] : null;
-          const machineNotes = Object.entries(notes).find(([machineId]) => machineId && assetByCode[machine.id] && true);
+          const machineNotes = notes[machineIdsByCode[machine.id]] ?? [];
           return (
             <article key={machine.id} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
               <div className="aspect-[4/3] bg-muted">
@@ -173,13 +184,13 @@ const MachineFleetView = () => {
                   />
                   <Button onClick={() => saveNote(machine.id)} className="w-full">Guardar observación</Button>
                   <div className="space-y-2">
-                    {machineNotes && notes[machineNotes[0]]?.slice(0, 3).map((note) => (
+                    {machineNotes.slice(0, 3).map((note) => (
                       <div key={note.id} className="rounded-md bg-background px-3 py-2 text-sm text-foreground">
                         <p>{note.note}</p>
                         <p className="mt-1 text-xs text-muted-foreground">{new Date(note.created_at).toLocaleString("es-ES")}</p>
                       </div>
                     ))}
-                    {!machineNotes && <p className="text-sm text-muted-foreground">Sin observaciones todavía.</p>}
+                    {machineNotes.length === 0 && <p className="text-sm text-muted-foreground">Sin observaciones todavía.</p>}
                   </div>
                 </div>
 
