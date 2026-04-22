@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { lovable } from "@/integrations/lovable";
+import { useAuth } from "@/hooks/useAuth";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -14,6 +16,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { bootstrapUser } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +26,7 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        await bootstrapUser();
         toast.success("¡Bienvenido de vuelta!");
         navigate("/");
       } else {
@@ -37,6 +41,16 @@ const Auth = () => {
     } catch (error: any) {
       toast.error(error.message);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleAccess = async () => {
+    setLoading(true);
+    try {
+      await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    } catch (error: any) {
+      toast.error(error.message ?? "No se pudo iniciar con Google");
       setLoading(false);
     }
   };
@@ -108,6 +122,9 @@ const Auth = () => {
                   <UserPlus className="w-4 h-4" /> Registrarse
                 </>
               )}
+            </Button>
+            <Button type="button" variant="outline" className="w-full" disabled={loading} onClick={() => void handleGoogleAccess()}>
+              Entrar con Google
             </Button>
           </form>
 

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { format } from "date-fns";
+import { eachDayOfInterval, endOfMonth, format, isSameDay, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarDays, Clock3, Send, SunMedium, Sunset } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import StaffRequestDetailDialog, { type StaffRequestDialogItem } from "@/components/staff/StaffRequestDetailDialog";
 import { toast } from "sonner";
 
 interface VacationRequestItem {
@@ -48,11 +50,14 @@ const StaffHubView = () => {
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<StaffRequestDialogItem | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
     if (!user) return;
     void Promise.all([fetchRequests(), fetchShifts()]);
-  }, [user, isAdmin]);
+  }, [user, isAdmin, calendarMonth]);
 
   const fetchRequests = async () => {
     const query = db.from("vacation_requests").select("id, request_type, start_date, end_date, status, reason, admin_response, created_at").order("created_at", { ascending: false }).limit(20);
@@ -67,13 +72,15 @@ const StaffHubView = () => {
   };
 
   const fetchShifts = async () => {
-    const today = format(new Date(), "yyyy-MM-dd");
+    const monthStart = format(startOfMonth(calendarMonth), "yyyy-MM-dd");
+    const monthEnd = format(endOfMonth(calendarMonth), "yyyy-MM-dd");
     const { data, error } = await db
       .from("staff_shifts")
       .select("id, shift_date, shift_label, starts_at, ends_at, location, notes, staff_directory(full_name)")
-      .gte("shift_date", today)
+      .gte("shift_date", monthStart)
+      .lte("shift_date", monthEnd)
       .order("shift_date", { ascending: true })
-      .limit(14);
+      .limit(100);
 
     if (error) {
       toast.error("No se pudieron cargar los turnos");
@@ -110,6 +117,25 @@ const StaffHubView = () => {
   };
 
   const todayShifts = useMemo(() => shifts.filter((shift) => shift.shift_date === format(new Date(), "yyyy-MM-dd")), [shifts]);
+  const holidayDates = useMemo(() => ["2026-01-01", "2026-01-06", "2026-05-01", "2026-08-15", "2026-10-12", "2026-12-08", "2026-12-25"].map((item) => new Date(item)), []);
+  const requestDatesByType = useMemo(() => {
+    const build = (type: string, status?: string) => requests
+      .filter((item) => item.request_type === type && (!status || item.status === status))
+      .flatMap((item) => eachDayOfInterval({ start: new Date(item.start_date), end: new Date(item.end_date) }));
+
+    return {
+      vacations: build("vacation", "approved"),
+      leaves: build("leave", "approved"),
+      pending: requests.filter((item) => item.status === "pending").flatMap((item) => eachDayOfInterval({ start: new Date(item.start_date), end: new Date(item.end_date) })),
+    };
+  }, [requests]);
+  const selectedDayData = useMemo(() => {
+    if (!selectedDate) return { shifts: [], requests: [] as VacationRequestItem[] };
+    return {
+      shifts: shifts.filter((shift) => isSameDay(new Date(shift.shift_date), selectedDate)),
+      requests: requests.filter((request) => selectedDate >= new Date(request.start_date) && selectedDate <= new Date(request.end_date)),
+    };
+  }, [requests, selectedDate, shifts]);
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -184,7 +210,71 @@ const StaffHubView = () => {
             <p className="text-sm text-muted-foreground">Consulta si trabajas de día o de tarde y revisa la planificación próxima.</p>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
+            <div className="rounded-lg border border-border bg-background p-3">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                month={calendarMonth}
+                onMonthChange={setCalendarMonth}
+                modifiers={{
+                  holiday: holidayDates,
+                  vacation: requestDatesByType.vacations,
+                  leave: requestDatesByType.leaves,
+                  pending: requestDatesByType.pending,
+                }}
+                modifiersClassNames={{
+                  holiday: "bg-destructive/15 text-destructive font-semibold",
+                  vacation: "bg-success/20 text-success font-semibold",
+                  leave: "bg-primary text-primary-foreground font-semibold",
+                  pending: "ring-1 ring-warning text-foreground",
+                }}
+                className="w-full"
+              />
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full bg-destructive/15 px-2.5 py-1 text-destructive">Festivo</span>
+                <span className="rounded-full bg-success/20 px-2.5 py-1 text-success">Vacaciones</span>
+                <span className="rounded-full bg-primary px-2.5 py-1 text-primary-foreground">Asuntos propios</span>
+                <span className="rounded-full border border-warning/40 px-2.5 py-1 text-foreground">Pendiente</span>
+              </div>
+            </div>
+
+            <div className="space-y-4 rounded-lg border border-border bg-background p-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground">{selectedDate ? format(selectedDate, "EEEE d MMMM yyyy", { locale: es }) : "Selecciona un día"}</p>
+                <p className="text-xs text-muted-foreground">Pulsa las solicitudes o los turnos para revisar el detalle.</p>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Solicitudes</p>
+                <div className="space-y-2">
+                  {selectedDayData.requests.length === 0 && <p className="text-sm text-muted-foreground">Sin solicitudes este día.</p>}
+                  {selectedDayData.requests.map((request) => (
+                    <button key={request.id} type="button" onClick={() => setSelectedRequest(request)} className="w-full rounded-lg border border-border bg-card px-3 py-3 text-left">
+                      <p className="font-medium text-foreground">{request.request_type === "vacation" ? "Vacaciones" : request.request_type === "leave" ? "Asuntos propios" : "Baja / revisión"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{request.status}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Turnos</p>
+                <div className="space-y-2">
+                  {selectedDayData.shifts.length === 0 && <p className="text-sm text-muted-foreground">Sin turnos este día.</p>}
+                  {selectedDayData.shifts.map((shift) => (
+                    <div key={shift.id} className="rounded-lg border border-border bg-card px-3 py-3">
+                      <p className="font-medium text-foreground">{shift.shift_label}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{shift.starts_at?.slice(0, 5) ?? "--:--"} · {shift.ends_at?.slice(0, 5) ?? "--:--"} · {shift.location ?? "Sin lugar"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
             {shifts.length === 0 && <p className="rounded-lg bg-muted px-4 py-5 text-sm text-muted-foreground">Todavía no hay turnos cargados.</p>}
             {shifts.map((shift) => (
               <div key={shift.id} className="rounded-lg border border-border bg-background p-4">
@@ -208,6 +298,7 @@ const StaffHubView = () => {
           </div>
         </div>
       </section>
+      <StaffRequestDetailDialog open={Boolean(selectedRequest)} request={selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)} />
     </div>
   );
 };

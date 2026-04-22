@@ -114,6 +114,15 @@ const Fichajes = () => {
         <p className="text-muted-foreground mt-1">Registro de jornada laboral</p>
       </div>
 
+      <div className="mb-6 flex items-center justify-center">
+        <div className={`inline-flex items-center gap-3 rounded-full border px-5 py-2 text-sm font-semibold ${activeEntry ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-border bg-card text-muted-foreground"}`}>
+          <span className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-bold ${activeEntry ? "bg-destructive text-destructive-foreground" : "bg-muted text-foreground"}`}>
+            {activeEntry ? "ON" : "OFF"}
+          </span>
+          <span>{activeEntry ? "Activo en plantilla" : "Fuera de servicio"}</span>
+        </div>
+      </div>
+
       {/* Clock Card */}
       <div className="bg-card border border-border rounded-xl p-8 mb-6 text-center shadow-sm">
         <div className="text-5xl font-bold text-foreground mb-1 tabular-nums">
@@ -169,7 +178,7 @@ const Fichajes = () => {
         {entries.map((entry) => (
           <div
             key={entry.id}
-            className="bg-card border border-border rounded-lg p-4 flex items-center justify-between shadow-sm"
+            className="bg-card border border-border rounded-lg p-4 flex items-center justify-between shadow-sm transition-colors hover:bg-muted/40"
           >
             <div>
               <p className="text-sm text-muted-foreground">

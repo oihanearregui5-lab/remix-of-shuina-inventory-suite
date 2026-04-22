@@ -395,8 +395,10 @@ export type Database = {
           active: boolean
           color_tag: string | null
           created_at: string
+          email: string | null
           full_name: string
           id: string
+          is_supervisor: boolean
           linked_user_id: string | null
           notes: string | null
           phone: string | null
@@ -408,8 +410,10 @@ export type Database = {
           active?: boolean
           color_tag?: string | null
           created_at?: string
+          email?: string | null
           full_name: string
           id?: string
+          is_supervisor?: boolean
           linked_user_id?: string | null
           notes?: string | null
           phone?: string | null
@@ -421,8 +425,10 @@ export type Database = {
           active?: boolean
           color_tag?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string
           id?: string
+          is_supervisor?: boolean
           linked_user_id?: string | null
           notes?: string | null
           phone?: string | null
@@ -744,7 +750,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      time_entries_with_profiles: {
+        Row: {
+          clock_in: string | null
+          clock_out: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string | null
+          latitude_in: number | null
+          latitude_out: number | null
+          longitude_in: number | null
+          longitude_out: number | null
+          notes: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_access_staff_member: {
@@ -762,6 +784,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      sync_current_user_staff_link: {
+        Args: { _full_name?: string }
+        Returns: undefined
       }
     }
     Enums: {

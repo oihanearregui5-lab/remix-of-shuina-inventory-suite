@@ -9,6 +9,7 @@ interface AuthContextType {
   isAdmin: boolean;
   canViewAdmin: boolean;
   profile: { full_name: string } | null;
+  bootstrapUser: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   canViewAdmin: false,
   profile: null,
+  bootstrapUser: async () => {},
   signOut: async () => {},
 });
 
@@ -29,6 +31,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<{ full_name: string } | null>(null);
   const canViewAdmin = true;
+
+  const bootstrapUser = async () => {
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    if (!currentUser) return;
+
+    await supabase.rpc("ensure_current_user_setup", {
+      _full_name: currentUser.user_metadata?.full_name ?? null,
+    });
+
+    await fetchUserData(currentUser.id);
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -73,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, canViewAdmin, profile, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, canViewAdmin, profile, bootstrapUser, signOut }}>
       {children}
     </AuthContext.Provider>
   );
