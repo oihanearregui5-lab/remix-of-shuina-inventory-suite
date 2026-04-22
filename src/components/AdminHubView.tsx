@@ -28,7 +28,7 @@ interface VacationReviewItem {
   end_date: string;
   reason: string | null;
   requester_user_id: string;
-  profiles?: { full_name: string } | null;
+  requester_name?: string | null;
 }
 
 const AdminHubView = () => {
@@ -56,7 +56,7 @@ const AdminHubView = () => {
       supabase.from("machine_service_records").select("id", { count: "exact", head: true }).neq("status", "completed"),
       supabase.from("time_entries").select("id", { count: "exact", head: true }).is("clock_out", null),
       supabase.from("daily_highlights").select("id, title, summary, category").order("highlight_date", { ascending: false }).limit(4),
-      supabase.from("vacation_requests").select("id, request_type, start_date, end_date, reason, requester_user_id, profiles(full_name)").eq("status", "pending").order("created_at", { ascending: true }).limit(6),
+      supabase.from("vacation_requests").select("id, request_type, start_date, end_date, reason, requester_user_id").eq("status", "pending").order("created_at", { ascending: true }).limit(6),
     ]);
 
     setMetrics({
@@ -66,7 +66,22 @@ const AdminHubView = () => {
       activeClockings: clockingsRes.count ?? 0,
     });
     setHighlights((highlightsRes.data as DailyHighlight[]) ?? []);
-    setPendingRequests((vacationRes.data as VacationReviewItem[]) ?? []);
+
+    const baseRequests = (vacationRes.data as VacationReviewItem[]) ?? [];
+    const requesterIds = Array.from(new Set(baseRequests.map((item) => item.requester_user_id)));
+
+    if (requesterIds.length === 0) {
+      setPendingRequests([]);
+      return;
+    }
+
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", requesterIds);
+
+    const namesByUserId = new Map((profiles ?? []).map((profile) => [profile.user_id, profile.full_name]));
+    setPendingRequests(baseRequests.map((item) => ({ ...item, requester_name: namesByUserId.get(item.requester_user_id) ?? null })));
   };
 
   const pendingCount = useMemo(() => pendingRequests.length, [pendingRequests]);
@@ -142,7 +157,7 @@ const AdminHubView = () => {
                 <div key={request.id} className="rounded-lg bg-muted p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-foreground">{request.profiles?.full_name ?? "Trabajador"}</p>
+                      <p className="font-medium text-foreground">{request.requester_name ?? "Trabajador"}</p>
                       <p className="text-sm text-muted-foreground">{request.request_type} · {request.start_date} → {request.end_date}</p>
                     </div>
                     <span className="rounded-full bg-warning/15 px-2.5 py-1 text-xs font-medium text-foreground">Pendiente</span>
