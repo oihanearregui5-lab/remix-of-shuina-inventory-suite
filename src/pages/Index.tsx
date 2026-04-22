@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { Menu, Clock, ShieldCheck, LogOut, Truck, ClipboardList, LayoutDashboard } from "lucide-react";
+import { Menu, Clock, ShieldCheck, LogOut, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Fichajes from "@/pages/Fichajes";
 import AdminFichajes from "@/pages/AdminFichajes";
 import TaskHubView from "@/components/TaskHubView";
 import MachineFleetView from "@/components/MachineFleetView";
 import AdminHubView from "@/components/AdminHubView";
+import StaffHubView from "@/components/StaffHubView";
+import ChatHubView from "@/components/ChatHubView";
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentSection, setCurrentSection] = useState<"dashboard" | "fichajes" | "tasks" | "machines" | "admin">("dashboard");
-  const { isAdmin, profile, signOut } = useAuth();
+  const [currentSection, setCurrentSection] = useState<"dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "admin">("dashboard");
+  const { canViewAdmin, profile, signOut } = useAuth();
 
-  const handleSectionChange = (section: "dashboard" | "fichajes" | "tasks" | "machines" | "admin") => {
+  const handleSectionChange = (section: "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "admin") => {
     setCurrentSection(section);
     setMobileMenuOpen(false);
   };
@@ -25,6 +27,10 @@ const Index = () => {
         return <TaskHubView />;
       case "machines":
         return <MachineFleetView />;
+      case "staff":
+        return <StaffHubView />;
+      case "chat":
+        return <ChatHubView />;
       case "admin":
         return <AdminFichajes />;
       case "fichajes":
@@ -106,7 +112,31 @@ const Index = () => {
             <span>Máquinas</span>
           </button>
 
-          {isAdmin && (
+          <button
+            onClick={() => handleSectionChange("staff")}
+            className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+              currentSection === "staff"
+                ? "text-secondary bg-primary-foreground/10 border-l-3 border-secondary"
+                : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/5"
+            }`}
+          >
+            <CalendarRange className="w-5 h-5 flex-shrink-0" />
+            <span>Personal</span>
+          </button>
+
+          <button
+            onClick={() => handleSectionChange("chat")}
+            className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+              currentSection === "chat"
+                ? "text-secondary bg-primary-foreground/10 border-l-3 border-secondary"
+                : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/5"
+            }`}
+          >
+            <MessageSquare className="w-5 h-5 flex-shrink-0" />
+            <span>Chat</span>
+          </button>
+
+          {canViewAdmin && (
             <button
               onClick={() => handleSectionChange("admin")}
               className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
@@ -203,7 +233,31 @@ const Index = () => {
               <span>Máquinas</span>
             </button>
 
-            {isAdmin && (
+            <button
+              onClick={() => handleSectionChange("staff")}
+              className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                currentSection === "staff"
+                  ? "text-secondary bg-primary-foreground/10"
+                  : "text-primary-foreground/70 hover:text-primary-foreground"
+              }`}
+            >
+              <CalendarRange className="w-5 h-5" />
+              <span>Personal</span>
+            </button>
+
+            <button
+              onClick={() => handleSectionChange("chat")}
+              className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
+                currentSection === "chat"
+                  ? "text-secondary bg-primary-foreground/10"
+                  : "text-primary-foreground/70 hover:text-primary-foreground"
+              }`}
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span>Chat</span>
+            </button>
+
+            {canViewAdmin && (
               <button
                 onClick={() => handleSectionChange("admin")}
                 className={`w-full flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
@@ -249,7 +303,7 @@ const Index = () => {
           <div className="w-9" />
         </header>
 
-        <div className="p-4 md:p-8 max-w-4xl mx-auto">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
           {renderCurrentSection()}
         </div>
       </main>

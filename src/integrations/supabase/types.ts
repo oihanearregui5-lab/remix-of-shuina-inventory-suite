@@ -84,6 +84,96 @@ export type Database = {
           },
         ]
       }
+      chat_channels: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          author_user_id: string
+          channel_id: string
+          created_at: string
+          id: string
+          message: string
+          updated_at: string
+        }
+        Insert: {
+          author_user_id: string
+          channel_id: string
+          created_at?: string
+          id?: string
+          message: string
+          updated_at?: string
+        }
+        Update: {
+          author_user_id?: string
+          channel_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      daily_highlights: {
+        Row: {
+          category: string
+          created_at: string
+          created_by_user_id: string
+          highlight_date: string
+          id: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by_user_id: string
+          highlight_date?: string
+          id?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by_user_id?: string
+          highlight_date?: string
+          id?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       machine_assets: {
         Row: {
           asset_code: string | null
@@ -179,6 +269,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      machine_notes: {
+        Row: {
+          author_user_id: string
+          created_at: string
+          id: string
+          is_highlight: boolean
+          machine_id: string
+          note: string
+          updated_at: string
+        }
+        Insert: {
+          author_user_id: string
+          created_at?: string
+          id?: string
+          is_highlight?: boolean
+          machine_id: string
+          note: string
+          updated_at?: string
+        }
+        Update: {
+          author_user_id?: string
+          created_at?: string
+          id?: string
+          is_highlight?: boolean
+          machine_id?: string
+          note?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       machine_service_records: {
         Row: {
@@ -362,6 +482,48 @@ export type Database = {
           },
         ]
       }
+      staff_shifts: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          ends_at: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          shift_date: string
+          shift_label: string
+          staff_member_id: string
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          ends_at?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          shift_date: string
+          shift_label: string
+          staff_member_id: string
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          ends_at?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          shift_date?: string
+          shift_label?: string
+          staff_member_id?: string
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       task_checklists: {
         Row: {
           created_at: string
@@ -529,6 +691,54 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vacation_requests: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          end_date: string
+          id: string
+          reason: string | null
+          request_type: string
+          requester_user_id: string
+          reviewed_at: string | null
+          reviewed_by_user_id: string | null
+          staff_member_id: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          end_date: string
+          id?: string
+          reason?: string | null
+          request_type?: string
+          requester_user_id: string
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          staff_member_id?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          end_date?: string
+          id?: string
+          reason?: string | null
+          request_type?: string
+          requester_user_id?: string
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          staff_member_id?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }

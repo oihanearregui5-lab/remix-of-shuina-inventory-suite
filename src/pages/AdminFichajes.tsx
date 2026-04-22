@@ -17,15 +17,15 @@ interface EntryWithProfile {
 }
 
 const AdminFichajes = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, canViewAdmin } = useAuth();
   const [entries, setEntries] = useState<EntryWithProfile[]>([]);
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isAdmin) fetchEntries();
-  }, [isAdmin, dateFrom, dateTo]);
+    if (canViewAdmin) fetchEntries();
+  }, [canViewAdmin, dateFrom, dateTo]);
 
   const fetchEntries = async () => {
     setLoading(true);
@@ -82,7 +82,7 @@ const AdminFichajes = () => {
     toast.success("CSV exportado");
   };
 
-  if (!isAdmin) {
+  if (!canViewAdmin) {
     return (
       <div className="animate-fade-in text-center py-16">
         <p className="text-muted-foreground">No tienes permisos de administrador</p>
@@ -105,7 +105,7 @@ const AdminFichajes = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Panel Admin — Fichajes</h1>
-          <p className="text-muted-foreground mt-1">Control de horas de todos los empleados</p>
+          <p className="text-muted-foreground mt-1">Control de horas de todos los empleados {isAdmin ? "con permisos de gestión" : "en modo visualización"}</p>
         </div>
         <Button onClick={exportCSV} variant="outline" className="self-start">
           <Download className="w-4 h-4 mr-2" /> Exportar CSV

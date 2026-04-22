@@ -11,27 +11,36 @@ interface AdminMetrics {
   activeClockings: number;
 }
 
+interface DailyHighlight {
+  id: string;
+  title: string;
+  summary: string | null;
+  category: string;
+}
+
 const AdminHubView = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, canViewAdmin } = useAuth();
   const [metrics, setMetrics] = useState<AdminMetrics>({
     openTasks: 0,
     openIncidents: 0,
     serviceItems: 0,
     activeClockings: 0,
   });
+  const [highlights, setHighlights] = useState<DailyHighlight[]>([]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (canViewAdmin) {
       void loadMetrics();
     }
-  }, [isAdmin]);
+  }, [canViewAdmin]);
 
   const loadMetrics = async () => {
-    const [tasksRes, incidentsRes, serviceRes, clockingsRes] = await Promise.all([
+    const [tasksRes, incidentsRes, serviceRes, clockingsRes, highlightsRes] = await Promise.all([
       supabase.from("tasks").select("id", { count: "exact", head: true }).neq("status", "completed"),
       supabase.from("machine_incidents").select("id", { count: "exact", head: true }).neq("status", "resolved"),
       supabase.from("machine_service_records").select("id", { count: "exact", head: true }).neq("status", "completed"),
       supabase.from("time_entries").select("id", { count: "exact", head: true }).is("clock_out", null),
+      supabase.from("daily_highlights").select("id, title, summary, category").order("highlight_date", { ascending: false }).limit(4),
     ]);
 
     setMetrics({
@@ -40,9 +49,10 @@ const AdminHubView = () => {
       serviceItems: serviceRes.count ?? 0,
       activeClockings: clockingsRes.count ?? 0,
     });
+    setHighlights((highlightsRes.data as DailyHighlight[]) ?? []);
   };
 
-  if (!isAdmin) {
+  if (!canViewAdmin) {
     return <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">Esta sección solo está visible para jefes y encargados.</div>;
   }
 
@@ -84,6 +94,22 @@ const AdminHubView = () => {
             <div className="space-y-3">
               {complianceHighlights.map((item) => (
                 <div key={item} className="rounded-lg bg-muted px-4 py-3 text-sm text-foreground">{item}</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-warning" /><h2 className="font-semibold text-foreground">Noticias y cambios del día</h2></div>
+            <div className="space-y-3">
+              {highlights.length === 0 && <div className="rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">Todavía no hay avisos cargados.</div>}
+              {highlights.map((item) => (
+                <div key={item.id} className="rounded-lg bg-muted px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-foreground">{item.title}</p>
+                    <span className="text-xs uppercase text-muted-foreground">{item.category}</span>
+                  </div>
+                  {item.summary && <p className="mt-1 text-sm text-muted-foreground">{item.summary}</p>}
+                </div>
               ))}
             </div>
           </div>

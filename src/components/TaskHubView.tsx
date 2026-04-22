@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, isToday, isTomorrow } from "date-fns";
+import { format, isPast, isToday, isTomorrow } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, CheckCircle2, Circle, ClipboardList, Flag, Plus, Sparkles } from "lucide-react";
+import { CalendarDays, CheckCircle2, Circle, ClipboardList, Flag, History, Plus, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -34,8 +34,16 @@ const priorityLabel: Record<TaskItem["priority"], string> = {
   urgent: "Urgente",
 };
 
+const statusActions: Array<{ label: string; value: TaskItem["status"] }> = [
+  { label: "Pendiente", value: "planned" },
+  { label: "En curso", value: "in_progress" },
+  { label: "Bloqueada", value: "blocked" },
+  { label: "Completada", value: "completed" },
+];
+
 const TaskHubView = () => {
   const { user } = useAuth();
+  const db = supabase as any;
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [events, setEvents] = useState<CalendarItem[]>([]);
   const [taskTitle, setTaskTitle] = useState("");
@@ -45,6 +53,7 @@ const TaskHubView = () => {
   const [eventDate, setEventDate] = useState("");
   const [eventDescription, setEventDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<"pending" | "today" | "completed" | "history">("pending");
 
   useEffect(() => {
     if (user) {
@@ -53,11 +62,11 @@ const TaskHubView = () => {
   }, [user]);
 
   const fetchTasks = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("tasks")
       .select("id, title, description, due_date, priority, status, created_at")
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (error) {
       toast.error("No se pudieron cargar las tareas");
@@ -69,7 +78,7 @@ const TaskHubView = () => {
 
   const fetchEvents = async () => {
     const today = new Date().toISOString();
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("calendar_events")
       .select("id, title, start_at, event_type, description")
       .gte("start_at", today)
@@ -88,11 +97,11 @@ const TaskHubView = () => {
     if (!user || !taskTitle.trim()) return;
     setSaving(true);
 
-    const { error } = await supabase.from("tasks").insert({
+    const { error } = await db.from("tasks").insert({
       title: taskTitle.trim(),
       description: taskDescription.trim() || null,
       due_date: taskDate || null,
-      priority: "medium",
+      priority: isToday(new Date(taskDate || new Date())) ? "high" : "medium",
       status: "planned",
       created_by_user_id: user.id,
     });
@@ -114,7 +123,7 @@ const TaskHubView = () => {
     if (!user || !eventTitle.trim() || !eventDate) return;
     setSaving(true);
 
-    const { error } = await supabase.from("calendar_events").insert({
+    const { error } = await db.from("calendar_events").insert({
       title: eventTitle.trim(),
       description: eventDescription.trim() || null,
       start_at: new Date(eventDate).toISOString(),
@@ -137,7 +146,12 @@ const TaskHubView = () => {
   };
 
   const updateTaskStatus = async (taskId: string, status: TaskItem["status"]) => {
-    const { error } = await supabase.from("tasks").update({ status }).eq("id", taskId);
+    const payload = {
+      status,
+      completed_at: status === "completed" ? new Date().toISOString() : null,
+    };
+
+    const { error } = await db.from("tasks").update(payload).eq("id", taskId);
 
     if (error) {
       toast.error("No se pudo actualizar la tarea");
@@ -149,35 +163,46 @@ const TaskHubView = () => {
 
   const pendingTasks = useMemo(() => tasks.filter((task) => task.status !== "completed" && task.status !== "cancelled"), [tasks]);
   const completedTasks = useMemo(() => tasks.filter((task) => task.status === "completed"), [tasks]);
-  const todayTasks = useMemo(
-    () => pendingTasks.filter((task) => task.due_date && isToday(new Date(task.due_date))),
-    [pendingTasks]
-  );
-  const upcomingTasks = useMemo(
-    () => pendingTasks.filter((task) => task.due_date && !isToday(new Date(task.due_date))).slice(0, 6),
-    [pendingTasks]
-  );
+  const todayTasks = useMemo(() => pendingTasks.filter((task) => task.due_date && isToday(new Date(task.due_date))), [pendingTasks]);
+  const historyTasks = useMemo(() => tasks.filter((task) => task.due_date && isPast(new Date(task.due_date)) && task.status !== "completed"), [tasks]);
+  const visibleTasks = useMemo(() => {
+    switch (activeFilter) {
+      case "today":
+        return todayTasks;
+      case "completed":
+        return completedTasks;
+      case "history":
+        return historyTasks;
+      case "pending":
+      default:
+        return pendingTasks;
+    }
+  }, [activeFilter, pendingTasks, todayTasks, completedTasks, historyTasks]);
 
   return (
     <div className="space-y-8 animate-fade-in">
       <section className="space-y-2">
         <h1 className="text-2xl font-bold text-foreground">Tareas y agenda</h1>
-        <p className="text-muted-foreground">Planificación diaria tipo lista inteligente con fechas clave, prioridades y seguimiento personal.</p>
+        <p className="text-muted-foreground">Ahora puedes pulsar en pendientes, ver el historial y mover cada tarea por su estado real.</p>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+      <section className="grid gap-4 md:grid-cols-4">
+        <button onClick={() => setActiveFilter("pending")} className={`rounded-lg border p-5 text-left shadow-sm transition-colors ${activeFilter === "pending" ? "border-primary bg-primary/10" : "border-border bg-card"}`}>
           <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground"><ClipboardList className="h-4 w-4 text-primary" /> Pendientes</div>
           <p className="text-3xl font-bold text-foreground">{pendingTasks.length}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+        </button>
+        <button onClick={() => setActiveFilter("today")} className={`rounded-lg border p-5 text-left shadow-sm transition-colors ${activeFilter === "today" ? "border-primary bg-primary/10" : "border-border bg-card"}`}>
           <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground"><Flag className="h-4 w-4 text-secondary" /> Para hoy</div>
           <p className="text-3xl font-bold text-foreground">{todayTasks.length}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+        </button>
+        <button onClick={() => setActiveFilter("completed")} className={`rounded-lg border p-5 text-left shadow-sm transition-colors ${activeFilter === "completed" ? "border-primary bg-primary/10" : "border-border bg-card"}`}>
           <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle2 className="h-4 w-4 text-success" /> Completadas</div>
           <p className="text-3xl font-bold text-foreground">{completedTasks.length}</p>
-        </div>
+        </button>
+        <button onClick={() => setActiveFilter("history")} className={`rounded-lg border p-5 text-left shadow-sm transition-colors ${activeFilter === "history" ? "border-primary bg-primary/10" : "border-border bg-card"}`}>
+          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground"><History className="h-4 w-4 text-warning" /> Historial</div>
+          <p className="text-3xl font-bold text-foreground">{historyTasks.length}</p>
+        </button>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -186,7 +211,7 @@ const TaskHubView = () => {
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h2 className="font-semibold text-foreground">Mis tareas</h2>
-                <p className="text-sm text-muted-foreground">Organiza trabajo realizado, pendiente y próximas entregas.</p>
+                <p className="text-sm text-muted-foreground">Pulsa un bloque superior para filtrar y entra en detalle del estado.</p>
               </div>
             </div>
 
@@ -194,50 +219,37 @@ const TaskHubView = () => {
               <Input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Añadir nueva tarea" />
               <Input type="date" value={taskDate} onChange={(e) => setTaskDate(e.target.value)} />
               <div className="md:col-span-2">
-                <Textarea value={taskDescription} onChange={(e) => setTaskDescription(e.target.value)} placeholder="Detalles, pasos, materiales o notas" className="min-h-24" />
+                <Textarea value={taskDescription} onChange={(e) => setTaskDescription(e.target.value)} placeholder="Detalles, pasos, materiales u observaciones" className="min-h-24" />
               </div>
               <Button onClick={createTask} disabled={saving || !taskTitle.trim()} className="md:col-span-2 justify-center">
                 <Plus className="mr-2 h-4 w-4" /> Crear tarea
               </Button>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-foreground">Prioridad inmediata</h3>
-                {todayTasks.length === 0 && <p className="rounded-lg bg-muted px-4 py-5 text-sm text-muted-foreground">No hay tareas con vencimiento para hoy.</p>}
-                {todayTasks.map((task) => (
-                  <div key={task.id} className="rounded-lg border border-border bg-background p-4">
-                    <div className="mb-2 flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-foreground">{task.title}</p>
-                        {task.description && <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>}
-                      </div>
-                      <span className="rounded-full bg-secondary/20 px-2 py-1 text-xs font-medium text-secondary-foreground">{priorityLabel[task.priority]}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => updateTaskStatus(task.id, "in_progress")}>En curso</Button>
-                      <Button size="sm" onClick={() => updateTaskStatus(task.id, "completed")}>Completar</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-foreground">Próximas</h3>
-                {upcomingTasks.length === 0 && <p className="rounded-lg bg-muted px-4 py-5 text-sm text-muted-foreground">No hay próximas tareas programadas.</p>}
-                {upcomingTasks.map((task) => (
-                  <div key={task.id} className="rounded-lg border border-border bg-background p-4">
-                    <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="space-y-3">
+              {visibleTasks.length === 0 && <p className="rounded-lg bg-muted px-4 py-5 text-sm text-muted-foreground">No hay tareas en este estado.</p>}
+              {visibleTasks.map((task) => (
+                <div key={task.id} className="rounded-lg border border-border bg-background p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
                       <p className="font-medium text-foreground">{task.title}</p>
-                      <Circle className="h-4 w-4 text-muted-foreground" />
+                      {task.description && <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>}
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {task.due_date ? format(new Date(task.due_date), "EEEE d MMM", { locale: es }) : "Sin fecha"}
+                        {task.due_date && isTomorrow(new Date(task.due_date)) ? " · Mañana" : ""}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {task.due_date ? format(new Date(task.due_date), "EEEE d MMM", { locale: es }) : "Sin fecha"}
-                      {task.due_date && isTomorrow(new Date(task.due_date)) ? " · Mañana" : ""}
-                    </p>
+                    <span className="rounded-full bg-secondary/20 px-2 py-1 text-xs font-medium text-secondary-foreground">{priorityLabel[task.priority]}</span>
                   </div>
-                ))}
-              </div>
+                  <div className="flex flex-wrap gap-2">
+                    {statusActions.map((action) => (
+                      <Button key={action.value} size="sm" variant={task.status === action.value ? "default" : "outline"} onClick={() => updateTaskStatus(task.id, action.value)}>
+                        {action.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -246,7 +258,7 @@ const TaskHubView = () => {
           <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /><h2 className="font-semibold text-foreground">Fechas señaladas</h2></div>
             <div className="space-y-3">
-              <Input value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} placeholder="Ej. ITV camión, revisión médica o cursillo" />
+              <Input value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} placeholder="Ej. ITV, revisión médica o cursillo" />
               <Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
               <Textarea value={eventDescription} onChange={(e) => setEventDescription(e.target.value)} placeholder="Notas de la fecha importante" className="min-h-20" />
               <Button onClick={createEvent} disabled={saving || !eventTitle.trim() || !eventDate} className="w-full">
