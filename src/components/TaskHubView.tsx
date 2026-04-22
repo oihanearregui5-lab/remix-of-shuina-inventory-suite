@@ -225,7 +225,8 @@ const TaskHubView = () => {
   }, [activeFilter, pendingTasks, todayTasks, completedTasks, historyTasks]);
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <>
+      <div className="space-y-8 animate-fade-in">
       <section className="space-y-2">
         <h1 className="text-2xl font-bold text-foreground">Tareas y agenda</h1>
         <p className="text-muted-foreground">Ahora puedes pulsar en pendientes, ver el historial y mover cada tarea por su estado real.</p>
@@ -412,8 +413,9 @@ const TaskHubView = () => {
           </div>
         </div>
       </section>
-    </div>
-    <TaskDetailDialog open={Boolean(selectedTask)} task={selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)} onStatusChange={updateTaskStatus} />
+      </div>
+      <TaskDetailDialog open={Boolean(selectedTask)} task={selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)} onStatusChange={updateTaskStatus} />
+    </>
   );
 };
 
