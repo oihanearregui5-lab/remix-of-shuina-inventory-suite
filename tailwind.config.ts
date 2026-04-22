@@ -22,9 +22,13 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        "background-elevated": "hsl(var(--background-elevated))",
+        "foreground-soft": "hsl(var(--foreground-soft))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          strong: "hsl(var(--primary-strong))",
+          soft: "hsl(var(--primary-soft))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -49,6 +53,7 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+          muted: "hsl(var(--card-muted))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
