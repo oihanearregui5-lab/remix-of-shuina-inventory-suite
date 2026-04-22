@@ -14,6 +14,238 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_events: {
+        Row: {
+          all_day: boolean
+          created_at: string
+          created_by_user_id: string
+          description: string | null
+          end_at: string | null
+          event_type: Database["public"]["Enums"]["calendar_event_type"]
+          id: string
+          machine_id: string | null
+          staff_member_id: string | null
+          start_at: string
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          created_at?: string
+          created_by_user_id: string
+          description?: string | null
+          end_at?: string | null
+          event_type?: Database["public"]["Enums"]["calendar_event_type"]
+          id?: string
+          machine_id?: string | null
+          staff_member_id?: string | null
+          start_at: string
+          task_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          end_at?: string | null
+          event_type?: Database["public"]["Enums"]["calendar_event_type"]
+          id?: string
+          machine_id?: string | null
+          staff_member_id?: string | null
+          start_at?: string
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machine_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      machine_assets: {
+        Row: {
+          asset_code: string | null
+          asset_family: string
+          created_at: string
+          display_name: string
+          id: string
+          license_plate: string | null
+          notes: string | null
+          photo_url: string | null
+          status: Database["public"]["Enums"]["machine_status"]
+          updated_at: string
+        }
+        Insert: {
+          asset_code?: string | null
+          asset_family: string
+          created_at?: string
+          display_name: string
+          id?: string
+          license_plate?: string | null
+          notes?: string | null
+          photo_url?: string | null
+          status?: Database["public"]["Enums"]["machine_status"]
+          updated_at?: string
+        }
+        Update: {
+          asset_code?: string | null
+          asset_family?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          license_plate?: string | null
+          notes?: string | null
+          photo_url?: string | null
+          status?: Database["public"]["Enums"]["machine_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      machine_incidents: {
+        Row: {
+          assigned_staff_id: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          horizon: Database["public"]["Enums"]["machine_issue_horizon"]
+          id: string
+          machine_id: string
+          reported_by_user_id: string
+          status: Database["public"]["Enums"]["machine_issue_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_staff_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          horizon?: Database["public"]["Enums"]["machine_issue_horizon"]
+          id?: string
+          machine_id: string
+          reported_by_user_id: string
+          status?: Database["public"]["Enums"]["machine_issue_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_staff_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          horizon?: Database["public"]["Enums"]["machine_issue_horizon"]
+          id?: string
+          machine_id?: string
+          reported_by_user_id?: string
+          status?: Database["public"]["Enums"]["machine_issue_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_incidents_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machine_incidents_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machine_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      machine_service_records: {
+        Row: {
+          assigned_staff_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by_user_id: string
+          due_date: string | null
+          id: string
+          machine_id: string
+          meter_hours: number | null
+          notes: string | null
+          priority: Database["public"]["Enums"]["task_priority"]
+          service_type: Database["public"]["Enums"]["machine_service_type"]
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_staff_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id: string
+          due_date?: string | null
+          id?: string
+          machine_id: string
+          meter_hours?: number | null
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          service_type: Database["public"]["Enums"]["machine_service_type"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_staff_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          due_date?: string | null
+          id?: string
+          machine_id?: string
+          meter_hours?: number | null
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          service_type?: Database["public"]["Enums"]["machine_service_type"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_service_records_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machine_service_records_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machine_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -37,6 +269,208 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      staff_directory: {
+        Row: {
+          active: boolean
+          color_tag: string | null
+          created_at: string
+          full_name: string
+          id: string
+          linked_user_id: string | null
+          notes: string | null
+          phone: string | null
+          sort_order: number
+          staff_kind: Database["public"]["Enums"]["staff_kind"]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          color_tag?: string | null
+          created_at?: string
+          full_name: string
+          id?: string
+          linked_user_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          sort_order?: number
+          staff_kind?: Database["public"]["Enums"]["staff_kind"]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          color_tag?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          linked_user_id?: string | null
+          notes?: string | null
+          phone?: string | null
+          sort_order?: number
+          staff_kind?: Database["public"]["Enums"]["staff_kind"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      staff_events: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          description: string | null
+          end_date: string | null
+          event_type: Database["public"]["Enums"]["staff_event_type"]
+          id: string
+          staff_member_id: string
+          start_date: string | null
+          status: Database["public"]["Enums"]["staff_event_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          description?: string | null
+          end_date?: string | null
+          event_type: Database["public"]["Enums"]["staff_event_type"]
+          id?: string
+          staff_member_id: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["staff_event_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          end_date?: string | null
+          event_type?: Database["public"]["Enums"]["staff_event_type"]
+          id?: string
+          staff_member_id?: string
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["staff_event_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_events_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_checklists: {
+        Row: {
+          created_at: string
+          id: string
+          is_done: boolean
+          label: string
+          sort_order: number
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_done?: boolean
+          label: string
+          sort_order?: number
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_done?: boolean
+          label?: string
+          sort_order?: number
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_checklists_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assigned_staff_id: string | null
+          category: string | null
+          completed_at: string | null
+          created_at: string
+          created_by_user_id: string
+          description: string | null
+          due_date: string | null
+          id: string
+          is_all_day: boolean
+          priority: Database["public"]["Enums"]["task_priority"]
+          related_machine_id: string | null
+          reminder_at: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_staff_id?: string | null
+          category?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_all_day?: boolean
+          priority?: Database["public"]["Enums"]["task_priority"]
+          related_machine_id?: string | null
+          reminder_at?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_staff_id?: string | null
+          category?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_all_day?: boolean
+          priority?: Database["public"]["Enums"]["task_priority"]
+          related_machine_id?: string | null
+          reminder_at?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_related_machine_id_fkey"
+            columns: ["related_machine_id"]
+            isOneToOne: false
+            referencedRelation: "machine_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       time_entries: {
         Row: {
@@ -103,6 +537,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_staff_member: {
+        Args: { _staff_member_id: string }
+        Returns: boolean
+      }
+      can_access_task: { Args: { _task_id: string }; Returns: boolean }
+      ensure_current_user_setup: {
+        Args: { _full_name?: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -113,6 +556,51 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "worker"
+      calendar_event_type:
+        | "task_deadline"
+        | "workday"
+        | "leave"
+        | "training"
+        | "medical_review"
+        | "course"
+        | "meeting"
+        | "itv"
+        | "maintenance"
+        | "personal"
+      machine_issue_horizon: "short_term" | "medium_term" | "long_term"
+      machine_issue_status: "open" | "monitoring" | "resolved"
+      machine_service_type:
+        | "maintenance"
+        | "inspection"
+        | "itv"
+        | "oil_hydraulic"
+        | "oil_engine"
+        | "coolant"
+        | "general_check"
+      machine_status:
+        | "active"
+        | "maintenance"
+        | "repair"
+        | "inspection"
+        | "inactive"
+      staff_event_status: "planned" | "active" | "completed" | "cancelled"
+      staff_event_type:
+        | "completed_work"
+        | "pending_work"
+        | "leave"
+        | "work_calendar"
+        | "medical_review"
+        | "training"
+        | "course"
+        | "note"
+      staff_kind: "worker" | "manager" | "admin_support"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status:
+        | "planned"
+        | "in_progress"
+        | "blocked"
+        | "completed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -241,6 +729,56 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "worker"],
+      calendar_event_type: [
+        "task_deadline",
+        "workday",
+        "leave",
+        "training",
+        "medical_review",
+        "course",
+        "meeting",
+        "itv",
+        "maintenance",
+        "personal",
+      ],
+      machine_issue_horizon: ["short_term", "medium_term", "long_term"],
+      machine_issue_status: ["open", "monitoring", "resolved"],
+      machine_service_type: [
+        "maintenance",
+        "inspection",
+        "itv",
+        "oil_hydraulic",
+        "oil_engine",
+        "coolant",
+        "general_check",
+      ],
+      machine_status: [
+        "active",
+        "maintenance",
+        "repair",
+        "inspection",
+        "inactive",
+      ],
+      staff_event_status: ["planned", "active", "completed", "cancelled"],
+      staff_event_type: [
+        "completed_work",
+        "pending_work",
+        "leave",
+        "work_calendar",
+        "medical_review",
+        "training",
+        "course",
+        "note",
+      ],
+      staff_kind: ["worker", "manager", "admin_support"],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: [
+        "planned",
+        "in_progress",
+        "blocked",
+        "completed",
+        "cancelled",
+      ],
     },
   },
 } as const
