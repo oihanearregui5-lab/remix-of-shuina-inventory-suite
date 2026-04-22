@@ -12,7 +12,7 @@ interface AdminMetrics {
 }
 
 const AdminHubView = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, canViewAdmin } = useAuth();
   const [metrics, setMetrics] = useState<AdminMetrics>({
     openTasks: 0,
     openIncidents: 0,
@@ -21,10 +21,10 @@ const AdminHubView = () => {
   });
 
   useEffect(() => {
-    if (isAdmin) {
+    if (canViewAdmin) {
       void loadMetrics();
     }
-  }, [isAdmin]);
+  }, [canViewAdmin]);
 
   const loadMetrics = async () => {
     const [tasksRes, incidentsRes, serviceRes, clockingsRes] = await Promise.all([
@@ -42,7 +42,7 @@ const AdminHubView = () => {
     });
   };
 
-  if (!isAdmin) {
+  if (!canViewAdmin) {
     return <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">Esta sección solo está visible para jefes y encargados.</div>;
   }
 
