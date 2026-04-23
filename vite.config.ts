@@ -17,13 +17,13 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      react: require.resolve("react"),
-      "react-dom": require.resolve("react-dom"),
-      "react/jsx-runtime": require.resolve("react/jsx-runtime"),
-      "react/jsx-dev-runtime": require.resolve("react/jsx-dev-runtime"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      { find: /^react$/, replacement: require.resolve("react") },
+      { find: /^react-dom$/, replacement: require.resolve("react-dom") },
+      { find: /^react\/jsx-runtime$/, replacement: require.resolve("react/jsx-runtime") },
+      { find: /^react\/jsx-dev-runtime$/, replacement: require.resolve("react/jsx-dev-runtime") },
+    ],
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
 }));
