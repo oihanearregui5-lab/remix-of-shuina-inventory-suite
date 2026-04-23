@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import beeLogo from "@/assets/bee-logo.png";
 
 const queryClient = new QueryClient();
 
@@ -15,8 +16,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
         <div className="hero-surface w-full max-w-md rounded-[28px] px-6 py-10 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] animate-pulse">
-            <span className="font-extrabold text-lg">T</span>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 shadow-[var(--shadow-elevated)] animate-pulse">
+            <img src={beeLogo} alt="Abeja Transtubari" className="h-10 w-10 object-contain" />
           </div>
           <div className="space-y-2">
             <p className="text-lg font-semibold text-foreground">Preparando tu espacio de trabajo</p>
