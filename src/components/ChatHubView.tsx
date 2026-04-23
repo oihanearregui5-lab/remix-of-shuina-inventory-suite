@@ -28,6 +28,7 @@ const ChatHubView = () => {
   const [savingChannel, setSavingChannel] = useState(false);
   const [showConversationOnMobile, setShowConversationOnMobile] = useState(false);
   const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>({});
+  const [lastChannelsSnapshot, setLastChannelsSnapshot] = useState<ChatChannelItem[]>([]);
   const listRef = useRef<HTMLDivElement | null>(null);
   const lastSeenStorageKey = user ? `chat-last-seen-${user.id}` : null;
 
@@ -111,7 +112,7 @@ const ChatHubView = () => {
         summaries[row.channel_id].unreadCount += 1;
       }
     }
-    for (const channel of channels) {
+    for (const channel of lastChannelsSnapshot) {
       if (!summaries[channel.id]) {
         summaries[channel.id] = {
           channelId: channel.id,
@@ -134,6 +135,7 @@ const ChatHubView = () => {
     }
     const loaded = (data ?? []) as ChatChannelItem[];
     setChannels(loaded);
+    setLastChannelsSnapshot(loaded);
     setActiveChannelId((current) => current || loaded[0]?.id || "");
     await fetchChannelSummaries();
     setLoadingChannels(false);
