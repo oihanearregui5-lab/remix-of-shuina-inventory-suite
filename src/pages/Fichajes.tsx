@@ -9,6 +9,8 @@ import { es } from "date-fns/locale";
 import PageHeader from "@/components/shared/PageHeader";
 import FichajeStatusCard from "@/components/fichajes/FichajeStatusCard";
 import FichajeHistoryList from "@/components/fichajes/FichajeHistoryList";
+import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
+import { useSmartReminders } from "@/hooks/useSmartReminders";
 
 interface TimeEntry {
   id: string;
@@ -23,6 +25,7 @@ interface TimeEntry {
 
 const Fichajes = () => {
   const { user } = useAuth();
+  const { reminders } = useSmartReminders();
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
   const [loading, setLoading] = useState(false);
@@ -133,6 +136,11 @@ const Fichajes = () => {
         eyebrow="Fichaje"
         title="Fichar rápido"
         description="Mira tu estado y pulsa una vez."
+      />
+
+      <SmartRemindersPanel
+        reminders={reminders.filter((reminder) => reminder.section === "fichajes" || reminder.section === "workReports")}
+        compact
       />
 
       <FichajeStatusCard
