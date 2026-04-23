@@ -76,10 +76,52 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "calendar_events_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "calendar_events_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_channel_members: {
+        Row: {
+          channel_id: string
+          created_at: string
+          created_by_user_id: string
+          id: string
+          membership_role: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          created_by_user_id: string
+          id?: string
+          membership_role?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          created_by_user_id?: string
+          id?: string
+          membership_role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_channel_members_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
             referencedColumns: ["id"]
           },
         ]
@@ -89,28 +131,37 @@ export type Database = {
           created_at: string
           created_by_user_id: string
           description: string | null
+          direct_message_key: string | null
           id: string
+          kind: string
           name: string
           slug: string
           updated_at: string
+          visibility: string
         }
         Insert: {
           created_at?: string
           created_by_user_id: string
           description?: string | null
+          direct_message_key?: string | null
           id?: string
+          kind?: string
           name: string
           slug: string
           updated_at?: string
+          visibility?: string
         }
         Update: {
           created_at?: string
           created_by_user_id?: string
           description?: string | null
+          direct_message_key?: string | null
           id?: string
+          kind?: string
           name?: string
           slug?: string
           updated_at?: string
+          visibility?: string
         }
         Relationships: []
       }
@@ -137,6 +188,42 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      company_calendar_days: {
+        Row: {
+          calendar_date: string
+          color_tag: string | null
+          created_at: string
+          created_by_user_id: string | null
+          day_type: string
+          id: string
+          notes: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          calendar_date: string
+          color_tag?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          day_type?: string
+          id?: string
+          notes?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          calendar_date?: string
+          color_tag?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          day_type?: string
+          id?: string
+          notes?: string | null
+          title?: string
           updated_at?: string
         }
         Relationships: []
@@ -182,8 +269,13 @@ export type Database = {
           display_name: string
           id: string
           license_plate: string | null
+          next_inspection_date: string | null
+          next_itv_date: string | null
           notes: string | null
           photo_url: string | null
+          provider_contact: string | null
+          provider_name: string | null
+          provider_notes: string | null
           status: Database["public"]["Enums"]["machine_status"]
           updated_at: string
         }
@@ -194,8 +286,13 @@ export type Database = {
           display_name: string
           id?: string
           license_plate?: string | null
+          next_inspection_date?: string | null
+          next_itv_date?: string | null
           notes?: string | null
           photo_url?: string | null
+          provider_contact?: string | null
+          provider_name?: string | null
+          provider_notes?: string | null
           status?: Database["public"]["Enums"]["machine_status"]
           updated_at?: string
         }
@@ -206,8 +303,13 @@ export type Database = {
           display_name?: string
           id?: string
           license_plate?: string | null
+          next_inspection_date?: string | null
+          next_itv_date?: string | null
           notes?: string | null
           photo_url?: string | null
+          provider_contact?: string | null
+          provider_name?: string | null
+          provider_notes?: string | null
           status?: Database["public"]["Enums"]["machine_status"]
           updated_at?: string
         }
@@ -259,6 +361,13 @@ export type Database = {
             columns: ["assigned_staff_id"]
             isOneToOne: false
             referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "machine_incidents_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -358,6 +467,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "machine_service_records_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "machine_service_records_machine_id_fkey"
             columns: ["machine_id"]
             isOneToOne: false
@@ -392,6 +508,7 @@ export type Database = {
       }
       staff_allowances: {
         Row: {
+          annual_hours_target: number
           created_at: string
           id: string
           notes: string | null
@@ -403,6 +520,7 @@ export type Database = {
           vacation_days_base: number
         }
         Insert: {
+          annual_hours_target?: number
           created_at?: string
           id?: string
           notes?: string | null
@@ -414,6 +532,7 @@ export type Database = {
           vacation_days_base?: number
         }
         Update: {
+          annual_hours_target?: number
           created_at?: string
           id?: string
           notes?: string | null
@@ -522,6 +641,13 @@ export type Database = {
             referencedRelation: "staff_directory"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "staff_events_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       staff_shifts: {
@@ -534,6 +660,7 @@ export type Database = {
           notes: string | null
           shift_date: string
           shift_label: string
+          shift_period: string | null
           staff_member_id: string
           starts_at: string | null
           updated_at: string
@@ -547,6 +674,7 @@ export type Database = {
           notes?: string | null
           shift_date: string
           shift_label: string
+          shift_period?: string | null
           staff_member_id: string
           starts_at?: string | null
           updated_at?: string
@@ -560,6 +688,7 @@ export type Database = {
           notes?: string | null
           shift_date?: string
           shift_label?: string
+          shift_period?: string | null
           staff_member_id?: string
           starts_at?: string | null
           updated_at?: string
@@ -665,6 +794,13 @@ export type Database = {
             columns: ["assigned_staff_id"]
             isOneToOne: false
             referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assigned_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -786,6 +922,39 @@ export type Database = {
       }
     }
     Views: {
+      staff_directory_public: {
+        Row: {
+          active: boolean | null
+          color_tag: string | null
+          full_name: string | null
+          id: string | null
+          is_supervisor: boolean | null
+          linked_user_id: string | null
+          sort_order: number | null
+          staff_kind: Database["public"]["Enums"]["staff_kind"] | null
+        }
+        Insert: {
+          active?: boolean | null
+          color_tag?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_supervisor?: boolean | null
+          linked_user_id?: string | null
+          sort_order?: number | null
+          staff_kind?: Database["public"]["Enums"]["staff_kind"] | null
+        }
+        Update: {
+          active?: boolean | null
+          color_tag?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_supervisor?: boolean | null
+          linked_user_id?: string | null
+          sort_order?: number | null
+          staff_kind?: Database["public"]["Enums"]["staff_kind"] | null
+        }
+        Relationships: []
+      }
       time_entries_with_profiles: {
         Row: {
           clock_in: string | null
@@ -805,11 +974,19 @@ export type Database = {
       }
     }
     Functions: {
+      can_access_chat_channel: {
+        Args: { _channel_id: string }
+        Returns: boolean
+      }
       can_access_staff_member: {
         Args: { _staff_member_id: string }
         Returns: boolean
       }
       can_access_task: { Args: { _task_id: string }; Returns: boolean }
+      can_manage_chat_channel: {
+        Args: { _channel_id: string }
+        Returns: boolean
+      }
       ensure_current_user_setup: {
         Args: { _full_name?: string }
         Returns: undefined
