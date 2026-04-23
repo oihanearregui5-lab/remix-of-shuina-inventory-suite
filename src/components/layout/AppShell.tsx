@@ -130,7 +130,7 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
               </div>
             </div>
           </header>
-          <main className="flex-1 px-4 pb-24 pt-4 md:px-8 md:py-8">
+          <main className="app-safe-bottom flex-1 px-4 pt-4 md:px-8 md:py-8">
             <div className="mx-auto flex w-full max-w-[1540px] flex-col gap-8">{children}</div>
           </main>
         </div>
