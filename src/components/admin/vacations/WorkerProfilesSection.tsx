@@ -1,20 +1,26 @@
 import { useMemo, useState } from "react";
 import { Clock3, SunMedium, UserSquare2 } from "lucide-react";
 import { format } from "date-fns";
-import type { VacationSlotItem, WorkerItem, WorkerYearSummaryItem } from "./vacation-types";
-import { formatHours } from "./vacation-utils";
+import { es } from "date-fns/locale";
+import type { HolidayItem, VacationSlotItem, WorkerItem, WorkerYearSummaryItem } from "./vacation-types";
+import { formatHours, getMonthMatrix, toDateKey } from "./vacation-utils";
 
 interface Props {
   workers: WorkerItem[];
   summaries: WorkerYearSummaryItem[];
   vacationSlots: VacationSlotItem[];
+  holidays: HolidayItem[];
 }
 
-const WorkerProfilesSection = ({ workers, summaries, vacationSlots }: Props) => {
+const weekDays = ["L", "M", "X", "J", "V", "S", "D"];
+
+const WorkerProfilesSection = ({ workers, summaries, vacationSlots, holidays }: Props) => {
   const [selectedWorkerId, setSelectedWorkerId] = useState(workers[0]?.id ?? "");
   const worker = workers.find((item) => item.id === selectedWorkerId) ?? workers[0] ?? null;
   const summary = useMemo(() => summaries.find((item) => item.worker_id === worker?.id) ?? null, [summaries, worker?.id]);
   const workerSlots = useMemo(() => vacationSlots.filter((slot) => slot.worker_id === worker?.id).slice(0, 18), [vacationSlots, worker?.id]);
+  const workerSlotKeys = useMemo(() => new Set(vacationSlots.filter((slot) => slot.worker_id === worker?.id).map((slot) => slot.date)), [vacationSlots, worker?.id]);
+  const holidaysByDate = useMemo(() => new Map(holidays.map((holiday) => [holiday.date, holiday])), [holidays]);
 
   return (
     <div className="grid gap-4 xl:grid-cols-[0.35fr_0.65fr]">
@@ -51,6 +57,61 @@ const WorkerProfilesSection = ({ workers, summaries, vacationSlots }: Props) => 
             <div className="rounded-lg border border-border bg-background p-4"><p className="text-sm text-muted-foreground">Horas realizadas</p><p className="mt-2 text-xl font-semibold text-foreground">{formatHours(summary?.worked_hours)}</p></div>
             <div className="rounded-lg border border-border bg-background p-4"><p className="text-sm text-muted-foreground">Horas restantes</p><p className="mt-2 text-xl font-semibold text-foreground">{formatHours(summary?.remaining_hours)}</p></div>
             <div className="rounded-lg border border-border bg-background p-4"><p className="text-sm text-muted-foreground">Vacaciones</p><p className="mt-2 text-xl font-semibold text-foreground">{(summary?.vacation_days_total ?? worker.worker_vacation_days).toFixed(2)} días</p></div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-background p-4">
+            <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground"><UserSquare2 className="h-4 w-4 text-primary" /> Calendario anual de {worker.display_name}</div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              {Array.from({ length: 12 }, (_, monthIndex) => {
+                const monthDate = new Date(2026, monthIndex, 1);
+                const monthWeeks = getMonthMatrix(monthDate);
+
+                return (
+                  <div key={monthIndex} className="rounded-lg border border-border bg-card p-3">
+                    <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{format(monthDate, "MMMM", { locale: es })}</p>
+                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-muted-foreground">
+                      {weekDays.map((day) => <span key={`${monthIndex}-${day}`}>{day}</span>)}
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {monthWeeks.map((week, weekIndex) => (
+                        <div key={`${monthIndex}-${weekIndex}`} className="grid grid-cols-7 gap-1">
+                          {week.map((date) => {
+                            const dateKey = toDateKey(date);
+                            const holiday = holidaysByDate.get(dateKey);
+                            const isCurrentMonth = date.getMonth() === monthIndex;
+                            const hasVacation = workerSlotKeys.has(dateKey);
+                            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                            return (
+                              <div
+                                key={dateKey}
+                                className={`flex aspect-square items-center justify-center rounded text-[10px] font-semibold ${
+                                  !isCurrentMonth
+                                    ? "text-transparent"
+                                    : hasVacation
+                                      ? "text-primary-foreground"
+                                      : holiday?.type === "festivo_nacional"
+                                        ? "bg-destructive text-destructive-foreground"
+                                        : holiday?.type === "cierre_fabrica"
+                                          ? "bg-warning text-foreground"
+                                          : isWeekend
+                                            ? "bg-muted text-muted-foreground"
+                                            : "text-foreground"
+                                }`}
+                                style={hasVacation ? { backgroundColor: worker.color_hex } : undefined}
+                                title={holiday?.label ?? (hasVacation ? `${worker.display_name} · vacaciones` : format(date, "dd/MM/yyyy"))}
+                              >
+                                {date.getDate()}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
