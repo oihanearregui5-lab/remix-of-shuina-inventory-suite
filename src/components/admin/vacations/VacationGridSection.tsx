@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { CalendarRange, Pencil, Save, Trash2, Users2 } from "lucide-react";
+import { CalendarRange, Download, Pencil, Plus, Save, Trash2, Users2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import * as XLSX from "xlsx";
 import type { HolidayItem, ShiftSlot, VacationSlotItem, VacationViewMode, WorkerItem } from "./vacation-types";
-import { getContrastTextColor, getDaysForView, getNextAnchorDate, SHIFT_LABELS, toDateKey, VIEW_LABELS } from "./vacation-utils";
+import { getDaysForView, getNextAnchorDate, toDateKey, VIEW_LABELS } from "./vacation-utils";
 
 interface Props {
   workers: WorkerItem[];
@@ -16,6 +17,7 @@ interface Props {
 }
 
 const shiftOrder: ShiftSlot[] = ["dia", "tarde", "noche"];
+const shortWeekDays = ["L", "M", "X", "J", "V", "S", "D"];
 
 const VacationGridSection = ({ workers, holidays, vacationSlots, onSaveVacationSlot, onDeleteVacationSlot, onUpdateWorker }: Props) => {
   const [viewMode, setViewMode] = useState<VacationViewMode>("month");
@@ -29,6 +31,15 @@ const VacationGridSection = ({ workers, holidays, vacationSlots, onSaveVacationS
   const days = useMemo(() => getDaysForView(anchorDate, viewMode === "year" ? "year" : viewMode), [anchorDate, viewMode]);
   const slotsByKey = useMemo(() => new Map(vacationSlots.map((slot) => [`${slot.date}-${slot.shift}-${slot.worker_id}`, slot])), [vacationSlots]);
   const holidaysByDate = useMemo(() => new Map(holidays.map((holiday) => [holiday.date, holiday])), [holidays]);
+  const slotsByDate = useMemo(() => {
+    const map = new Map<string, VacationSlotItem[]>();
+    vacationSlots.forEach((slot) => {
+      const current = map.get(slot.date) ?? [];
+      current.push(slot);
+      map.set(slot.date, current);
+    });
+    return map;
+  }, [vacationSlots]);
 
   const selectedSlot = selectedCell?.workerId ? slotsByKey.get(`${selectedCell.date}-${selectedCell.shift}-${selectedCell.workerId}`) ?? null : null;
 
@@ -39,11 +50,57 @@ const VacationGridSection = ({ workers, holidays, vacationSlots, onSaveVacationS
     setWorkerColorDraft(worker?.color_hex ?? "#1F77B4");
   };
 
+  const exportCurrentView = () => {
+    const workbook = XLSX.utils.book_new();
+    const rows = days.map((date) => {
+      const dateKey = toDateKey(date);
+      const daySlots = slotsByDate.get(dateKey) ?? [];
+      return {
+        Fecha: dateKey,
+        Festivo: holidaysByDate.get(dateKey)?.label ?? "",
+        Trabajadores: daySlots.map((slot) => workers.find((worker) => worker.id === slot.worker_id)?.display_name ?? slot.worker_id).join(", "),
+      };
+    });
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "Vacaciones");
+    XLSX.writeFile(workbook, `Vacaciones_${viewMode}_${format(anchorDate, "yyyy_MM")}.xlsx`);
+  };
+
+  const renderMonthlyDayCard = (date: Date) => {
+    const dateKey = toDateKey(date);
+    const daySlots = slotsByDate.get(dateKey) ?? [];
+    const holiday = holidaysByDate.get(dateKey);
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+    return (
+      <button
+        key={dateKey}
+        type="button"
+        onClick={() => setSelectedCell({ date: dateKey, shift: daySlots[0]?.shift ?? "dia", workerId: daySlots[0]?.worker_id ?? workers[0]?.id ?? null, slotId: daySlots[0]?.id })}
+        className={`min-h-[112px] rounded-lg border p-2 text-left transition-colors hover:border-primary ${holiday?.type === "festivo_nacional" ? "bg-destructive/5 border-destructive/30" : isWeekend ? "bg-muted/50" : "bg-card"}`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-sm font-bold text-foreground">{date.getDate()}</span>
+          {holiday ? <span className="text-[10px] font-semibold text-destructive">{holiday.label}</span> : null}
+        </div>
+        <div className="mt-3 space-y-1">
+          {daySlots.slice(0, 4).map((slot) => {
+            const worker = workers.find((item) => item.id === slot.worker_id);
+            if (!worker) return null;
+            return (
+              <div key={slot.id} className="truncate rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.04em] text-white" style={{ backgroundColor: worker.color_hex }}>
+                {worker.display_name}
+              </div>
+            );
+          })}
+          {daySlots.length > 4 ? <div className="text-[10px] font-medium text-muted-foreground">+{daySlots.length - 4} más</div> : null}
+        </div>
+      </button>
+    );
+  };
+
   const renderShiftCell = (dateKey: string, shift: ShiftSlot, worker: WorkerItem, compact = false) => {
     const slot = slotsByKey.get(`${dateKey}-${shift}-${worker.id}`);
     const holiday = holidaysByDate.get(dateKey);
-    const backgroundColor = slot ? worker.color_hex : undefined;
-    const color = slot ? getContrastTextColor(worker.color_hex) : undefined;
 
     return (
       <button
@@ -51,10 +108,10 @@ const VacationGridSection = ({ workers, holidays, vacationSlots, onSaveVacationS
         type="button"
         onClick={() => setSelectedCell({ date: dateKey, shift, workerId: slot ? worker.id : worker.id, slotId: slot?.id })}
         className={`flex min-h-[${compact ? "36" : "42"}px] items-center justify-center border text-[11px] font-semibold transition-colors ${slot ? "" : "bg-background text-muted-foreground hover:bg-muted/70"}`}
-        style={{ backgroundColor, color, borderColor: holiday?.type === "festivo_nacional" ? "hsl(var(--destructive))" : holiday?.type === "cierre_fabrica" ? "hsl(var(--warning))" : undefined }}
-        title={`${worker.display_name} · ${SHIFT_LABELS[shift]} · ${dateKey}`}
+        style={{ backgroundColor: slot ? worker.color_hex : undefined, color: slot ? "white" : undefined, borderColor: holiday?.type === "festivo_nacional" ? "hsl(var(--destructive))" : holiday?.type === "cierre_fabrica" ? "hsl(var(--warning))" : undefined }}
+        title={`${worker.display_name} · ${shift} · ${dateKey}`}
       >
-        {slot ? worker.display_name.slice(0, compact ? 1 : 3).toUpperCase() : SHIFT_LABELS[shift].slice(0, 1)}
+        {slot ? worker.display_name.slice(0, compact ? 2 : 3).toUpperCase() : shift.slice(0, 1).toUpperCase()}
       </button>
     );
   };
@@ -65,20 +122,32 @@ const VacationGridSection = ({ workers, holidays, vacationSlots, onSaveVacationS
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarRange className="h-4 w-4 text-primary" /> Rejilla de vacaciones</div>
-            <p className="mt-1 text-sm text-muted-foreground">Cada día se divide en Día, Tarde y Noche con el color del trabajador.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Vista mensual sin scroll horizontal, con chips de color por trabajador dentro de cada día.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {Object.entries(VIEW_LABELS).map(([value, label]) => <Button key={value} type="button" variant={viewMode === value ? "default" : "outline"} size="sm" onClick={() => setViewMode(value as VacationViewMode)}>{label}</Button>)}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background p-3">
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => setAnchorDate(getNextAnchorDate(anchorDate, viewMode === "year" ? "year" : viewMode, -1))}>Anterior</Button>
             <p className="text-sm font-semibold text-foreground">{viewMode === "year" ? anchorDate.getFullYear() : format(anchorDate, "MMMM yyyy")}</p>
             <Button type="button" variant="outline" size="sm" onClick={() => setAnchorDate(getNextAnchorDate(anchorDate, viewMode === "year" ? "year" : viewMode, 1))}>Siguiente</Button>
           </div>
-          <p className="text-xs text-muted-foreground">Bordes rojos = festivo nacional · bordes amarillos = cierre fábrica</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={exportCurrentView}><Download className="h-4 w-4" /> Exportar</Button>
+            <Button type="button" size="sm" onClick={() => setSelectedCell({ date: toDateKey(days[0] ?? anchorDate), shift: "dia", workerId: workers[0]?.id ?? null })}><Plus className="h-4 w-4" /> Añadir vacación</Button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 rounded-lg border border-dashed border-border bg-background px-3 py-3">
+          {workers.map((worker) => (
+            <button key={worker.id} type="button" onClick={() => selectWorkerToEdit(worker.id)} className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: worker.color_hex }}>{worker.display_name.slice(0, 2).toUpperCase()}</span>
+              {worker.display_name}
+            </button>
+          ))}
         </div>
 
         {viewMode === "year" ? (
@@ -99,6 +168,18 @@ const VacationGridSection = ({ workers, holidays, vacationSlots, onSaveVacationS
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        ) : viewMode === "month" ? (
+          <div className="space-y-2">
+            <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {shortWeekDays.map((day) => <div key={day}>{day}</div>)}
+            </div>
+            <div className="grid grid-cols-7 gap-2">
+              {Array.from({ length: new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1).getDay() === 0 ? 6 : new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1).getDay() - 1 }).map((_, index) => (
+                <div key={`empty-${index}`} className="min-h-[112px] rounded-lg border border-border bg-card/40 p-2 opacity-35" />
+              ))}
+              {days.map((date) => renderMonthlyDayCard(date))}
             </div>
           </div>
         ) : (
