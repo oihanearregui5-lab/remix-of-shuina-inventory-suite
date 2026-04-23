@@ -9,7 +9,7 @@ interface AuthContextType {
   isAdmin: boolean;
   canViewAdmin: boolean;
   profile: { full_name: string } | null;
-  role: "admin" | "worker";
+  role: "admin" | "secretary" | "worker";
   bootstrapUser: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -31,8 +31,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<"admin" | "secretary" | "worker">("worker");
   const [profile, setProfile] = useState<{ full_name: string } | null>(null);
-  const canViewAdmin = isAdmin;
+  const canViewAdmin = role === "admin" || role === "secretary";
 
   const bootstrapUser = async () => {
     const currentUser = (await supabase.auth.getUser()).data.user;
@@ -55,6 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }, 0);
       } else {
         setIsAdmin(false);
+        setRole("worker");
         setProfile(null);
         setLoading(false);
       }
@@ -87,8 +89,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Error cargando perfil", profileRes.error);
     }
 
-    const admin = rolesRes.data?.some((r) => r.role === "admin") ?? false;
+    const roles = rolesRes.data?.map((entry) => entry.role) ?? [];
+    const admin = roles.includes("admin");
+    const secretary = roles.includes("secretary");
     setIsAdmin(admin);
+    setRole(admin ? "admin" : secretary ? "secretary" : "worker");
     setProfile(profileRes.data ?? null);
     setLoading(false);
   };
@@ -98,7 +103,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, canViewAdmin, profile, role: isAdmin ? "admin" : "worker", bootstrapUser, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, canViewAdmin, profile, role, bootstrapUser, signOut }}>
       {children}
     </AuthContext.Provider>
   );

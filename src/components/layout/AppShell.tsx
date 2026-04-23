@@ -20,6 +20,7 @@ interface AppShellProps<T extends string> {
   onSectionChange: (section: T) => void;
   sections: AppShellSection<T>[];
   canViewAdmin: boolean;
+  isAdmin: boolean;
   workspaceMode: "worker" | "admin";
   onWorkspaceModeChange?: (mode: "worker" | "admin") => void;
   profileName?: string | null;
@@ -27,8 +28,8 @@ interface AppShellProps<T extends string> {
   children: React.ReactNode;
 }
 
-const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, currentSection, onSectionChange, sections, canViewAdmin, workspaceMode, onWorkspaceModeChange, profileName, onSignOut, children }: AppShellProps<T>) => {
-  const visibleSections = useMemo(() => sections.filter((section) => !section.adminOnly || canViewAdmin), [canViewAdmin, sections]);
+const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, currentSection, onSectionChange, sections, canViewAdmin, isAdmin, workspaceMode, onWorkspaceModeChange, profileName, onSignOut, children }: AppShellProps<T>) => {
+  const visibleSections = useMemo(() => sections.filter((section) => !section.adminOnly || isAdmin), [isAdmin, sections]);
   const activeSection = visibleSections.find((section) => section.key === currentSection) ?? visibleSections[0];
   const mobilePrimarySections = useMemo(() => {
     const preferredKeys = new Set(["fichajes", "tasks", canViewAdmin ? "admin" : "staff"]);
