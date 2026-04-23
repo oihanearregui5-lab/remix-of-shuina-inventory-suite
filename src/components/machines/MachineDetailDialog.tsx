@@ -22,12 +22,25 @@ export interface MachineDialogItem {
   plate: string;
   family: string;
   status: "active" | "maintenance" | "repair" | "inspection";
+  priority?: "critical" | "attention" | "stable";
   focus: string[];
   provider: string;
   nextInspection: string;
   nextIvt: string;
   fluids: string[];
   notes: MachineDialogNote[];
+  serviceOverview?: Array<{
+    id: string;
+    title: string;
+    status: string;
+    dueDate: string | null;
+  }>;
+  incidentOverview?: Array<{
+    id: string;
+    title: string;
+    status: string;
+    dueDate: string | null;
+  }>;
   usage: {
     totalHours30d: string;
     activeOperator: string;
@@ -64,6 +77,18 @@ const statusTone = {
   inspection: "bg-info/10 text-info",
 };
 
+const priorityTone = {
+  critical: "bg-destructive/10 text-destructive",
+  attention: "bg-warning/15 text-foreground",
+  stable: "bg-success/15 text-success",
+};
+
+const priorityLabel = {
+  critical: "Crítica",
+  attention: "Atención",
+  stable: "Estable",
+};
+
 const MachineDetailDialog = ({ open, machine, onOpenChange }: MachineDetailDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,6 +110,11 @@ const MachineDetailDialog = ({ open, machine, onOpenChange }: MachineDetailDialo
                 <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusTone[machine.status]}`}>
                   {statusLabel[machine.status]}
                 </span>
+                {machine.priority && (
+                  <span className={`ml-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${priorityTone[machine.priority]}`}>
+                    {priorityLabel[machine.priority]}
+                  </span>
+                )}
               </div>
               <div className="rounded-lg border border-border bg-card p-4">
                 <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
@@ -154,6 +184,38 @@ const MachineDetailDialog = ({ open, machine, onOpenChange }: MachineDetailDialo
                 {machine.focus.map((item) => (
                   <span key={item} className="rounded-full bg-muted px-2.5 py-1 text-xs text-foreground">{item}</span>
                 ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-lg border border-border bg-card p-4">
+                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+                  <CalendarClock className="h-4 w-4 text-primary" /> Mantenimientos
+                </div>
+                <div className="space-y-3">
+                  {(machine.serviceOverview?.length ?? 0) === 0 && <p className="text-sm text-muted-foreground">Sin mantenimientos destacados.</p>}
+                  {machine.serviceOverview?.map((item) => (
+                    <div key={item.id} className="rounded-lg bg-muted p-3">
+                      <p className="text-sm font-medium text-foreground">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">{item.status} · {item.dueDate ? format(new Date(item.dueDate), "d MMM yyyy", { locale: es }) : "Sin fecha"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-4">
+                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Wrench className="h-4 w-4 text-warning" /> Incidencias
+                </div>
+                <div className="space-y-3">
+                  {(machine.incidentOverview?.length ?? 0) === 0 && <p className="text-sm text-muted-foreground">Sin incidencias abiertas destacadas.</p>}
+                  {machine.incidentOverview?.map((item) => (
+                    <div key={item.id} className="rounded-lg bg-muted p-3">
+                      <p className="text-sm font-medium text-foreground">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">{item.status} · {item.dueDate ? format(new Date(item.dueDate), "d MMM yyyy", { locale: es }) : "Sin fecha"}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
