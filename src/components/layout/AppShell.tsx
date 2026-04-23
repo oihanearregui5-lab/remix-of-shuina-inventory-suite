@@ -39,7 +39,12 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
     <>
       <div className="border-b border-sidebar-border/70 px-5 py-5">
           <div className="space-y-2">
-            <img src={logoHorizontal} alt="Transtubari" className="h-10 w-auto object-contain" />
+            <div className="flex flex-col items-start gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sidebar-border/80 bg-sidebar-accent/60">
+                <img src="/favicon.svg" alt="Abeja Transtubari" className="h-8 w-8 object-contain" />
+              </div>
+              <img src={logoHorizontal} alt="Transtubari" className="h-8 w-auto object-contain" />
+            </div>
             <div className="min-w-0">
               <p className="truncate text-xs uppercase tracking-[0.16em] text-sidebar-foreground/60">Sistema de Fichajes</p>
               <p className="mt-1 text-sm font-semibold text-sidebar-foreground">{workspaceMode === "admin" ? "Modo administración" : "Modo trabajador"}</p>
