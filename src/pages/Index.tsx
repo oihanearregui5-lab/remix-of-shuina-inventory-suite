@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText } from "lucide-react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Fichajes from "@/pages/Fichajes";
 import AdminFichajes from "@/pages/AdminFichajes";
@@ -13,15 +13,17 @@ import GasolineHubView from "@/components/GasolineHubView";
 import WorkReportsHubView from "@/components/WorkReportsHubView";
 import VacationsJourneysView from "@/components/admin/VacationsJourneysView";
 import AdminAlbaranesView from "@/components/admin/AdminAlbaranesView";
+import PersonalNotesView from "@/components/PersonalNotesView";
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes";
 
 const sections: AppShellSection<AppSection>[] = [
   { key: "dashboard", label: "Inicio", description: "Estado actual y accesos rápidos.", icon: LayoutDashboard, workspace: "worker", mobilePrimary: true },
   { key: "workReports", label: "Parte", description: "Iniciar, seguir y finalizar trabajo.", icon: FileText, workspace: "worker", mobilePrimary: true },
   { key: "tasks", label: "Tareas", description: "Pendientes y prioridades del día.", icon: ClipboardList, workspace: "worker", mobilePrimary: true },
   { key: "chat", label: "Chat", description: "Mensajes internos del equipo.", icon: MessageSquare, workspace: "worker", mobilePrimary: true },
+  { key: "notes", label: "Mi espacio", description: "Notas privadas, rápidas y personales.", icon: NotebookPen, workspace: "worker", mobilePrimary: true },
   { key: "machines", label: "Máquinas", description: "Flota, incidencias y mantenimiento.", icon: Truck, workspace: "worker" },
   { key: "gasoline", label: "Gasolina", description: "Tarjetas y movimientos de repostaje.", icon: Fuel, workspace: "worker", mobilePrimary: true },
   { key: "staff", label: "Calendario", description: "Vacaciones, turnos y solicitudes.", icon: CalendarRange, workspace: "worker" },
@@ -53,7 +55,7 @@ const Index = () => {
   };
 
   const visibleSections = useMemo(() => {
-    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "machines", "gasoline", "staff"];
+    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "notes", "machines", "gasoline", "staff"];
     const adminSections: AppSection[] = role === "admin"
       ? ["admin", "fichajes", "workReports", "gasoline", "vacations", "albaranes", "staff"]
       : ["fichajes", "workReports", "gasoline", "vacations", "staff"];
@@ -93,6 +95,8 @@ const Index = () => {
         return <StaffHubView />;
       case "chat":
         return <ChatHubView />;
+      case "notes":
+        return <PersonalNotesView />;
       case "albaranes":
         return <AdminAlbaranesView />;
       case "admin":
