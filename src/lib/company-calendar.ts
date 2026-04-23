@@ -55,6 +55,39 @@ export const shiftPeriodTone: Record<ShiftPeriod, string> = {
   mixed: "bg-muted text-foreground border-border",
 };
 
+export const EXCEL_WORKER_COLORS: Record<string, string> = {
+  ADRIAN: "#0EA5E9",
+  AITOR: "#8B5CF6",
+  ANDRIY: "#EF4444",
+  FRAN: "#EF4444",
+  HAMID: "#EF4444",
+  JUAN: "#14B8A6",
+  LYUBEN: "#EF4444",
+  MANUEL: "#3B82F6",
+  MISAEL: "#F59E0B",
+  NELO: "#84CC16",
+  OLEK: "#06B6D4",
+  RAQUEL: "#F97316",
+  SILVIO: "#EF4444",
+};
+
+export const normalizeWorkerName = (value: string | null | undefined) => {
+  const normalized = (value ?? "")
+    .toUpperCase()
+    .replace("HACER", "")
+    .replace(" SIL", "")
+    .replace(" SM", "")
+    .replace(" MS", "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (normalized.startsWith("RAQUEL")) return "RAQUEL";
+  return normalized;
+};
+
+export const resolveWorkerColor = (workerName: string | null | undefined, fallback?: string | null) =>
+  EXCEL_WORKER_COLORS[normalizeWorkerName(workerName)] ?? fallback ?? "#94A3B8";
+
 export const getWeekDays = (selectedDate: Date) => {
   const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
   return Array.from({ length: 7 }, (_, index) => addDays(start, index));
