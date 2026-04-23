@@ -20,12 +20,14 @@ interface AppShellProps<T extends string> {
   onSectionChange: (section: T) => void;
   sections: AppShellSection<T>[];
   canViewAdmin: boolean;
+  workspaceMode: "worker" | "admin";
+  onWorkspaceModeChange?: (mode: "worker" | "admin") => void;
   profileName?: string | null;
   onSignOut: () => void | Promise<void>;
   children: React.ReactNode;
 }
 
-const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, currentSection, onSectionChange, sections, canViewAdmin, profileName, onSignOut, children }: AppShellProps<T>) => {
+const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, currentSection, onSectionChange, sections, canViewAdmin, workspaceMode, onWorkspaceModeChange, profileName, onSignOut, children }: AppShellProps<T>) => {
   const visibleSections = useMemo(() => sections.filter((section) => !section.adminOnly || canViewAdmin), [canViewAdmin, sections]);
   const activeSection = visibleSections.find((section) => section.key === currentSection) ?? visibleSections[0];
   const mobilePrimarySections = useMemo(() => {
@@ -40,6 +42,7 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
             <img src={logoHorizontal} alt="Transtubari" className="h-10 w-auto object-contain" />
             <div className="min-w-0">
               <p className="truncate text-xs uppercase tracking-[0.16em] text-sidebar-foreground/60">Sistema de Fichajes</p>
+              <p className="mt-1 text-sm font-semibold text-sidebar-foreground">{workspaceMode === "admin" ? "Modo administración" : "Modo trabajador"}</p>
             </div>
           </div>
       </div>
@@ -118,6 +121,30 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {canViewAdmin && onWorkspaceModeChange ? (
+                  <div className="hidden items-center gap-1 rounded-full border border-border/70 bg-card p-1 md:flex">
+                    <button
+                      type="button"
+                      onClick={() => onWorkspaceModeChange("worker")}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                        workspaceMode === "worker" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      Trabajador
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onWorkspaceModeChange("admin")}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                        workspaceMode === "admin" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      Administración
+                    </button>
+                  </div>
+                ) : null}
                 <div className="hidden rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground lg:flex">Operación en tiempo real</div>
                 <Button variant="outline" size="icon" aria-label="Notificaciones" className="hidden md:inline-flex">
                   <Bell className="h-4 w-4" />
@@ -129,7 +156,33 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
             </div>
           </header>
           <main className="app-safe-bottom flex-1 px-4 pt-4 md:px-8 md:py-8">
-            <div className="mx-auto flex w-full max-w-[1540px] flex-col gap-8">{children}</div>
+            <div className="mx-auto flex w-full max-w-[1540px] flex-col gap-4 md:gap-8">
+              {canViewAdmin && onWorkspaceModeChange ? (
+                <div className="flex items-center gap-2 overflow-x-auto md:hidden">
+                  <button
+                    type="button"
+                    onClick={() => onWorkspaceModeChange("worker")}
+                    className={cn(
+                      "rounded-full px-4 py-2 text-sm font-semibold transition-colors",
+                      workspaceMode === "worker" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"
+                    )}
+                  >
+                    👷 Trabajador
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onWorkspaceModeChange("admin")}
+                    className={cn(
+                      "rounded-full px-4 py-2 text-sm font-semibold transition-colors",
+                      workspaceMode === "admin" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"
+                    )}
+                  >
+                    🛠️ Administración
+                  </button>
+                </div>
+              ) : null}
+              {children}
+            </div>
           </main>
         </div>
       </div>
