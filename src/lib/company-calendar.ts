@@ -56,19 +56,19 @@ export const shiftPeriodTone: Record<ShiftPeriod, string> = {
 };
 
 export const EXCEL_WORKER_COLORS: Record<string, string> = {
-  ADRIAN: "#0EA5E9",
-  AITOR: "#8B5CF6",
-  ANDRIY: "#EF4444",
-  FRAN: "#EF4444",
-  HAMID: "#EF4444",
-  JUAN: "#14B8A6",
-  LYUBEN: "#EF4444",
-  MANUEL: "#3B82F6",
-  MISAEL: "#F59E0B",
-  NELO: "#84CC16",
-  OLEK: "#06B6D4",
-  RAQUEL: "#F97316",
-  SILVIO: "#EF4444",
+  ADRIAN: "hsl(198 89% 48%)",
+  AITOR: "hsl(262 83% 58%)",
+  ANDRIY: "hsl(0 84% 60%)",
+  FRAN: "hsl(0 84% 60%)",
+  HAMID: "hsl(0 84% 60%)",
+  JUAN: "hsl(173 80% 40%)",
+  LYUBEN: "hsl(0 84% 60%)",
+  MANUEL: "hsl(217 91% 60%)",
+  MISAEL: "hsl(38 92% 50%)",
+  NELO: "hsl(84 81% 44%)",
+  OLEK: "hsl(188 91% 42%)",
+  RAQUEL: "hsl(24 95% 53%)",
+  SILVIO: "hsl(0 84% 60%)",
 };
 
 export const normalizeWorkerName = (value: string | null | undefined) => {
@@ -86,7 +86,7 @@ export const normalizeWorkerName = (value: string | null | undefined) => {
 };
 
 export const resolveWorkerColor = (workerName: string | null | undefined, fallback?: string | null) =>
-  EXCEL_WORKER_COLORS[normalizeWorkerName(workerName)] ?? fallback ?? "#94A3B8";
+  EXCEL_WORKER_COLORS[normalizeWorkerName(workerName)] ?? fallback ?? "hsl(215 16% 65%)";
 
 export const getWeekDays = (selectedDate: Date) => {
   const start = startOfWeek(selectedDate, { weekStartsOn: 1 });

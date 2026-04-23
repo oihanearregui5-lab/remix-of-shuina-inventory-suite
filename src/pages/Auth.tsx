@@ -10,6 +10,12 @@ import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
 import logoHorizontal from "@/assets/logo-horizontal.png";
 
+const BeeMark = () => (
+  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
+    <img src="/favicon.svg" alt="Abeja Transtubari" className="h-10 w-10 object-contain" />
+  </div>
+);
+
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -129,10 +135,10 @@ const Auth = () => {
           <div className="panel-surface w-full max-w-xl p-6 md:p-8">
             <div className="mb-8 space-y-3 text-center xl:text-left">
               <div className="mx-auto xl:mx-0">
-                <img src={logoHorizontal} alt="Transtubari" className="h-12 w-auto object-contain" />
+                <BeeMark />
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">Transtubari</h1>
+                <img src={logoHorizontal} alt="Logo Transtubari" className="mx-auto h-10 w-auto object-contain xl:mx-0" />
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">Accede al sistema de fichajes, tareas y coordinación interna con una entrada simple y segura.</p>
               </div>
             </div>
