@@ -93,6 +93,19 @@ const Index = () => {
       profileName={profile?.full_name}
       onSignOut={signOut}
     >
+      <section className="panel-surface px-4 py-3 md:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Espacio activo</p>
+            <p className="text-sm font-semibold text-foreground">{workspaceMode === "admin" ? "Administración" : "Trabajador"}</p>
+          </div>
+          <p className="text-right text-xs text-muted-foreground">
+            {workspaceMode === "admin"
+              ? "Control global, calendarios y revisión"
+              : "Tus fichajes, tareas y vacaciones"}
+          </p>
+        </div>
+      </section>
       {renderCurrentSection()}
     </AppShell>
   );
