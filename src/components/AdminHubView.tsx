@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { AlertTriangle, CalendarDays, CalendarRange, CheckCircle2, Clock3, ShieldCheck, Users2, Wrench, XCircle } from "lucide-react";
+import { AlertTriangle, CalendarDays, CalendarRange, CheckCircle2, Clock3, FileText, Fuel, ReceiptText, ShieldCheck, Users2, Wrench, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
@@ -93,6 +93,13 @@ const AdminHubView = () => {
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Tareas abiertas</p><p className="mt-2 text-3xl font-bold text-foreground">{metrics.openTasks}</p></div>
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Averías pendientes</p><p className="mt-2 text-3xl font-bold text-foreground">{metrics.openIncidents}</p></div>
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Mantenimientos</p><p className="mt-2 text-3xl font-bold text-foreground">{metrics.serviceItems}</p></div>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><FileText className="h-4 w-4 text-primary" /> Parte de trabajo</div><p className="mt-2 text-sm text-foreground">Flujo iniciar / en curso / finalizar con corrección manual listo para crecer.</p></div>
+        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Fuel className="h-4 w-4 text-primary" /> Gasolina</div><p className="mt-2 text-sm text-foreground">Tarjetas, registros editables y base preparada para exportación Excel.</p></div>
+        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><ReceiptText className="h-4 w-4 text-primary" /> Albaranes</div><p className="mt-2 text-sm text-foreground">Sección reservada dentro del esqueleto administrativo para desarrollarla después.</p></div>
+        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><CalendarRange className="h-4 w-4 text-primary" /> Vacaciones y jornadas</div><p className="mt-2 text-sm text-foreground">Área central de planificación para trabajarlo por módulos sin perder coherencia.</p></div>
       </section>
 
       <section className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
