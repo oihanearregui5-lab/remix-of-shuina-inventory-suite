@@ -14,13 +14,13 @@ import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
-  { key: "fichajes", label: "Fichar", description: "Entrada, salida e historial de jornada.", icon: Clock },
-  { key: "dashboard", label: "Inicio", description: "Estado actual y accesos rápidos.", icon: LayoutDashboard },
-  { key: "tasks", label: "Tareas", description: "Agenda operativa, prioridades y calendario.", icon: ClipboardList },
-  { key: "machines", label: "Máquinas", description: "Flota, averías, mantenimiento y observaciones.", icon: Truck },
-  { key: "staff", label: "Personal", description: "Turnos, vacaciones y solicitudes del equipo.", icon: CalendarRange },
-  { key: "chat", label: "Chat", description: "Canales internos para coordinar la operación.", icon: MessageSquare },
-  { key: "admin", label: "Administración", description: "Control centralizado de validaciones y alertas.", icon: ShieldCheck, adminOnly: true },
+  { key: "fichajes", label: "Fichar", description: "Entrada, salida e historial.", icon: Clock },
+  { key: "dashboard", label: "Inicio", description: "Estado y accesos directos.", icon: LayoutDashboard },
+  { key: "tasks", label: "Tareas", description: "Agenda y prioridades.", icon: ClipboardList },
+  { key: "machines", label: "Máquinas", description: "Flota y mantenimiento.", icon: Truck },
+  { key: "staff", label: "Personal", description: "Turnos y vacaciones.", icon: CalendarRange },
+  { key: "chat", label: "Chat", description: "Mensajes internos.", icon: MessageSquare },
+  { key: "admin", label: "Admin", description: "Validaciones y control.", icon: ShieldCheck, adminOnly: true },
 ];
 
 const Index = () => {
