@@ -1,0 +1,91 @@
+{
+  "year": 2026,
+  "sourceWorkbook": "2026.xlsx",
+  "closureRange": {
+    "start": "2026-12-12",
+    "end": "2026-12-25"
+  },
+  "vacationAssignments": [],
+  "sheetSummaries": [
+    {
+      "sheet": "GENERICO",
+      "assignee": "Generico",
+      "note": null
+    },
+    {
+      "sheet": "VACACIONES",
+      "assignee": "2026",
+      "note": null
+    },
+    {
+      "sheet": "ADRIAN",
+      "assignee": "Generico",
+      "note": null
+    },
+    {
+      "sheet": "AITOR",
+      "assignee": "Andry",
+      "note": null
+    },
+    {
+      "sheet": "ANDRIY",
+      "assignee": "Andry",
+      "note": null
+    },
+    {
+      "sheet": "FRAN",
+      "assignee": "Fran",
+      "note": null
+    },
+    {
+      "sheet": "HAMID",
+      "assignee": "Hamid",
+      "note": null
+    },
+    {
+      "sheet": "JUAN",
+      "assignee": "Juan",
+      "note": null
+    },
+    {
+      "sheet": "LYUBEN",
+      "assignee": "Lyuben",
+      "note": null
+    },
+    {
+      "sheet": "MANUEL",
+      "assignee": "Manuel",
+      "note": null
+    },
+    {
+      "sheet": "MISAEL",
+      "assignee": "Nelo",
+      "note": null
+    },
+    {
+      "sheet": "NELO",
+      "assignee": "Nelo",
+      "note": null
+    },
+    {
+      "sheet": "SILVIO",
+      "assignee": "Silvio",
+      "note": null
+    },
+    {
+      "sheet": "OLEK",
+      "assignee": "Olek",
+      "note": null
+    },
+    {
+      "sheet": "RAQUEL HACER",
+      "assignee": "Raquel",
+      "note": null
+    },
+    {
+      "sheet": "fin de semana",
+      "assignee": "Massamba",
+      "note": null
+    }
+  ]
+}
