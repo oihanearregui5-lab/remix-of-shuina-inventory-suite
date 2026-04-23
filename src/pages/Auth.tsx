@@ -8,8 +8,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
-import logoHorizontal from "@/assets/logo-horizontal.png";
-
 const BeeMark = () => (
   <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
     <img src="/favicon.svg" alt="Abeja Transtubari" className="h-10 w-10 object-contain" />
