@@ -33,10 +33,10 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
   const visibleSections = useMemo(() => sections.filter((section) => !section.adminOnly || isAdmin), [isAdmin, sections]);
   const activeSection = visibleSections.find((section) => section.key === currentSection) ?? visibleSections[0];
   const mobilePrimarySections = useMemo(() => {
-    const pinned = visibleSections.filter((section) => section.mobilePrimary);
+    const preferred = visibleSections.filter((section) => section.mobilePrimary).slice(0, 5);
     const current = visibleSections.find((section) => section.key === currentSection);
-    const unique = [...pinned, current].filter((section, index, array) => section && array.findIndex((item) => item?.key === section.key) === index);
-    return unique.slice(0, 4);
+    const unique = [...preferred, current].filter((section, index, array) => section && array.findIndex((item) => item?.key === section.key) === index);
+    return unique.slice(0, 5);
   }, [currentSection, visibleSections]);
 
   const navigation = (
@@ -50,13 +50,12 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
-        <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50">Áreas de trabajo</div>
+        <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50">Navegación</div>
         <div className="space-y-5">
           {[
-            { key: "shared", label: workspaceMode === "admin" ? "Base operativa" : "Uso diario" },
-            { key: workspaceMode, label: workspaceMode === "admin" ? "Gestión y control" : "Trabajo y seguimiento" },
+            { key: workspaceMode, label: workspaceMode === "admin" ? "Administración" : "Trabajador" },
           ].map((group) => {
-            const groupSections = visibleSections.filter((section) => (section.workspace ?? "shared") === group.key || ((section.workspace ?? "shared") === "shared" && group.key === "shared"));
+            const groupSections = visibleSections.filter((section) => (section.workspace ?? "worker") === group.key);
             if (!groupSections.length) return null;
 
             return (
@@ -164,7 +163,7 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
                     </button>
                   </div>
                 ) : null}
-                <div className="hidden rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground lg:flex">Operación en tiempo real</div>
+                <div className="hidden rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground lg:flex">Herramienta operativa</div>
                 <Button variant="outline" size="icon" aria-label="Notificaciones" className="hidden md:inline-flex">
                   <Bell className="h-4 w-4" />
                 </Button>
@@ -207,7 +206,7 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/96 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-xl md:hidden">
-        <div className={cn("grid gap-2", mobilePrimarySections.length > 3 ? "grid-cols-4" : "grid-cols-3")}>
+        <div className={cn("grid gap-2", mobilePrimarySections.length >= 5 ? "grid-cols-5" : mobilePrimarySections.length === 4 ? "grid-cols-4" : "grid-cols-3")}>
           {mobilePrimarySections.map((section) => {
             const isActive = section.key === currentSection;
             const Icon = section.icon;
