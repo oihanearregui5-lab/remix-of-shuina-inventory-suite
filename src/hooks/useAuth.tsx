@@ -9,6 +9,7 @@ interface AuthContextType {
   isAdmin: boolean;
   canViewAdmin: boolean;
   profile: { full_name: string } | null;
+  role: "admin" | "worker";
   bootstrapUser: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   canViewAdmin: false,
   profile: null,
+  role: "worker",
   bootstrapUser: async () => {},
   signOut: async () => {},
 });
@@ -30,7 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<{ full_name: string } | null>(null);
-  const canViewAdmin = true;
+  const canViewAdmin = isAdmin;
 
   const bootstrapUser = async () => {
     const currentUser = (await supabase.auth.getUser()).data.user;
@@ -85,7 +87,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Error cargando perfil", profileRes.error);
     }
 
-    setIsAdmin(rolesRes.data?.some((r) => r.role === "admin") ?? false);
+    const admin = rolesRes.data?.some((r) => r.role === "admin") ?? false;
+    setIsAdmin(admin);
     setProfile(profileRes.data ?? null);
     setLoading(false);
   };
@@ -95,7 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, canViewAdmin, profile, bootstrapUser, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, canViewAdmin, profile, role: isAdmin ? "admin" : "worker", bootstrapUser, signOut }}>
       {children}
     </AuthContext.Provider>
   );

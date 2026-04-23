@@ -390,6 +390,42 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_allowances: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          personal_adjustment_days: number
+          personal_days_base: number
+          staff_member_id: string
+          updated_at: string
+          vacation_adjustment_days: number
+          vacation_days_base: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          personal_adjustment_days?: number
+          personal_days_base?: number
+          staff_member_id: string
+          updated_at?: string
+          vacation_adjustment_days?: number
+          vacation_days_base?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          personal_adjustment_days?: number
+          personal_days_base?: number
+          staff_member_id?: string
+          updated_at?: string
+          vacation_adjustment_days?: number
+          vacation_days_base?: number
+        }
+        Relationships: []
+      }
       staff_directory: {
         Row: {
           active: boolean
