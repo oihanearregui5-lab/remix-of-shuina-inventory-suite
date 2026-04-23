@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, CalendarRange, CheckCircle2, Clock3, ClipboardList, FileText, Fuel, MessageSquareMore } from "lucide-react";
-import { differenceInMinutes, format, startOfWeek } from "date-fns";
+import { differenceInMinutes, format, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,6 +10,8 @@ import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
+import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
+import { summarizeCurrentMonth } from "@/lib/time-balance";
 
 interface DashboardViewProps {
   onNavigate: (section: "fichajes" | "tasks" | "staff" | "chat" | "admin" | "gasoline" | "workReports" | "notes") => void;
@@ -36,8 +38,9 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
     const load = async () => {
       setLoading(true);
       const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString();
-      const [entriesRes, tasksRes, requestsRes, highlightsRes] = await Promise.all([
-        db.from("time_entries").select("id, clock_in, clock_out, created_at").order("clock_in", { ascending: false }).limit(12),
+        const monthStart = startOfMonth(new Date()).toISOString();
+        const [entriesRes, tasksRes, requestsRes, highlightsRes] = await Promise.all([
+          db.from("time_entries").select("id, clock_in, clock_out, created_at").gte("clock_in", monthStart).order("clock_in", { ascending: false }).limit(60),
         db.from("tasks").select("id, title, due_date, status, priority").order("due_date", { ascending: true }).limit(8),
         db.from("vacation_requests").select("id, request_type, start_date, end_date, status").order("created_at", { ascending: false }).limit(6),
         db.from("daily_highlights").select("id, title, summary, category").gte("created_at", weekStart).order("highlight_date", { ascending: false }).limit(4),
@@ -62,6 +65,7 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
   const latestEntry = entries[0] ?? null;
   const hours = Math.floor(workedTodayMinutes / 60);
   const minutes = workedTodayMinutes % 60;
+  const monthlyHoursSummary = useMemo(() => summarizeCurrentMonth(entries), [entries]);
 
   return (
     <div className="space-y-4 animate-fade-in md:space-y-6">
@@ -106,9 +110,11 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="Jornada" value={activeEntry ? "Activa" : "Parada"} hint={activeEntry ? `Desde las ${format(new Date(activeEntry.clock_in), "HH:mm", { locale: es })}` : "Sin fichaje abierto"} icon={Clock3} tone={activeEntry ? "danger" : "primary"} onClick={() => onNavigate("fichajes")} />
         <MetricCard title="Parte de trabajo" value={activeEntry ? "En marcha" : "Preparado"} hint="Inicio rápido y cierre simple" icon={FileText} tone="primary" onClick={() => onNavigate("workReports")} />
-        <MetricCard title="Tareas abiertas" value={pendingTasks.length} hint="Pendientes o en curso" icon={ClipboardList} tone="secondary" onClick={() => onNavigate("tasks")} />
+        <MetricCard title="Balance mensual" value={`${hours}h ${minutes}m`} hint={`${monthlyHoursSummary.balanceMinutes >= 0 ? "+" : ""}${Math.floor(monthlyHoursSummary.balanceMinutes / 60)}h ${Math.abs(monthlyHoursSummary.balanceMinutes % 60)}m vs objetivo hoy`} icon={ClipboardList} tone="secondary" onClick={() => onNavigate("fichajes")} />
         <MetricCard title="Calendario" value={requests.length} hint={`${pendingRequests.length} pendientes`} icon={CalendarRange} tone="success" onClick={() => onNavigate("staff")} />
       </section>
+
+      <HoursBalancePanel summary={monthlyHoursSummary} title="Horas del mes" description="Resumen automático de horas trabajadas, extra y faltantes con base de 8h por día laborable." compact />
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr] md:gap-6">
         <div className="panel-surface space-y-4 p-4 md:space-y-5 md:p-6">
