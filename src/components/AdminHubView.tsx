@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import EmptyState from "@/components/shared/EmptyState";
 import { buildClosureDates, NATIONAL_HOLIDAYS_BY_YEAR, resolveWorkerColor } from "@/lib/company-calendar";
 import { toast } from "sonner";
+import ExcelVacationPlanner from "@/components/admin/ExcelVacationPlanner";
 
 interface AdminMetrics { openTasks: number; openIncidents: number; serviceItems: number; activeClockings: number }
 interface DailyHighlight { id: string; title: string; summary: string | null; category: string }
@@ -193,6 +194,8 @@ const AdminHubView = () => {
                   </div>
                 </div>
               </div>
+
+              <ExcelVacationPlanner />
             </div>
           </section>
 
