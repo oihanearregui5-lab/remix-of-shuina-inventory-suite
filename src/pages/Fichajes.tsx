@@ -11,6 +11,8 @@ import FichajeStatusCard from "@/components/fichajes/FichajeStatusCard";
 import FichajeHistoryList from "@/components/fichajes/FichajeHistoryList";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
+import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
+import { summarizeCurrentMonth } from "@/lib/time-balance";
 
 interface TimeEntry {
   id: string;
@@ -129,6 +131,7 @@ const Fichajes = () => {
     if (historyFilter === "closed") return !!entry.clock_out;
     return true;
   });
+  const monthlyHoursSummary = summarizeCurrentMonth(entries);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -152,6 +155,8 @@ const Fichajes = () => {
         lastMovementLabel={lastMovementLabel}
         onPrimaryAction={activeEntry ? handleClockOut : handleClockIn}
       />
+
+      <HoursBalancePanel summary={monthlyHoursSummary} title="Balance automático" description="Horas trabajadas este mes frente al objetivo de 8h por día laborable." compact />
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">

@@ -9,6 +9,8 @@ import { format, differenceInMinutes, startOfMonth, endOfMonth } from "date-fns"
 import { es } from "date-fns/locale";
 import WorkerLiveStatusPanel from "@/components/shared/WorkerLiveStatusPanel";
 import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
+import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
+import { formatMinutes, summarizeEntriesForRange } from "@/lib/time-balance";
 
 interface EntryWithProfile {
   id: string;
@@ -102,6 +104,7 @@ const AdminFichajes = () => {
     },
     {}
   );
+  const adminHoursSummary = summarizeEntriesForRange(entries, new Date(`${dateFrom}T00:00:00`), new Date(`${dateTo}T23:59:59`));
 
   return (
     <div className="animate-fade-in">
@@ -184,6 +187,39 @@ const AdminFichajes = () => {
           description="Vista viva del equipo según fichajes abiertos y partes activos."
           compact
         />
+      </div>
+
+      <div className="mb-8 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <HoursBalancePanel
+          summary={adminHoursSummary}
+          title="Balance del rango"
+          description="Cálculo global de horas frente al objetivo de 8h por día laborable dentro del rango filtrado."
+        />
+
+        <section className="panel-surface p-4 md:p-5">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Balance por trabajador</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Lectura rápida del rango seleccionado.</p>
+          </div>
+          <div className="mt-4 space-y-3">
+            {Object.entries(byEmployee).map(([userId, { name, entries: empEntries }]) => {
+              const personSummary = summarizeEntriesForRange(empEntries, new Date(`${dateFrom}T00:00:00`), new Date(`${dateTo}T23:59:59`));
+              return (
+                <div key={userId} className="rounded-xl border border-border bg-background px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-foreground">{name}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Trabajadas {formatMinutes(personSummary.workedMinutes)} · Extra {formatMinutes(personSummary.overtimeMinutes)} · Faltantes {formatMinutes(personSummary.missingMinutes)}</p>
+                    </div>
+                    <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                      {formatMinutes(personSummary.balanceMinutes)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
       {/* By employee */}
