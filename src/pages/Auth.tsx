@@ -8,8 +8,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
-import logoHorizontal from "@/assets/logo-horizontal.png";
-
 const BeeMark = () => (
   <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)]">
     <img src="/favicon.svg" alt="Abeja Transtubari" className="h-10 w-10 object-contain" />
@@ -138,7 +136,7 @@ const Auth = () => {
                 <BeeMark />
               </div>
               <div>
-                <img src={logoHorizontal} alt="Logo Transtubari" className="mx-auto h-10 w-auto object-contain xl:mx-0" />
+                <p className="text-lg font-semibold text-foreground">Acceso seguro</p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">Accede al sistema de fichajes, tareas y coordinación interna con una entrada simple y segura.</p>
               </div>
             </div>

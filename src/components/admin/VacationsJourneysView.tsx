@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BriefcaseBusiness, CalendarRange, Clock3, UserSquare2 } from "lucide-react";
+import { BriefcaseBusiness, CalendarRange, Clock3, LayoutGrid, UserSquare2 } from "lucide-react";
 import { differenceInMinutes } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,12 +9,14 @@ import VacationClockingsSection from "./vacations/VacationClockingsSection";
 import VacationGeneralCalendarSection from "./vacations/VacationGeneralCalendarSection";
 import VacationGridSection from "./vacations/VacationGridSection";
 import WorkerProfilesSection from "./vacations/WorkerProfilesSection";
+import ExcelVacationPlanner from "./ExcelVacationPlanner";
 import type { FichajeRow, HolidayItem, ShiftSlot, TimeEntryItem, VacationSlotItem, WorkerItem, WorkerYearSummaryItem } from "./vacations/vacation-types";
 
 const sections = [
   { key: "clockings", label: "Fichajes", icon: Clock3 },
   { key: "general", label: "Calendario general", icon: CalendarRange },
   { key: "vacations", label: "Vacaciones", icon: BriefcaseBusiness },
+  { key: "excel", label: "Excel real", icon: LayoutGrid },
   { key: "workers", label: "Ficha por trabajador", icon: UserSquare2 },
 ] as const;
 
@@ -144,7 +146,8 @@ const VacationsJourneysView = () => {
       {activeSection === "clockings" ? <VacationClockingsSection rows={clockingRows} workers={workers} /> : null}
       {activeSection === "general" ? <VacationGeneralCalendarSection holidays={holidays} onSaveHoliday={saveHoliday} onDeleteHoliday={deleteHoliday} /> : null}
       {activeSection === "vacations" ? <VacationGridSection workers={workers} holidays={holidays} vacationSlots={vacationSlots} onSaveVacationSlot={saveVacationSlot} onDeleteVacationSlot={deleteVacationSlot} onUpdateWorker={updateWorker} /> : null}
-      {activeSection === "workers" ? <WorkerProfilesSection workers={workers} summaries={summaries} vacationSlots={vacationSlots} /> : null}
+      {activeSection === "excel" ? <ExcelVacationPlanner /> : null}
+      {activeSection === "workers" ? <WorkerProfilesSection workers={workers} summaries={summaries} vacationSlots={vacationSlots} holidays={holidays} /> : null}
     </div>
   );
 };
