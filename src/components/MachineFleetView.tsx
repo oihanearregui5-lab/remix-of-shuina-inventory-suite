@@ -141,7 +141,7 @@ const MachineFleetView = () => {
       openIncidents * 2 +
       pendingServices +
       dueSoonCount;
-    const riskLevel = riskScore >= 6 ? "critical" : riskScore >= 3 ? "attention" : "stable";
+    const riskLevel: "critical" | "attention" | "stable" = riskScore >= 6 ? "critical" : riskScore >= 3 ? "attention" : "stable";
 
     return {
       ...machine,
