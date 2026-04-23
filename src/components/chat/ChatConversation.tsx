@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { ArrowLeft, Loader2, Pencil, SendHorizonal, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, type RefObject } from "react";
 import EmptyState from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,7 +26,7 @@ interface ChatConversationProps {
   onStartEdit: (message: ChatMessageItem) => void;
   onCancelEdit: () => void;
   onDeleteMessage: (messageId: string) => void;
-  listRef: React.RefObject<HTMLDivElement>;
+  listRef: RefObject<HTMLDivElement>;
 }
 
 const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, messages, loading, sending, error, draft, editingMessageId, authorNames, onBack, onDraftChange, onSend, onStartEdit, onCancelEdit, onDeleteMessage, listRef }: ChatConversationProps) => {

@@ -88,7 +88,7 @@ const ChatChannelList = ({ activeChannelId, channels, summaries, isAdmin, loadin
                       <div className="flex items-center gap-2">
                         {unreadCount > 0 ? <span className="min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[10px] font-semibold text-primary-foreground">{unreadCount > 9 ? "9+" : unreadCount}</span> : null}
                         {isAdmin ? (
-                          <div className="hidden items-center gap-1 md:flex">
+                          <div className="flex items-center gap-1">
                             <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-background text-muted-foreground" onClick={(event) => { event.stopPropagation(); onEdit(channel); }}>
                               <Pencil className="h-3.5 w-3.5" />
                             </span>
