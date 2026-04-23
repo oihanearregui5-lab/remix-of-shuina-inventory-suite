@@ -138,7 +138,7 @@ const Auth = () => {
                 <BeeMark />
               </div>
               <div>
-                <img src={logoHorizontal} alt="Logo Transtubari" className="mx-auto h-10 w-auto object-contain xl:mx-0" />
+                <p className="text-lg font-semibold text-foreground">Acceso seguro</p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">Accede al sistema de fichajes, tareas y coordinación interna con una entrada simple y segura.</p>
               </div>
             </div>
