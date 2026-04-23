@@ -9,9 +9,10 @@ import DashboardView from "@/components/DashboardView";
 import AdminHubView from "@/components/AdminHubView";
 import StaffHubView from "@/components/StaffHubView";
 import ChatHubView from "@/components/ChatHubView";
+import VacationsJourneysView from "@/components/admin/VacationsJourneysView";
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "admin";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "admin" | "vacations";
 
 const sections: AppShellSection<AppSection>[] = [
   { key: "fichajes", label: "Fichar", description: "Entrada, salida e historial.", icon: Clock },
@@ -20,6 +21,7 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "machines", label: "Máquinas", description: "Flota y mantenimiento.", icon: Truck },
   { key: "staff", label: "Personal", description: "Turnos y vacaciones.", icon: CalendarRange },
   { key: "chat", label: "Chat", description: "Mensajes internos.", icon: MessageSquare },
+  { key: "vacations", label: "Vacaciones", description: "Jornadas, Excel y calendario.", icon: CalendarRange },
   { key: "admin", label: "Admin", description: "Validaciones y control.", icon: ShieldCheck, adminOnly: true },
 ];
 
@@ -27,7 +29,7 @@ const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentSection, setCurrentSection] = useState<AppSection>("fichajes");
   const [workspaceMode, setWorkspaceMode] = useState<"worker" | "admin">("worker");
-  const { canViewAdmin, profile, signOut } = useAuth();
+  const { canViewAdmin, isAdmin, profile, role, signOut } = useAuth();
 
   useEffect(() => {
     if (!canViewAdmin && workspaceMode === "admin") {
@@ -43,10 +45,12 @@ const Index = () => {
 
   const visibleSections = useMemo(() => {
     const workerSections: AppSection[] = ["fichajes", "dashboard", "tasks", "machines", "staff", "chat"];
-    const adminSections: AppSection[] = ["admin", "fichajes", "staff", "tasks", "machines", "chat"];
+    const adminSections: AppSection[] = role === "admin"
+      ? ["vacations", "admin", "fichajes", "staff", "tasks", "machines", "chat"]
+      : ["vacations", "fichajes", "staff", "tasks", "machines", "chat"];
     const allowed = workspaceMode === "admin" && canViewAdmin ? adminSections : workerSections;
     return sections.filter((section) => allowed.includes(section.key) && (!section.adminOnly || canViewAdmin));
-  }, [canViewAdmin, workspaceMode]);
+  }, [canViewAdmin, role, workspaceMode]);
 
   useEffect(() => {
     if (!visibleSections.some((section) => section.key === currentSection)) {
@@ -56,7 +60,7 @@ const Index = () => {
 
   const handleWorkspaceModeChange = (mode: "worker" | "admin") => {
     setWorkspaceMode(mode);
-    setCurrentSection(mode === "admin" ? "admin" : "fichajes");
+    setCurrentSection(mode === "admin" ? (role === "admin" ? "admin" : "vacations") : "fichajes");
     setMobileMenuOpen(false);
   };
 
@@ -74,6 +78,8 @@ const Index = () => {
         return <ChatHubView />;
       case "admin":
         return <AdminHubView />;
+      case "vacations":
+        return <VacationsJourneysView />;
       case "fichajes":
       default:
         return workspaceMode === "admin" && canViewAdmin ? <AdminFichajes /> : <Fichajes />;
@@ -88,6 +94,7 @@ const Index = () => {
       onSectionChange={handleSectionChange}
       sections={visibleSections}
       canViewAdmin={canViewAdmin}
+      isAdmin={isAdmin}
       workspaceMode={workspaceMode}
       onWorkspaceModeChange={canViewAdmin ? handleWorkspaceModeChange : undefined}
       profileName={profile?.full_name}
