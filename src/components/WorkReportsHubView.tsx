@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
+import { useSmartReminders } from "@/hooks/useSmartReminders";
 
 type WorkReport = {
   id: string;
@@ -106,6 +108,7 @@ interface WorkReportsHubViewProps {
 const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) => {
   const { profile, user, role } = useAuth();
   const db = supabase as any;
+  const { reminders } = useSmartReminders();
   const defaultWorkerName = profile?.full_name ?? "Trabajador";
   const [reports, setReports] = useState<WorkReport[]>([]);
   const [draft, setDraft] = useState<DraftState>(() => buildInitialDraft(defaultWorkerName));
@@ -295,6 +298,8 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
         title="Parte de trabajo"
         description={isAdminView ? "Control real de partes con edición manual, validaciones y seguimiento fiable." : "Flujo rápido para iniciar, retomar y finalizar tareas sin errores típicos del día a día."}
       />
+
+      {!isAdminView ? <SmartRemindersPanel reminders={reminders.filter((reminder) => reminder.section === "workReports" || reminder.section === "fichajes")} compact /> : null}
 
       <section className="grid gap-3 md:grid-cols-3">
         <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Estado actual</p><p className="mt-2 text-lg font-semibold text-foreground">{activeReport ? "En curso" : "Sin parte activo"}</p></div>
