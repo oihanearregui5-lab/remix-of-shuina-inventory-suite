@@ -72,6 +72,18 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
       .slice(0, 6);
   }, [holidaysByDate, monthDate, vacationSlots, workersById]);
 
+  const visibleWindowStats = useMemo(() => {
+    const visibleDates = viewMode === "day" ? [anchorDate] : viewMode === "week" ? weekDaysRange : monthGrid.flat();
+    const visibleKeys = new Set(visibleDates.map((date) => toDateKey(date)));
+    const visibleSlots = vacationSlots.filter((slot) => visibleKeys.has(slot.date) && (!selectedWorkerId || slot.worker_id === selectedWorkerId));
+    const coveredDays = new Set(visibleSlots.map((slot) => slot.date)).size;
+    const visibleHolidays = holidays.filter((holiday) => visibleKeys.has(holiday.date)).length;
+    const visibleWorkers = new Set(visibleSlots.map((slot) => slot.worker_id)).size;
+    return { visibleSlots: visibleSlots.length, coveredDays, visibleHolidays, visibleWorkers };
+  }, [anchorDate, holidays, monthGrid, selectedWorkerId, vacationSlots, viewMode, weekDaysRange]);
+
+  const nextHolidayMilestones = useMemo(() => holidays.filter((holiday) => new Date(holiday.date) >= new Date(anchorDate)).slice(0, 3), [anchorDate, holidays]);
+
   const exportMonth = () => {
     const workbook = XLSX.utils.book_new();
     const rows = monthGrid.flat().map((date) => {
@@ -369,6 +381,30 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
           <p className="mt-3 text-2xl font-bold text-foreground">{selectedWorkerId ? `${((summaries.find((item) => item.worker_id === selectedWorkerId)?.remaining_hours) ?? 0).toFixed(2)} h` : `${workers.length} pers.`}</p>
           <p className="mt-1 text-sm text-muted-foreground">{selectedWorkerId ? "Horas pendientes del trabajador activo." : "Trabajadores disponibles en planificación."}</p>
         </div>
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
+        <section className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarDays className="h-4 w-4 text-primary" /> Lectura operativa del periodo</div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl bg-muted px-3 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Franjas visibles</p><p className="mt-1 text-lg font-semibold text-foreground">{visibleWindowStats.visibleSlots}</p></div>
+            <div className="rounded-xl bg-muted px-3 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Días cubiertos</p><p className="mt-1 text-lg font-semibold text-foreground">{visibleWindowStats.coveredDays}</p></div>
+            <div className="rounded-xl bg-muted px-3 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Festivos</p><p className="mt-1 text-lg font-semibold text-foreground">{visibleWindowStats.visibleHolidays}</p></div>
+            <div className="rounded-xl bg-muted px-3 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Operarios</p><p className="mt-1 text-lg font-semibold text-foreground">{selectedWorkerId ? 1 : visibleWindowStats.visibleWorkers}</p></div>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><TriangleAlert className="h-4 w-4 text-primary" /> Próximos hitos</div>
+          <div className="mt-4 space-y-2">
+            {nextHolidayMilestones.length === 0 ? <div className="rounded-xl bg-muted px-4 py-6 text-sm text-muted-foreground">No hay festivos próximos en el horizonte visible.</div> : nextHolidayMilestones.map((holiday) => (
+              <div key={holiday.id} className="rounded-xl border border-border bg-background px-4 py-3">
+                <p className="font-medium text-foreground">{holiday.label}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{format(new Date(holiday.date), "EEEE d MMMM yyyy", { locale: es })}</p>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
