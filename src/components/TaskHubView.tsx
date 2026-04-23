@@ -129,9 +129,12 @@ const TaskHubView = () => {
     void fetchTasks();
   };
 
-  const updateTaskStatus = async (taskId: string, status: TaskStatus) => {
+  const updateTaskStatus = async (taskId: string, status: TaskStatus): Promise<void> => {
     const { error } = await db.from("tasks").update({ status, completed_at: status === "completed" ? new Date().toISOString() : null }).eq("id", taskId);
-    if (error) return toast.error("No se pudo actualizar la tarea");
+    if (error) {
+      toast.error("No se pudo actualizar la tarea");
+      return;
+    }
     setTasks((current) => current.map((task) => (task.id === taskId ? { ...task, status, completed_at: status === "completed" ? new Date().toISOString() : null } : task)));
   };
 
@@ -186,7 +189,10 @@ const TaskHubView = () => {
                 </button>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Button size="sm" variant="soft" onClick={() => setForm({ title: task.title, description: task.description || "", category: task.category || "General", due_date: task.due_date || "", priority: task.priority, assigned_staff_id: task.assigned_staff_id || "unassigned" }) || setEditingId(task.id)}>
+                  <Button size="sm" variant="soft" onClick={() => {
+                    setForm({ title: task.title, description: task.description || "", category: task.category || "General", due_date: task.due_date || "", priority: task.priority, assigned_staff_id: task.assigned_staff_id || "unassigned" });
+                    setEditingId(task.id);
+                  }}>
                     <Pencil className="h-4 w-4" /> Editar
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => void updateTaskStatus(task.id, task.status === "completed" ? "planned" : "completed")}>
