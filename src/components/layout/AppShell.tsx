@@ -172,6 +172,15 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
                 </Button>
               </div>
             </div>
+            <div className="border-t border-border/60 px-4 py-2 md:px-8">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="rounded-full bg-card px-3 py-1 font-medium text-foreground">
+                  {workspaceMode === "admin" ? "Modo administración" : "Modo trabajador"}
+                </span>
+                <span className="rounded-full bg-card px-3 py-1">{visibleSections.length} módulos activos</span>
+                <span className="rounded-full bg-card px-3 py-1">Panel actual: {activeSection?.label}</span>
+              </div>
+            </div>
           </header>
           <main className="app-safe-bottom flex-1 px-4 pt-4 md:px-8 md:py-8">
             <div className="mx-auto flex w-full max-w-[1540px] flex-col gap-4 md:gap-8">
