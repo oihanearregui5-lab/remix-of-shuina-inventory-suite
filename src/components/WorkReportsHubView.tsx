@@ -204,22 +204,22 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
       />
 
       <section className="grid gap-3 md:grid-cols-3">
-        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Estado actual</p><p className="mt-2 text-lg font-semibold text-foreground">{activeReport ? "Parte en curso" : "Sin parte abierto"}</p></div>
-        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Partes cerrados</p><p className="mt-2 text-lg font-semibold text-foreground">{completedReports.length}</p></div>
-        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Corrección manual</p><p className="mt-2 text-lg font-semibold text-foreground">Activada</p></div>
+        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Estado actual</p><p className="mt-2 text-lg font-semibold text-foreground">{activeReport ? "En curso" : "Sin parte activo"}</p></div>
+        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Historial</p><p className="mt-2 text-lg font-semibold text-foreground">{completedReports.length} cerrados</p></div>
+        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Edición manual</p><p className="mt-2 text-lg font-semibold text-foreground">Disponible</p></div>
       </section>
 
       {activeReport ? (
         <Card className="border-primary/25 bg-primary/5 shadow-[var(--shadow-soft)]">
           <CardHeader className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-lg"><PlayCircle className="h-5 w-5 text-primary" /> Parte en curso</CardTitle>
-            <p className="text-sm text-muted-foreground">El parte sigue contando aunque cierres la app. Al volver, recupera el estado desde el dispositivo y permite corregir la hora real.</p>
+            <p className="text-sm text-muted-foreground">El parte queda claramente activo, sigue corriendo al cerrar la app y permite corregir la hora real cuando haga falta.</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 md:grid-cols-4">
               <div className="rounded-xl bg-card px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Trabajador</p><p className="mt-1 font-semibold text-foreground">{activeReport.workerName}</p></div>
               <div className="rounded-xl bg-card px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Inicio</p><p className="mt-1 font-semibold text-foreground">{new Date(activeReport.startedAt).toLocaleString("es-ES")}</p></div>
-              <div className="rounded-xl bg-card px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Tiempo en vivo</p><p className="mt-1 font-semibold text-foreground">{elapsedLabel}</p></div>
+              <div className="rounded-xl border border-primary/20 bg-card px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Tiempo en vivo</p><p className="mt-1 text-lg font-semibold text-foreground">{elapsedLabel}</p></div>
               <div className="rounded-xl bg-card px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Duración aprox.</p><p className="mt-1 font-semibold text-foreground">{activeDurationMinutes} min</p></div>
             </div>
 
@@ -260,7 +260,7 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button size="lg" onClick={finishReport}><PauseCircle className="h-4 w-4" /> Finalizar parte</Button>
+              <Button size="lg" className="min-h-12 min-w-[220px]" onClick={finishReport}><PauseCircle className="h-4 w-4" /> Finalizar parte</Button>
               <Button variant="outline" size="lg" onClick={() => setDraft((current) => ({ ...current, endedAt: toLocalInputValue(new Date()) }))}><TimerReset className="h-4 w-4" /> Ajustar fin a ahora</Button>
             </div>
           </CardContent>
@@ -269,7 +269,7 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
         <Card className="shadow-[var(--shadow-soft)]">
           <CardHeader className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-lg"><Hammer className="h-5 w-5 text-primary" /> Crear parte</CardTitle>
-            <p className="text-sm text-muted-foreground">Rellena lo justo para arrancar. El resto queda preparado para completarse o corregirse cuando haga falta.</p>
+            <p className="text-sm text-muted-foreground">Solo lo justo para empezar. Después podrás seguir, corregir horas y cerrar el parte sin fricción.</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -303,7 +303,7 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
               </div>
             </div>
 
-            <Button size="lg" onClick={startReport}><PlayCircle className="h-4 w-4" /> Iniciar parte</Button>
+            <Button size="lg" className="min-h-12 min-w-[220px]" onClick={startReport}><PlayCircle className="h-4 w-4" /> Iniciar parte</Button>
           </CardContent>
         </Card>
       )}
@@ -311,7 +311,7 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
       <Card className="shadow-[var(--shadow-soft)]">
         <CardHeader className="space-y-2">
           <CardTitle className="flex items-center gap-2 text-lg"><Clock3 className="h-5 w-5 text-primary" /> Historial de partes</CardTitle>
-          <p className="text-sm text-muted-foreground">Base preparada para que trabajador gestione los suyos y administración pueda revisarlos o corregirlos después.</p>
+          <p className="text-sm text-muted-foreground">Historial simple, claro y preparado para revisar o corregir sin entrar en pantallas extra.</p>
         </CardHeader>
         <CardContent>
           {completedReports.length === 0 ? (
