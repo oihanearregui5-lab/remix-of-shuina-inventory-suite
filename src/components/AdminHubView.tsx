@@ -9,13 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 import EmptyState from "@/components/shared/EmptyState";
-import { buildClosureDates, NATIONAL_HOLIDAYS_BY_YEAR } from "@/lib/company-calendar";
+import { buildClosureDates, NATIONAL_HOLIDAYS_BY_YEAR, resolveWorkerColor } from "@/lib/company-calendar";
 import { toast } from "sonner";
 
 interface AdminMetrics { openTasks: number; openIncidents: number; serviceItems: number; activeClockings: number }
 interface DailyHighlight { id: string; title: string; summary: string | null; category: string }
 interface VacationReviewItem { id: string; request_type: string; start_date: string; end_date: string; reason: string | null; requester_user_id: string; requester_name?: string | null }
 interface CompanyCalendarDay { id: string; calendar_date: string; title: string; day_type: string; color_tag: string | null; notes: string | null }
+
+const excelVacationLegend = ["ADRIAN", "AITOR", "ANDRIY", "FRAN", "HAMID", "JUAN", "LYUBEN", "MANUEL", "MISAEL", "NELO", "OLEK", "RAQUEL", "SILVIO"];
 
 const AdminHubView = () => {
   const { canViewAdmin } = useAuth();
@@ -67,6 +69,8 @@ const AdminHubView = () => {
     const closures = buildClosureDates(calendarYear).includes(selectedKey) ? [{ title: "Cierre empresa", day_type: "closure", notes: "Cierre del 12 al 25" }] : [];
     return [...holidays, ...closures, ...companyDay];
   }, [calendarDays, calendarYear, selectedDate]);
+
+  const vacationLegend = useMemo(() => excelVacationLegend.map((name) => ({ name, color: resolveWorkerColor(name) })), []);
 
   const reviewVacationRequest = async (requestId: string, status: "approved" | "rejected") => {
     const adminResponse = responseDrafts[requestId]?.trim() || null;
@@ -152,6 +156,42 @@ const AdminHubView = () => {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          </section>
+
+          <section className="panel-surface p-4">
+            <div className="mb-4 flex items-center gap-2"><Users2 className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Vacaciones del Excel</p></div>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border bg-background p-4">
+                <div className="flex flex-wrap gap-2">
+                  {vacationLegend.map((item) => (
+                    <div key={item.name} className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-foreground">
+                      <span className="h-3 w-3 rounded-full border border-border" style={{ backgroundColor: item.color }} />
+                      <span>{item.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-border bg-background p-4">
+                  <p className="text-sm font-semibold text-foreground">Qué refleja esta sección</p>
+                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    <li>• Referencia directa a las hojas <span className="text-foreground">GENERICO</span> y <span className="text-foreground">VACACIONES</span>.</li>
+                    <li>• Base para asignar vacaciones, ausencias y colores por trabajador.</li>
+                    <li>• Punto de control para trasladar después toda la edición fina desde administración.</li>
+                  </ul>
+                </div>
+                <div className="rounded-2xl border border-border bg-background p-4">
+                  <p className="text-sm font-semibold text-foreground">Resumen operativo cargado</p>
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-xl bg-muted px-3 py-3"><p className="text-muted-foreground">Hojas individuales</p><p className="mt-1 font-semibold text-foreground">12 trabajadores</p></div>
+                    <div className="rounded-xl bg-muted px-3 py-3"><p className="text-muted-foreground">Cierre fábrica</p><p className="mt-1 font-semibold text-foreground">12 → 25 dic</p></div>
+                    <div className="rounded-xl bg-muted px-3 py-3"><p className="text-muted-foreground">Festivos</p><p className="mt-1 font-semibold text-foreground">Nacionales marcados</p></div>
+                    <div className="rounded-xl bg-muted px-3 py-3"><p className="text-muted-foreground">Vista objetivo</p><p className="mt-1 font-semibold text-foreground">General + personal</p></div>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
