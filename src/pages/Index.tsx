@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare } from "lucide-react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Fichajes from "@/pages/Fichajes";
 import AdminFichajes from "@/pages/AdminFichajes";
@@ -9,20 +9,26 @@ import DashboardView from "@/components/DashboardView";
 import AdminHubView from "@/components/AdminHubView";
 import StaffHubView from "@/components/StaffHubView";
 import ChatHubView from "@/components/ChatHubView";
+import GasolineHubView from "@/components/GasolineHubView";
+import WorkReportsHubView from "@/components/WorkReportsHubView";
 import VacationsJourneysView from "@/components/admin/VacationsJourneysView";
+import AdminAlbaranesView from "@/components/admin/AdminAlbaranesView";
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "admin" | "vacations";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes";
 
 const sections: AppShellSection<AppSection>[] = [
-  { key: "fichajes", label: "Fichar", description: "Entrada, salida e historial.", icon: Clock },
-  { key: "dashboard", label: "Inicio", description: "Estado y accesos directos.", icon: LayoutDashboard },
-  { key: "tasks", label: "Tareas", description: "Agenda y prioridades.", icon: ClipboardList },
-  { key: "machines", label: "Máquinas", description: "Flota y mantenimiento.", icon: Truck },
-  { key: "staff", label: "Personal", description: "Turnos y vacaciones.", icon: CalendarRange },
-  { key: "chat", label: "Chat", description: "Mensajes internos.", icon: MessageSquare },
-  { key: "vacations", label: "Vacaciones", description: "Jornadas, Excel y calendario.", icon: CalendarRange },
-  { key: "admin", label: "Admin", description: "Validaciones y control.", icon: ShieldCheck, adminOnly: true },
+  { key: "dashboard", label: "Inicio", description: "Vista general del día y accesos clave.", icon: LayoutDashboard, workspace: "shared", mobilePrimary: true },
+  { key: "fichajes", label: "Fichar", description: "Entrada, salida e historial.", icon: Clock, workspace: "shared", mobilePrimary: true },
+  { key: "workReports", label: "Parte de trabajo", description: "Iniciar, retomar y cerrar partes.", icon: FileText, workspace: "shared", mobilePrimary: true },
+  { key: "gasoline", label: "Gasolina", description: "Tarjetas y repostajes asociados.", icon: Fuel, workspace: "shared", mobilePrimary: true },
+  { key: "tasks", label: "Tareas", description: "Agenda y prioridades.", icon: ClipboardList, workspace: "worker" },
+  { key: "machines", label: "Máquinas", description: "Flota y mantenimiento.", icon: Truck, workspace: "worker" },
+  { key: "staff", label: "Personal", description: "Turnos, vacaciones y solicitudes.", icon: CalendarRange, workspace: "worker" },
+  { key: "chat", label: "Chat", description: "Mensajes internos.", icon: MessageSquare, workspace: "worker" },
+  { key: "vacations", label: "Vacaciones", description: "Calendario, jornadas y fichas.", icon: CalendarRange, workspace: "admin" },
+  { key: "albaranes", label: "Albaranes", description: "Módulo reservado para gestión documental.", icon: ReceiptText, workspace: "admin", adminOnly: true },
+  { key: "admin", label: "Admin", description: "Control general y validaciones.", icon: ShieldCheck, workspace: "admin", adminOnly: true },
 ];
 
 const Index = () => {
@@ -44,10 +50,10 @@ const Index = () => {
   };
 
   const visibleSections = useMemo(() => {
-    const workerSections: AppSection[] = ["fichajes", "dashboard", "tasks", "machines", "staff", "chat"];
+    const workerSections: AppSection[] = ["dashboard", "fichajes", "workReports", "gasoline", "tasks", "machines", "staff", "chat"];
     const adminSections: AppSection[] = role === "admin"
-      ? ["vacations", "admin", "fichajes", "staff", "tasks", "machines", "chat"]
-      : ["vacations", "fichajes", "staff", "tasks", "machines", "chat"];
+      ? ["dashboard", "workReports", "gasoline", "vacations", "albaranes", "admin", "fichajes", "staff", "tasks", "machines", "chat"]
+      : ["dashboard", "workReports", "gasoline", "vacations", "fichajes", "staff", "tasks", "machines", "chat"];
     const allowed = workspaceMode === "admin" && canViewAdmin ? adminSections : workerSections;
     return sections.filter((section) => allowed.includes(section.key) && (!section.adminOnly || canViewAdmin));
   }, [canViewAdmin, role, workspaceMode]);
@@ -60,7 +66,7 @@ const Index = () => {
 
   const handleWorkspaceModeChange = (mode: "worker" | "admin") => {
     setWorkspaceMode(mode);
-    setCurrentSection(mode === "admin" ? (role === "admin" ? "admin" : "vacations") : "fichajes");
+    setCurrentSection(mode === "admin" ? (role === "admin" ? "admin" : "vacations") : "dashboard");
     setMobileMenuOpen(false);
   };
 
@@ -70,12 +76,18 @@ const Index = () => {
         return <DashboardView onNavigate={handleSectionChange} canViewAdmin={canViewAdmin} />;
       case "tasks":
         return <TaskHubView />;
+      case "gasoline":
+        return <GasolineHubView isAdminView={workspaceMode === "admin" && canViewAdmin} />;
+      case "workReports":
+        return <WorkReportsHubView isAdminView={workspaceMode === "admin" && canViewAdmin} />;
       case "machines":
         return <MachineFleetView />;
       case "staff":
         return <StaffHubView />;
       case "chat":
         return <ChatHubView />;
+      case "albaranes":
+        return <AdminAlbaranesView />;
       case "admin":
         return <AdminHubView />;
       case "vacations":

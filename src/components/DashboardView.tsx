@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarRange, CheckCircle2, Clock3, ClipboardList, MessageSquareMore } from "lucide-react";
+import { ArrowRight, CalendarRange, CheckCircle2, Clock3, ClipboardList, FileText, Fuel, MessageSquareMore } from "lucide-react";
 import { differenceInMinutes, format, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 
 interface DashboardViewProps {
-  onNavigate: (section: "fichajes" | "tasks" | "staff" | "chat" | "admin") => void;
+  onNavigate: (section: "fichajes" | "tasks" | "staff" | "chat" | "admin" | "gasoline" | "workReports") => void;
   canViewAdmin: boolean;
 }
 
@@ -78,17 +78,20 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
             <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Hoy</p><p className="mt-2 text-base font-semibold text-foreground">{hours}h {minutes}m</p></div>
             <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Último</p><p className="mt-2 text-base font-semibold text-foreground">{latestEntry ? format(new Date(latestEntry.clock_in), "HH:mm", { locale: es }) : "Sin registros"}</p></div>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <Button className="justify-between" size="lg" onClick={() => onNavigate("fichajes")}>{activeEntry ? "Registrar salida" : "Registrar entrada"}<ArrowRight className="h-4 w-4" /></Button>
             <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("staff")}>Turnos y vacaciones<ArrowRight className="h-4 w-4" /></Button>
+            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("workReports")}>Parte de trabajo<ArrowRight className="h-4 w-4" /></Button>
+            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("gasoline")}>Gasolina<ArrowRight className="h-4 w-4" /></Button>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-3">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="Jornada actual" value={activeEntry ? "Activa" : "Sin iniciar"} hint={activeEntry ? `Desde las ${format(new Date(activeEntry.clock_in), "HH:mm", { locale: es })}` : "Aún no has fichado hoy"} icon={Clock3} tone={activeEntry ? "danger" : "primary"} onClick={() => onNavigate("fichajes")} />
         <MetricCard title="Tareas abiertas" value={pendingTasks.length} hint="Pendientes o en curso" icon={ClipboardList} tone="secondary" onClick={() => onNavigate("tasks")} />
         <MetricCard title="Solicitudes" value={requests.length} hint={`${pendingRequests.length} pendientes`} icon={CalendarRange} tone="success" onClick={() => onNavigate("staff")} />
+        <MetricCard title="Base operativa" value="Lista" hint="Gasolina y partes preparados" icon={FileText} tone="primary" onClick={() => onNavigate("workReports")} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr] md:gap-6">
@@ -101,6 +104,14 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
           <section className="panel-surface space-y-4 p-4 md:p-6">
             <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Próximas tareas</h2><p className="text-sm text-muted-foreground">Lo más urgente del área operativa.</p></div><ClipboardList className="h-5 w-5 text-primary" /></div>
             {pendingTasks.length === 0 ? <EmptyState icon={CheckCircle2} title="Todo al día" description="No hay tareas abiertas ahora mismo. El siguiente trabajo aparecerá aquí automáticamente." /> : <div className="space-y-3">{pendingTasks.slice(0,4).map((task) => <button key={task.id} type="button" onClick={() => onNavigate("tasks")} className="w-full rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-foreground">{task.title}</p><p className="mt-1 text-sm text-muted-foreground">{task.due_date ? format(new Date(task.due_date), "d MMM yyyy", { locale: es }) : "Sin fecha asignada"}</p></div><span className="rounded-full bg-secondary/25 px-2.5 py-1 text-xs font-medium text-secondary-foreground">{task.priority}</span></div></button>)}</div>}
+          </section>
+
+          <section className="panel-surface space-y-4 p-4 md:p-6">
+            <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Estructura preparada</h2><p className="text-sm text-muted-foreground">Base clara para seguir creciendo sin mezclar módulos.</p></div><Fuel className="h-5 w-5 text-primary" /></div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => onNavigate("workReports")} className="rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><p className="font-medium text-foreground">Parte de trabajo</p><p className="mt-1 text-sm text-muted-foreground">Inicio, estado en curso y cierre con edición manual.</p></button>
+              <button type="button" onClick={() => onNavigate("gasoline")} className="rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><p className="font-medium text-foreground">Gasolina</p><p className="mt-1 text-sm text-muted-foreground">14 tarjetas, detalle base y registros listos para ampliar.</p></button>
+            </div>
           </section>
 
           {highlights.length > 0 ? <section className="panel-surface space-y-4 p-4 md:p-6"><div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Avisos</h2><p className="text-sm text-muted-foreground">Cambios importantes del día.</p></div><MessageSquareMore className="h-5 w-5 text-primary" /></div><div className="space-y-3">{highlights.slice(0, 2).map((item) => <div key={item.id} className="rounded-lg border border-border/80 bg-background px-4 py-4"><div className="flex items-center justify-between gap-3"><p className="font-medium text-foreground">{item.title}</p><span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{item.category}</span></div>{item.summary ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.summary}</p> : null}</div>)}</div></section> : null}
