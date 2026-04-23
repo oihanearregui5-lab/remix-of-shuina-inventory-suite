@@ -10,7 +10,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 
 interface DashboardViewProps {
-  onNavigate: (section: "fichajes" | "tasks" | "staff" | "chat" | "admin" | "gasoline" | "workReports") => void;
+  onNavigate: (section: "fichajes" | "tasks" | "staff" | "chat" | "admin" | "gasoline" | "workReports" | "notes") => void;
   canViewAdmin: boolean;
 }
 
@@ -91,7 +91,7 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
           </div>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("tasks")}>Tareas<ArrowRight className="h-4 w-4" /></Button>
-            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("chat")}>Chat<ArrowRight className="h-4 w-4" /></Button>
+            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("notes")}>Mi espacio<ArrowRight className="h-4 w-4" /></Button>
             <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("gasoline")}>Gasolina<ArrowRight className="h-4 w-4" /></Button>
             <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("staff")}>Calendario<ArrowRight className="h-4 w-4" /></Button>
           </div>
