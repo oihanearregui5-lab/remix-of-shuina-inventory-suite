@@ -73,14 +73,20 @@ const VacationsJourneysView = () => {
       ? supabase.from("holidays").update(payload).eq("id", payload.id)
       : supabase.from("holidays").insert(payload);
     const { error } = await request;
-    if (error) return toast.error("No se pudo guardar el festivo");
+    if (error) {
+      toast.error("No se pudo guardar el festivo");
+      return;
+    }
     toast.success("Calendario actualizado");
     void loadData();
   };
 
   const deleteHoliday = async (holidayId: string) => {
     const { error } = await supabase.from("holidays").delete().eq("id", holidayId);
-    if (error) return toast.error("No se pudo eliminar el festivo");
+    if (error) {
+      toast.error("No se pudo eliminar el festivo");
+      return;
+    }
     toast.success("Festivo eliminado");
     void loadData();
   };
@@ -92,21 +98,30 @@ const VacationsJourneysView = () => {
       return;
     }
     const { error } = await supabase.from("vacation_slots").insert({ worker_id: payload.worker_id, date: payload.date, shift: payload.shift });
-    if (error) return toast.error("No se pudo guardar la franja");
+    if (error) {
+      toast.error("No se pudo guardar la franja");
+      return;
+    }
     toast.success("Vacaciones actualizadas");
     void loadData();
   };
 
   const deleteVacationSlot = async (slotId: string) => {
     const { error } = await supabase.from("vacation_slots").delete().eq("id", slotId);
-    if (error) return toast.error("No se pudo quitar la franja");
+    if (error) {
+      toast.error("No se pudo quitar la franja");
+      return;
+    }
     toast.success("Franja liberada");
     void loadData();
   };
 
   const updateWorker = async (workerId: string, payload: { display_name: string; color_hex: string }) => {
     const { error } = await supabase.from("workers").update(payload).eq("id", workerId);
-    if (error) return toast.error("No se pudo actualizar el trabajador");
+    if (error) {
+      toast.error("No se pudo actualizar el trabajador");
+      return;
+    }
     toast.success("Trabajador actualizado");
     void loadData();
   };
