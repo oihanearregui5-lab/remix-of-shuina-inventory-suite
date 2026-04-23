@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock3, Hammer, PauseCircle, PencilLine, PlayCircle, TimerReset } from "lucide-react";
+import { AlertTriangle, Clock3, Download, Hammer, PauseCircle, PencilLine, PlayCircle, TimerReset } from "lucide-react";
 import { differenceInSeconds, formatDistanceStrict } from "date-fns";
 import { es } from "date-fns/locale";
 import { z } from "zod";
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
+import { buildWorkReportsCsv, EXPECTED_DAILY_HOURS, formatWorkHours, getDurationState, getWorkReportDurationHours } from "@/lib/work-reports";
 
 type WorkReport = {
   id: string;
@@ -178,6 +179,9 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
 
   const completedReports = reports.filter((report) => report.ended_at).sort((a, b) => (b.ended_at ?? "").localeCompare(a.ended_at ?? ""));
   const activeDurationMinutes = activeReport ? Math.max(0, Math.floor(differenceInSeconds(new Date(tick), new Date(activeReport.started_at)) / 60)) : 0;
+  const totalHoursClosed = useMemo(() => completedReports.reduce((sum, report) => sum + getWorkReportDurationHours(report), 0), [completedReports]);
+  const averageHoursClosed = completedReports.length ? totalHoursClosed / completedReports.length : 0;
+  const longReports = useMemo(() => completedReports.filter((report) => getWorkReportDurationHours(report) > EXPECTED_DAILY_HOURS + 1), [completedReports]);
 
   const parseDraft = () => {
     const result = draftSchema.safeParse(draft);
@@ -291,6 +295,17 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
     void loadReports();
   };
 
+  const exportReports = () => {
+    const csv = buildWorkReportsCsv(completedReports);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `partes_${isAdminView ? "admin" : "trabajador"}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader
@@ -303,8 +318,37 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
 
       <section className="grid gap-3 md:grid-cols-3">
         <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Estado actual</p><p className="mt-2 text-lg font-semibold text-foreground">{activeReport ? "En curso" : "Sin parte activo"}</p></div>
-        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Historial</p><p className="mt-2 text-lg font-semibold text-foreground">{completedReports.length} cerrados</p></div>
-        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Edición manual</p><p className="mt-2 text-lg font-semibold text-foreground">Disponible</p></div>
+        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Historial</p><p className="mt-2 text-lg font-semibold text-foreground">{completedReports.length} cerrados</p><p className="mt-1 text-sm text-muted-foreground">{formatWorkHours(totalHoursClosed)} acumuladas</p></div>
+        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Media</p><p className="mt-2 text-lg font-semibold text-foreground">{formatWorkHours(averageHoursClosed)}</p><p className="mt-1 text-sm text-muted-foreground">Objetivo {EXPECTED_DAILY_HOURS} h/día</p></div>
+      </section>
+
+      <section className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
+        <div className="panel-surface p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Lectura operativa</p>
+              <p className="text-sm text-muted-foreground">Resumen rápido para revisar partes largos, carga real y exportación.</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={exportReports}><Download className="h-4 w-4" /> Exportar CSV</Button>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl bg-muted/45 px-3 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Partes largos</p><p className="mt-1 text-lg font-semibold text-foreground">{longReports.length}</p></div>
+            <div className="rounded-xl bg-muted/45 px-3 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Parte activo</p><p className="mt-1 text-lg font-semibold text-foreground">{activeReport ? formatWorkHours(activeDurationMinutes / 60) : "0 h"}</p></div>
+            <div className="rounded-xl bg-muted/45 px-3 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Edición manual</p><p className="mt-1 text-lg font-semibold text-foreground">Disponible</p></div>
+          </div>
+        </div>
+        <div className="panel-surface p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><AlertTriangle className="h-4 w-4 text-primary" /> Revisión recomendada</div>
+          <div className="mt-3 space-y-2 text-sm">
+            {longReports.slice(0, 3).length === 0 ? <p className="text-muted-foreground">No hay partes que se salgan claramente de la jornada objetivo.</p> : longReports.slice(0, 3).map((report) => (
+              <div key={report.id} className="rounded-lg border border-border bg-background px-3 py-3">
+                <p className="font-medium text-foreground">{report.worker_name}</p>
+                <p className="text-muted-foreground">{report.description}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{formatWorkHours(getWorkReportDurationHours(report))} · {report.machine || "Sin máquina"}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {loading ? <div className="space-y-3">{[0, 1, 2].map((item) => <div key={item} className="h-24 animate-pulse rounded-2xl bg-muted/60" />)}</div> : null}
@@ -379,6 +423,8 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
             <div className="space-y-3">
               {completedReports.map((report) => {
                 const duration = report.ended_at ? formatDistanceStrict(new Date(report.started_at), new Date(report.ended_at), { locale: es }) : "";
+                const durationHours = getWorkReportDurationHours(report);
+                const durationState = getDurationState(durationHours);
                 const isEditing = editingId === report.id;
                 return (
                   <article key={report.id} className="rounded-2xl border border-border bg-background p-4">
@@ -387,7 +433,10 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
                         <p className="font-semibold text-foreground">{report.description || "Parte sin descripción"}</p>
                         <p className="mt-1 text-sm text-muted-foreground">{report.worker_name} · {report.action || "Sin acción"} · {report.machine || "Sin maquinaria"}</p>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => (isEditing ? void saveEdit() : openEdit(report))}><PencilLine className="h-4 w-4" /> {isEditing ? "Guardar" : "Editar"}</Button>
+                      <div className="flex items-center gap-2">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${durationState === "high" ? "bg-warning/15 text-foreground" : durationState === "short" ? "bg-info/10 text-info" : "bg-muted text-foreground"}`}>{formatWorkHours(durationHours)}</span>
+                        <Button variant="outline" size="sm" onClick={() => (isEditing ? void saveEdit() : openEdit(report))}><PencilLine className="h-4 w-4" /> {isEditing ? "Guardar" : "Editar"}</Button>
+                      </div>
                     </div>
                     {isEditing ? (
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
