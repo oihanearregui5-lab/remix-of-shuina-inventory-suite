@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Filter, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
 import ChatChannelDialog from "@/components/chat/ChatChannelDialog";
 import ChatChannelList from "@/components/chat/ChatChannelList";
 import ChatConversation from "@/components/chat/ChatConversation";
+import { Button } from "@/components/ui/button";
 import type { ChannelSummary, ChatChannelItem, ChatMessageItem } from "@/components/chat/chat-types";
 import { toast } from "sonner";
+import { normalizeChatQuery, validateChatDraft } from "@/lib/chat-utils";
 
 const ChatHubView = () => {
   const { user, profile, isAdmin } = useAuth();
@@ -29,6 +32,8 @@ const ChatHubView = () => {
   const [showConversationOnMobile, setShowConversationOnMobile] = useState(false);
   const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>({});
   const [lastChannelsSnapshot, setLastChannelsSnapshot] = useState<ChatChannelItem[]>([]);
+  const [channelQuery, setChannelQuery] = useState("");
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const lastSeenStorageKey = user ? `chat-last-seen-${user.id}` : null;
 
@@ -209,7 +214,12 @@ const ChatHubView = () => {
   };
 
   const sendMessage = async () => {
-    if (!user || !activeChannelId || !draft.trim()) return;
+    if (!user || !activeChannelId) return;
+    const validationError = validateChatDraft(draft);
+    if (validationError) {
+      setChatError(validationError);
+      return toast.error(validationError);
+    }
     setSending(true);
     const query = editingMessageId
       ? db.from("chat_messages").update({ message: draft.trim() }).eq("id", editingMessageId)
@@ -233,14 +243,40 @@ const ChatHubView = () => {
   };
 
   const activeChannel = useMemo(() => channels.find((channel) => channel.id === activeChannelId) ?? null, [channels, activeChannelId]);
+  const filteredChannels = useMemo(() => {
+    const query = normalizeChatQuery(channelQuery);
+    return channels.filter((channel) => {
+      const summary = channelSummaries[channel.id];
+      const searchable = [channel.name, channel.description ?? "", channel.slug, summary?.lastMessage ?? ""].join(" ").toLowerCase();
+      const matchesQuery = !query || searchable.includes(query);
+      const matchesUnread = !unreadOnly || (summary?.unreadCount ?? 0) > 0;
+      return matchesQuery && matchesUnread;
+    });
+  }, [channelQuery, channelSummaries, channels, unreadOnly]);
+  const unreadChannels = useMemo(() => Object.values(channelSummaries).filter((summary) => summary.unreadCount > 0).length, [channelSummaries]);
+  const activeChannelSummary = activeChannel ? channelSummaries[activeChannel.id] : null;
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <PageHeader eyebrow="Chat" title="Conversaciones internas" description="Diseñado como una app móvil real: un toque para abrir, escribir y responder." />
+      <PageHeader eyebrow="Chat" title="Conversaciones internas" description="Canales más útiles, lectura rápida de actividad y seguimiento operativo del equipo." />
+      <section className="grid gap-3 md:grid-cols-3">
+        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Canales</p><p className="mt-2 text-lg font-semibold text-foreground">{channels.length}</p></div>
+        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Sin leer</p><p className="mt-2 text-lg font-semibold text-foreground">{unreadChannels}</p></div>
+        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Canal activo</p><p className="mt-2 text-lg font-semibold text-foreground">{activeChannel?.name ?? "Ninguno"}</p><p className="mt-1 text-sm text-muted-foreground">{activeChannelSummary?.lastMessageAt ? `Último movimiento ${new Date(activeChannelSummary.lastMessageAt).toLocaleString("es-ES")}` : "Sin mensajes recientes"}</p></div>
+      </section>
+      <section className="panel-surface p-4">
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+          <label className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+            <Search className="h-4 w-4 text-primary" />
+            <input value={channelQuery} onChange={(event) => setChannelQuery(event.target.value)} placeholder="Buscar canal o último mensaje" className="w-full bg-transparent text-foreground outline-none placeholder:text-muted-foreground" />
+          </label>
+          <Button type="button" variant={unreadOnly ? "default" : "outline"} size="sm" onClick={() => setUnreadOnly((current) => !current)}><Filter className="h-4 w-4" /> Solo sin leer</Button>
+        </div>
+      </section>
       <section className="grid gap-3 md:grid-cols-[340px_1fr]">
         <ChatChannelList
           activeChannelId={activeChannelId}
-          channels={channels}
+          channels={filteredChannels}
           summaries={channelSummaries}
           isAdmin={isAdmin}
           loading={loadingChannels}

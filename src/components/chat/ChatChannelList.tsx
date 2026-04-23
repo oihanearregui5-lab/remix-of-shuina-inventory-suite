@@ -1,10 +1,9 @@
-import { format, isToday, isYesterday } from "date-fns";
-import { es } from "date-fns/locale";
 import { MessageSquareMore, Pencil, Plus, Trash2 } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ChannelSummary, ChatChannelItem } from "./chat-types";
+import { formatChatTimestamp } from "@/lib/chat-utils";
 
 interface ChatChannelListProps {
   activeChannelId: string;
@@ -18,14 +17,6 @@ interface ChatChannelListProps {
   onDelete: (channel: ChatChannelItem) => void;
   hiddenOnMobile?: boolean;
 }
-
-const formatChatTime = (value: string | null) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (isToday(date)) return format(date, "HH:mm", { locale: es });
-  if (isYesterday(date)) return "Ayer";
-  return format(date, "d MMM", { locale: es });
-};
 
 const ChatChannelList = ({ activeChannelId, channels, summaries, isAdmin, loading, onSelect, onCreate, onEdit, onDelete, hiddenOnMobile }: ChatChannelListProps) => {
   return (
@@ -78,7 +69,7 @@ const ChatChannelList = ({ activeChannelId, channels, summaries, isAdmin, loadin
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <p className="truncate text-sm font-semibold text-foreground">{channel.name}</p>
-                      <span className="flex-none text-[11px] text-muted-foreground">{formatChatTime(summary?.lastMessageAt ?? null)}</span>
+                      <span className="flex-none text-[11px] text-muted-foreground">{formatChatTimestamp(summary?.lastMessageAt ?? null)}</span>
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                       {summary?.lastMessage ? `${summary.lastAuthorName ? `${summary.lastAuthorName}: ` : ""}${summary.lastMessage}` : channel.description || "Sin mensajes todavía."}
