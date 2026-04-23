@@ -72,7 +72,7 @@ const TaskListSection = ({ title, subtitle, tasks, loading, error, isAdmin, onOp
                         {task.description ? <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{task.description}</p> : null}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {labels.map((label) => <span key={label} className="rounded-full bg-card-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">#{label}</span>)}
+                        {labels.map((label) => <span key={label} className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">#{label}</span>)}
                       </div>
                       {task.assigned_staff_name ? (
                         <div className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
