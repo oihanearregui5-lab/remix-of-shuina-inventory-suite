@@ -1,0 +1,127 @@
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { ArrowLeft, Loader2, Pencil, SendHorizonal, Trash2 } from "lucide-react";
+import { useMemo } from "react";
+import EmptyState from "@/components/shared/EmptyState";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import type { ChatChannelItem, ChatMessageItem } from "./chat-types";
+
+interface ChatConversationProps {
+  channel: ChatChannelItem | null;
+  currentUserId?: string;
+  currentUserName?: string | null;
+  isAdmin: boolean;
+  messages: ChatMessageItem[];
+  loading: boolean;
+  sending: boolean;
+  error: string | null;
+  draft: string;
+  editingMessageId: string | null;
+  authorNames: Record<string, string>;
+  onBack: () => void;
+  onDraftChange: (value: string) => void;
+  onSend: () => void;
+  onStartEdit: (message: ChatMessageItem) => void;
+  onCancelEdit: () => void;
+  onDeleteMessage: (messageId: string) => void;
+  listRef: React.RefObject<HTMLDivElement>;
+}
+
+const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, messages, loading, sending, error, draft, editingMessageId, authorNames, onBack, onDraftChange, onSend, onStartEdit, onCancelEdit, onDeleteMessage, listRef }: ChatConversationProps) => {
+  const title = useMemo(() => (channel ? `# ${channel.name}` : "Selecciona un canal"), [channel]);
+
+  return (
+    <section className="panel-surface flex min-h-[70vh] flex-col overflow-hidden p-0">
+      <div className="border-b border-border px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Button size="icon" variant="ghost" className="h-11 w-11 rounded-2xl md:hidden" onClick={onBack} aria-label="Volver a chats">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+            <p className="truncate text-xs text-muted-foreground">{channel?.description || "Conversación del equipo en tiempo real."}</p>
+          </div>
+        </div>
+      </div>
+
+      <div ref={listRef} className="scrollbar-thin flex-1 space-y-3 overflow-y-auto bg-muted/25 px-3 py-4 md:px-4">
+        {loading ? (
+          Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className={cn("flex", index % 2 === 0 ? "justify-start" : "justify-end")}>
+              <div className="h-20 w-[78%] animate-pulse rounded-[24px] bg-muted" />
+            </div>
+          ))
+        ) : !channel ? (
+          <EmptyState icon={ArrowLeft} title="Abre un chat" description="Toca un canal para ver mensajes y responder al instante." />
+        ) : messages.length === 0 ? (
+          <EmptyState icon={SendHorizonal} title="Todavía no hay mensajes" description="Envía el primero para iniciar la conversación." />
+        ) : (
+          messages.map((message) => {
+            const own = message.author_user_id === currentUserId;
+            const edited = message.updated_at !== message.created_at;
+            const authorName = own ? currentUserName || "Tú" : authorNames[message.author_user_id] || "Equipo";
+
+            return (
+              <article key={message.id} className={cn("flex", own ? "justify-end" : "justify-start")}>
+                <div className={cn("max-w-[86%] rounded-[24px] px-4 py-3 shadow-[var(--shadow-soft)]", own ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md border border-border/80 bg-card text-foreground")}>
+                  <div className="flex items-center justify-between gap-4 text-[11px] opacity-80">
+                    <span className="truncate font-medium">{authorName}</span>
+                    <span>{format(new Date(message.created_at), "HH:mm", { locale: es })}</span>
+                  </div>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{message.message}</p>
+                  <div className="mt-3 flex items-center justify-between gap-3 text-[11px] opacity-80">
+                    <span>{edited ? "Editado" : "Enviado"}</span>
+                    {(own || isAdmin) ? (
+                      <div className="flex items-center gap-1">
+                        {own ? (
+                          <button type="button" className="inline-flex h-8 items-center gap-1 rounded-full px-2 font-medium" onClick={() => onStartEdit(message)}>
+                            <Pencil className="h-3.5 w-3.5" /> Editar
+                          </button>
+                        ) : null}
+                        <button type="button" className="inline-flex h-8 items-center gap-1 rounded-full px-2 font-medium" onClick={() => onDeleteMessage(message.id)}>
+                          <Trash2 className="h-3.5 w-3.5" /> Borrar
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </article>
+            );
+          })
+        )}
+      </div>
+
+      <div className="border-t border-border bg-background px-3 py-3 md:px-4">
+        {error ? <p className="mb-2 text-xs font-medium text-destructive">{error}</p> : null}
+        {editingMessageId ? (
+          <div className="mb-2 flex items-center justify-between gap-3 rounded-2xl bg-muted px-3 py-2 text-xs text-muted-foreground">
+            <span>Editando mensaje</span>
+            <button type="button" className="font-medium text-foreground" onClick={onCancelEdit}>Cancelar</button>
+          </div>
+        ) : null}
+        <div className="flex items-end gap-2">
+          <Textarea
+            value={draft}
+            onChange={(event) => onDraftChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void onSend();
+              }
+            }}
+            placeholder="Escribe un mensaje"
+            className="min-h-[52px] rounded-[22px] border-border bg-card px-4 py-3 text-sm"
+            disabled={!channel || sending}
+          />
+          <Button size="icon" className="h-12 w-12 flex-none rounded-2xl" onClick={() => void onSend()} disabled={!channel || !draft.trim() || sending} aria-label={editingMessageId ? "Guardar mensaje" : "Enviar mensaje"}>
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default ChatConversation;
