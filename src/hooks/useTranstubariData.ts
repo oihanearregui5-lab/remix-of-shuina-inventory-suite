@@ -1,40 +1,23 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { loadExcel, type TranstubariData } from "@/lib/transtubari-parser";
 
 const DATA_URL = "/data/transtubari-datos-2026.xlsx";
 
 export const useTranstubariData = () => {
-  const [data, setData] = useState<TranstubariData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery<TranstubariData>({
+    queryKey: ["transtubari-data", DATA_URL],
+    queryFn: () => loadExcel(DATA_URL),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: 2,
+  });
 
-  useEffect(() => {
-    let mounted = true;
-
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const nextData = await loadExcel(DATA_URL);
-        if (!mounted) return;
-        setData(nextData);
-      } catch (err) {
-        if (!mounted) return;
-        setError(err instanceof Error ? err.message : "No se pudo cargar el Excel de jornadas");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    void run();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  return { data, loading, error };
+  return {
+    data: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error ? (query.error as Error).message : null,
+    refetch: query.refetch,
+  };
 };
 
 export default useTranstubariData;
