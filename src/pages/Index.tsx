@@ -1,19 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import Fichajes from "@/pages/Fichajes";
-import AdminFichajes from "@/pages/AdminFichajes";
-import TaskHubView from "@/components/TaskHubView";
-import MachineFleetView from "@/components/MachineFleetView";
 import DashboardView from "@/components/DashboardView";
-import AdminHubView from "@/components/AdminHubView";
-import StaffHubView from "@/components/StaffHubView";
-import ChatHubView from "@/components/ChatHubView";
-import GasolineHubView from "@/components/GasolineHubView";
-import WorkReportsHubView from "@/components/WorkReportsHubView";
-import VacationsJourneysView from "@/components/admin/VacationsJourneysView";
-import AdminAlbaranesView from "@/components/admin/AdminAlbaranesView";
-import PersonalNotesView from "@/components/PersonalNotesView";
+import Fichajes from "@/pages/Fichajes";
+const AdminFichajes = lazy(() => import("@/pages/AdminFichajes"));
+const TaskHubView = lazy(() => import("@/components/TaskHubView"));
+const MachineFleetView = lazy(() => import("@/components/MachineFleetView"));
+const AdminHubView = lazy(() => import("@/components/AdminHubView"));
+const StaffHubView = lazy(() => import("@/components/StaffHubView"));
+const ChatHubView = lazy(() => import("@/components/ChatHubView"));
+const GasolineHubView = lazy(() => import("@/components/GasolineHubView"));
+const WorkReportsHubView = lazy(() => import("@/components/WorkReportsHubView"));
+const VacationsJourneysView = lazy(() => import("@/components/admin/VacationsJourneysView"));
+const AdminAlbaranesView = lazy(() => import("@/components/admin/AdminAlbaranesView"));
+const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 
 type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes";
@@ -136,7 +136,9 @@ const Index = () => {
           </p>
         </div>
       </section>
-      {renderCurrentSection()}
+      <Suspense fallback={<section className="panel-surface px-5 py-8 text-sm text-muted-foreground">Cargando módulo…</section>}>
+        {renderCurrentSection()}
+      </Suspense>
     </AppShell>
   );
 };
