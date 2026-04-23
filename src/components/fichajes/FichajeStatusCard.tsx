@@ -24,12 +24,12 @@ const FichajeStatusCard = ({ active, loading, currentTime, workedTodayLabel, cur
         active && "border-destructive/20 bg-destructive/5"
       )}
     >
-      <div className="space-y-5">
+      <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div
               className={cn(
-                "inline-flex min-h-10 items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em]",
+                "inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em]",
                 active
                   ? "border-destructive/25 bg-destructive/10 text-destructive"
                   : "border-border bg-background text-muted-foreground"
@@ -37,7 +37,7 @@ const FichajeStatusCard = ({ active, loading, currentTime, workedTodayLabel, cur
             >
               <span
                 className={cn(
-                  "inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                  "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
                   active ? "bg-destructive text-destructive-foreground" : "bg-muted text-foreground"
                 )}
               >
@@ -47,23 +47,23 @@ const FichajeStatusCard = ({ active, loading, currentTime, workedTodayLabel, cur
             </div>
             <div>
               <p className="text-2xl font-bold tracking-tight text-foreground">{format(currentTime, "HH:mm:ss")}</p>
-              <p className="text-sm text-muted-foreground">{format(currentTime, "EEEE, d 'de' MMMM", { locale: es })}</p>
+              <p className="text-sm text-muted-foreground">{format(currentTime, "EEEE, d MMMM", { locale: es })}</p>
             </div>
           </div>
-          <div className="rounded-2xl border border-border/80 bg-background px-3 py-2 text-right shadow-[var(--shadow-soft)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Hoy</p>
-            <p className="mt-1 text-lg font-semibold text-foreground">{workedTodayLabel}</p>
+          <div className="rounded-xl border border-border/80 bg-background px-3 py-2 text-right shadow-[var(--shadow-soft)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Hoy</p>
+            <p className="mt-1 text-base font-semibold text-foreground">{workedTodayLabel}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-border/80 bg-background px-3 py-3 shadow-[var(--shadow-soft)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Sesión actual</p>
-            <p className="mt-1 text-base font-semibold text-foreground">{currentSessionLabel}</p>
+          <div className="rounded-xl border border-border/80 bg-background px-3 py-3 shadow-[var(--shadow-soft)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Sesión</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">{currentSessionLabel}</p>
           </div>
-          <div className="rounded-2xl border border-border/80 bg-background px-3 py-3 shadow-[var(--shadow-soft)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Último movimiento</p>
-            <p className="mt-1 text-base font-semibold text-foreground">{lastMovementLabel}</p>
+          <div className="rounded-xl border border-border/80 bg-background px-3 py-3 shadow-[var(--shadow-soft)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Último</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">{lastMovementLabel}</p>
           </div>
         </div>
       </div>
@@ -76,12 +76,12 @@ const FichajeStatusCard = ({ active, loading, currentTime, workedTodayLabel, cur
           onClick={onPrimaryAction}
           disabled={loading}
           className={cn(
-            "pointer-events-auto h-16 w-full rounded-2xl text-base font-semibold shadow-[var(--shadow-elevated)]",
+            "pointer-events-auto h-16 w-full rounded-xl text-base font-semibold shadow-[var(--shadow-elevated)]",
             !active && "bg-primary text-primary-foreground"
           )}
         >
           <Icon className={cn("h-5 w-5", loading && "animate-spin")} />
-          {loading ? "Procesando..." : active ? "Fichar salida" : "Fichar entrada"}
+          {loading ? "Procesando..." : active ? "Salir ahora" : "Entrar ahora"}
         </Button>
       </div>
 
