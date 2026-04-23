@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { format, differenceInMinutes, startOfMonth, endOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
+import WorkerLiveStatusPanel from "@/components/shared/WorkerLiveStatusPanel";
+import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
 
 interface EntryWithProfile {
   id: string;
@@ -18,6 +20,7 @@ interface EntryWithProfile {
 
 const AdminFichajes = () => {
   const { isAdmin, canViewAdmin } = useAuth();
+  const { items: liveWorkers, loading: liveWorkersLoading, summary: liveSummary } = useWorkerLiveStatus();
   const [entries, setEntries] = useState<EntryWithProfile[]>([]);
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
@@ -147,6 +150,40 @@ const AdminFichajes = () => {
           </div>
           <p className="text-2xl font-bold text-foreground">{getTotalHours()}</p>
         </div>
+      </div>
+
+      <div className="mb-8 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
+          <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-5 h-5 text-primary" />
+              <span className="text-sm text-muted-foreground">Trabajando</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{liveSummary.working}</p>
+          </div>
+          <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-5 h-5 text-info" />
+              <span className="text-sm text-muted-foreground">En pausa</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{liveSummary.paused}</p>
+          </div>
+          <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-5 h-5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Fuera</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{liveSummary.off}</p>
+          </div>
+        </div>
+
+        <WorkerLiveStatusPanel
+          items={liveWorkers}
+          loading={liveWorkersLoading}
+          title="Estado del equipo"
+          description="Vista viva del equipo según fichajes abiertos y partes activos."
+          compact
+        />
       </div>
 
       {/* By employee */}
