@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarRange, CheckCircle2, Clock3, ClipboardList, MessageSquareMore, ShieldAlert, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarRange, CheckCircle2, Clock3, ClipboardList, MessageSquareMore } from "lucide-react";
 import { differenceInMinutes, format, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,49 +61,39 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
   const minutes = workedTodayMinutes % 60;
 
   return (
-    <div className="space-y-5 animate-fade-in md:space-y-8">
+    <div className="space-y-4 animate-fade-in md:space-y-6">
       <PageHeader
         eyebrow="Inicio"
         breadcrumbs={["Inicio"]}
         title={`Hola${profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}`}
-        description="Lo justo para empezar el día rápido: estado actual, siguiente paso y accesos directos sin ruido."
-        actions={<><Button size="lg" className="min-w-[160px] flex-1 sm:flex-none" onClick={() => onNavigate("fichajes")}><Clock3 className="h-4 w-4" />{activeEntry ? "Seguir fichaje" : "Fichar ahora"}</Button><Button size="lg" variant="outline" className="flex-1 sm:flex-none" onClick={() => onNavigate("tasks")}><ClipboardList className="h-4 w-4" /> Tareas</Button></>}
+        description="Tu estado, tu siguiente paso y poco más."
+        actions={<Button size="lg" className="min-w-[160px] flex-1 sm:flex-none" onClick={() => onNavigate("fichajes")}><Clock3 className="h-4 w-4" />{activeEntry ? "Volver a fichar" : "Fichar"}</Button>}
       />
 
-      <section className="hero-surface overflow-hidden rounded-[24px] px-4 py-5 md:rounded-[28px] md:px-8 md:py-8">
-        <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr] xl:items-end">
-          <div className="space-y-4 md:space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"><span className={`h-2.5 w-2.5 rounded-full ${activeEntry ? "bg-destructive" : "bg-muted-foreground/40"}`} />{activeEntry ? "Jornada abierta" : "Pendiente de fichaje"}</div>
-            <div className="space-y-2.5">
-              <h2 className="max-w-2xl text-2xl font-bold tracking-tight text-foreground md:text-5xl">{activeEntry ? "Ya estás activo." : "Empieza la jornada en segundos."}</h2>
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">Consulta tu estado actual, el tiempo trabajado hoy y lo siguiente que necesitas hacer.</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Estado</p><p className="mt-2 text-lg font-semibold text-foreground">{activeEntry ? "Trabajando" : "Fuera de jornada"}</p></div>
-              <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Hoy acumulado</p><p className="mt-2 text-lg font-semibold text-foreground">{hours}h {minutes}m</p></div>
-              <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Último fichaje</p><p className="mt-2 text-lg font-semibold text-foreground">{latestEntry ? format(new Date(latestEntry.clock_in), "HH:mm", { locale: es }) : "Sin registros"}</p></div>
-            </div>
+      <section className="hero-surface overflow-hidden rounded-[20px] px-4 py-4 md:px-6 md:py-6">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"><span className={`h-2.5 w-2.5 rounded-full ${activeEntry ? "bg-destructive" : "bg-muted-foreground/40"}`} />{activeEntry ? "Trabajando" : "Fuera de jornada"}</div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Estado</p><p className="mt-2 text-base font-semibold text-foreground">{activeEntry ? "Activo" : "Sin iniciar"}</p></div>
+            <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Hoy</p><p className="mt-2 text-base font-semibold text-foreground">{hours}h {minutes}m</p></div>
+            <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Último</p><p className="mt-2 text-base font-semibold text-foreground">{latestEntry ? format(new Date(latestEntry.clock_in), "HH:mm", { locale: es }) : "Sin registros"}</p></div>
           </div>
-          <div className="grid gap-3 rounded-[20px] border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-elevated)] backdrop-blur-sm md:rounded-[24px] md:p-5">
-            <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-foreground">Siguiente acción recomendada</p><p className="text-sm text-muted-foreground">Prioriza el paso más importante ahora.</p></div><Sparkles className="h-5 w-5 text-primary" /></div>
+          <div className="grid gap-2 sm:grid-cols-2">
             <Button className="justify-between" size="lg" onClick={() => onNavigate("fichajes")}>{activeEntry ? "Registrar salida" : "Registrar entrada"}<ArrowRight className="h-4 w-4" /></Button>
-            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("staff")}>Revisar turnos y vacaciones<ArrowRight className="h-4 w-4" /></Button>
-            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("chat")}>Abrir chat interno<ArrowRight className="h-4 w-4" /></Button>
-            {canViewAdmin && <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("admin")}>Ir a administración<ArrowRight className="h-4 w-4" /></Button>}
+            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("staff")}>Turnos y vacaciones<ArrowRight className="h-4 w-4" /></Button>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-3">
         <MetricCard title="Jornada actual" value={activeEntry ? "Activa" : "Sin iniciar"} hint={activeEntry ? `Desde las ${format(new Date(activeEntry.clock_in), "HH:mm", { locale: es })}` : "Aún no has fichado hoy"} icon={Clock3} tone={activeEntry ? "danger" : "primary"} onClick={() => onNavigate("fichajes")} />
         <MetricCard title="Tareas abiertas" value={pendingTasks.length} hint="Pendientes o en curso" icon={ClipboardList} tone="secondary" onClick={() => onNavigate("tasks")} />
-        <MetricCard title="Solicitudes" value={requests.length} hint={`${pendingRequests.length} pendientes de revisión`} icon={CalendarRange} tone="success" onClick={() => onNavigate("staff")} />
-        <MetricCard title="Avisos operativos" value={highlights.length} hint="Cambios y noticias del día" icon={ShieldAlert} tone="warning" onClick={() => onNavigate(canViewAdmin ? "admin" : "chat")} />
+        <MetricCard title="Solicitudes" value={requests.length} hint={`${pendingRequests.length} pendientes`} icon={CalendarRange} tone="success" onClick={() => onNavigate("staff")} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr] md:gap-6">
         <div className="panel-surface space-y-4 p-4 md:space-y-5 md:p-6">
-          <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Actividad reciente</h2><p className="text-sm text-muted-foreground">Resumen visible de tus últimos movimientos para trabajar con confianza.</p></div><Button variant="outline" onClick={() => onNavigate("fichajes")}>Ver historial</Button></div>
+          <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Actividad reciente</h2><p className="text-sm text-muted-foreground">Tus últimos fichajes.</p></div><Button variant="outline" onClick={() => onNavigate("fichajes")}>Historial</Button></div>
           {loading ? <div className="space-y-3">{[0,1,2].map((item) => <div key={item} className="h-20 animate-pulse rounded-lg bg-muted/70" />)}</div> : entries.length === 0 ? <EmptyState icon={Clock3} title="Todavía no hay fichajes" description="Cuando registres tu primera entrada aparecerá aquí tu historial reciente con horas y duración." /> : <div className="space-y-3">{entries.slice(0,5).map((entry) => { const duration = differenceInMinutes(entry.clock_out ? new Date(entry.clock_out) : new Date(), new Date(entry.clock_in)); return <div key={entry.id} className="rounded-lg border border-border/80 bg-background px-4 py-4 transition-colors hover:bg-muted/35"><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="font-medium text-foreground">{format(new Date(entry.clock_in), "EEEE d MMMM", { locale: es })}</p><p className="text-sm text-muted-foreground">Entrada {format(new Date(entry.clock_in), "HH:mm", { locale: es })}{entry.clock_out ? ` · Salida ${format(new Date(entry.clock_out), "HH:mm", { locale: es })}` : " · En curso"}</p></div><div className="text-sm font-medium text-foreground">{Math.floor(duration / 60)}h {duration % 60}m</div></div></div>; })}</div>}
         </div>
 
@@ -113,10 +103,7 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
             {pendingTasks.length === 0 ? <EmptyState icon={CheckCircle2} title="Todo al día" description="No hay tareas abiertas ahora mismo. El siguiente trabajo aparecerá aquí automáticamente." /> : <div className="space-y-3">{pendingTasks.slice(0,4).map((task) => <button key={task.id} type="button" onClick={() => onNavigate("tasks")} className="w-full rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-foreground">{task.title}</p><p className="mt-1 text-sm text-muted-foreground">{task.due_date ? format(new Date(task.due_date), "d MMM yyyy", { locale: es }) : "Sin fecha asignada"}</p></div><span className="rounded-full bg-secondary/25 px-2.5 py-1 text-xs font-medium text-secondary-foreground">{task.priority}</span></div></button>)}</div>}
           </section>
 
-          <section className="panel-surface space-y-4 p-4 md:p-6">
-            <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Noticias y cambios del día</h2><p className="text-sm text-muted-foreground">Mensajes importantes para plantilla y responsables.</p></div><MessageSquareMore className="h-5 w-5 text-primary" /></div>
-            {highlights.length === 0 ? <EmptyState icon={Sparkles} title="Sin avisos nuevos" description="Cuando administración publique novedades operativas o cambios del día aparecerán aquí." /> : <div className="space-y-3">{highlights.map((item) => <div key={item.id} className="rounded-lg border border-border/80 bg-background px-4 py-4"><div className="flex items-center justify-between gap-3"><p className="font-medium text-foreground">{item.title}</p><span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{item.category}</span></div>{item.summary ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.summary}</p> : null}</div>)}</div>}
-          </section>
+          {highlights.length > 0 ? <section className="panel-surface space-y-4 p-4 md:p-6"><div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Avisos</h2><p className="text-sm text-muted-foreground">Cambios importantes del día.</p></div><MessageSquareMore className="h-5 w-5 text-primary" /></div><div className="space-y-3">{highlights.slice(0, 2).map((item) => <div key={item.id} className="rounded-lg border border-border/80 bg-background px-4 py-4"><div className="flex items-center justify-between gap-3"><p className="font-medium text-foreground">{item.title}</p><span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{item.category}</span></div>{item.summary ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.summary}</p> : null}</div>)}</div></section> : null}
         </div>
       </section>
     </div>

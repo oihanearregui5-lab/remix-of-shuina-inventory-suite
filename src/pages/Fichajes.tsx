@@ -128,11 +128,11 @@ const Fichajes = () => {
   });
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       <PageHeader
-        eyebrow="Fichaje móvil"
-        title="Fichar en un toque"
-        description="Abre, comprueba tu estado y registra la jornada sin pasos extra. Todo lo importante queda visible en la primera pantalla."
+        eyebrow="Fichaje"
+        title="Fichar rápido"
+        description="Mira tu estado y pulsa una vez."
       />
 
       <FichajeStatusCard
@@ -153,21 +153,8 @@ const Fichajes = () => {
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <Button size="sm" variant={historyFilter === "all" ? "default" : "outline"} onClick={() => setHistoryFilter("all")}>Todo</Button>
-            <Button size="sm" variant={historyFilter === "open" ? "default" : "outline"} onClick={() => setHistoryFilter("open")}>Activos</Button>
+            <Button size="sm" variant={historyFilter === "open" ? "default" : "outline"} onClick={() => setHistoryFilter("open")}>Abiertos</Button>
             <Button size="sm" variant={historyFilter === "closed" ? "default" : "outline"} onClick={() => setHistoryFilter("closed")}>Cerrados</Button>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border/80 bg-muted/25 p-1.5">
-          <div className="flex items-center justify-between rounded-xl bg-background px-4 py-3 shadow-[var(--shadow-soft)]">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Estado actual</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{activeEntry ? "Jornada en marcha" : "Esperando próximo fichaje"}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Tiempo hoy</p>
-              <p className="text-sm font-semibold text-foreground">{workedTodayLabel}</p>
-            </div>
           </div>
         </div>
 

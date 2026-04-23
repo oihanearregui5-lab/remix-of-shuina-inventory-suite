@@ -28,8 +28,8 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
   const visibleSections = useMemo(() => sections.filter((section) => !section.adminOnly || canViewAdmin), [canViewAdmin, sections]);
   const activeSection = visibleSections.find((section) => section.key === currentSection) ?? visibleSections[0];
   const mobilePrimarySections = useMemo(() => {
-    const preferredKeys = new Set(["fichajes", "dashboard", "tasks", canViewAdmin ? "admin" : "staff"]);
-    return visibleSections.filter((section) => preferredKeys.has(String(section.key))).slice(0, 4);
+    const preferredKeys = new Set(["fichajes", "tasks", canViewAdmin ? "admin" : "staff"]);
+    return visibleSections.filter((section) => preferredKeys.has(String(section.key))).slice(0, 3);
   }, [canViewAdmin, visibleSections]);
 
   const navigation = (
@@ -137,7 +137,7 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/96 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-xl md:hidden">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {mobilePrimarySections.map((section) => {
             const isActive = section.key === currentSection;
             const Icon = section.icon;

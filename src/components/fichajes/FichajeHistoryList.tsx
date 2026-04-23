@@ -38,12 +38,12 @@ const FichajeHistoryList = ({ entries }: FichajeHistoryListProps) => {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {entries.map((entry) => (
         <button
           key={entry.id}
           type="button"
-          className="panel-surface w-full px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/20"
+          className="panel-surface w-full px-4 py-3.5 text-left transition-all hover:border-primary/20 hover:bg-muted/20"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -56,13 +56,13 @@ const FichajeHistoryList = ({ entries }: FichajeHistoryListProps) => {
                 <span>{entry.clock_out ? format(new Date(entry.clock_out), "HH:mm") : "En curso"}</span>
               </div>
               {entry.latitude_in && (
-                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                   <MapPin className="h-3 w-3" /> GPS registrado
                 </div>
               )}
             </div>
-            <div className="rounded-xl border border-border/80 bg-background px-3 py-2 text-right shadow-[var(--shadow-soft)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Duración</p>
+            <div className="rounded-lg border border-border/80 bg-background px-2.5 py-2 text-right shadow-[var(--shadow-soft)]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Tiempo</p>
               <p className="mt-1 text-sm font-semibold text-foreground">{formatDuration(entry.clock_in, entry.clock_out)}</p>
             </div>
           </div>
