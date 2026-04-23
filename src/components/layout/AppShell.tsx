@@ -40,7 +40,7 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
   }, [currentSection, visibleSections]);
 
   const navigation = (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-b border-sidebar-border/70 px-5 py-5">
           <div className="flex flex-col items-start gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sidebar-border/80 bg-sidebar-accent/60">
@@ -104,15 +104,15 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 
   return (
     <div className="min-h-screen w-full bg-background">
       {mobileMenuOpen && <button type="button" aria-label="Cerrar navegación" className="fixed inset-0 z-40 bg-foreground/15 backdrop-blur-sm md:hidden" onClick={() => onMobileMenuOpenChange(false)} />}
       <div className="flex min-h-screen w-full">
-        <aside className="hidden md:flex md:w-[320px] md:flex-col md:border-r md:border-sidebar-border/60 md:bg-sidebar">{navigation}</aside>
-        <div className={cn("fixed inset-y-0 left-0 z-50 flex w-[88vw] max-w-[340px] -translate-x-full flex-col border-r border-sidebar-border/60 bg-sidebar transition-transform duration-300 md:hidden", mobileMenuOpen && "translate-x-0")}>{navigation}</div>
+        <aside className="hidden md:flex md:min-h-0 md:w-[320px] md:flex-col md:border-r md:border-sidebar-border/60 md:bg-sidebar">{navigation}</aside>
+        <div className={cn("fixed inset-y-0 left-0 z-50 flex min-h-0 w-[88vw] max-w-[340px] -translate-x-full flex-col border-r border-sidebar-border/60 bg-sidebar transition-transform duration-300 md:hidden", mobileMenuOpen && "translate-x-0")}>{navigation}</div>
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 border-b border-border/70 bg-background/92 backdrop-blur-xl">
             <div className="flex min-h-[68px] items-center justify-between gap-3 px-4 md:min-h-[72px] md:px-8">
