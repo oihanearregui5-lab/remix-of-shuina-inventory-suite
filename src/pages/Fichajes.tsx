@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Calendar, Filter, Clock } from "lucide-react";
+import { Calendar, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { format, differenceInMinutes } from "date-fns";
@@ -172,7 +172,7 @@ const Fichajes = () => {
         </div>
 
         <FichajeHistoryList entries={filteredEntries} />
-      </div>
+      </section>
     </div>
   );
 };
