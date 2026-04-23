@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { buildMachineUsageSummary, formatHoursCompact, type MachineUsageReport } from "@/lib/machine-usage";
+import { machineSeed } from "@/data/transtubari";
 
 type MachineStatus = "active" | "maintenance" | "repair" | "inspection" | "inactive";
 
@@ -39,6 +40,7 @@ interface MachineAssetItem {
   license_plate: string | null;
   status: MachineStatus;
   notes: string | null;
+  photo_url?: string | null;
 }
 
 interface MachineNoteItem { id: string; machine_id: string; note: string; is_highlight: boolean; created_at: string }
@@ -49,6 +51,7 @@ interface WorkReportItem extends MachineUsageReport {}
 const MachineFleetView = () => {
   const { user, isAdmin } = useAuth();
   const db = supabase as any;
+  const machineImageMap = useMemo(() => new Map(machineSeed.filter((item) => item.image).map((item) => [item.id, `/src/assets/${item.image}.jpg`])), []);
   const [machines, setMachines] = useState<MachineAssetItem[]>([]);
   const [notes, setNotes] = useState<MachineNoteItem[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -64,7 +67,7 @@ const MachineFleetView = () => {
   useEffect(() => { if (user) void Promise.all([fetchMachines(), fetchNotes(), fetchServices(), fetchIncidents(), fetchWorkReports()]); }, [user]);
 
   const fetchMachines = async () => {
-    const { data, error } = await db.from("machine_assets").select("id, display_name, asset_family, asset_code, license_plate, status, notes").order("display_name");
+    const { data, error } = await db.from("machine_assets").select("id, display_name, asset_family, asset_code, license_plate, status, notes, photo_url").order("display_name");
     if (error) return toast.error("No se pudieron cargar las máquinas");
     setMachines((data ?? []) as MachineAssetItem[]);
   };
@@ -145,6 +148,7 @@ const MachineFleetView = () => {
 
     return {
       ...machine,
+      visual: machine.photo_url || machineImageMap.get(machine.id) || null,
       noteItems,
       serviceItems,
       incidentItems,
@@ -317,6 +321,11 @@ const MachineFleetView = () => {
           {filteredMachineCards.map((machine) => (
             <article key={machine.id} className="panel-surface p-4">
               <button className="w-full text-left" onClick={() => setSelectedMachine({ id: machine.id, name: machine.display_name, plate: machine.license_plate || "Sin matrícula", family: machine.asset_family, status: machine.status === "inactive" ? "inspection" : machine.status, focus: [machine.asset_code || "Sin código", machine.asset_family, `${machine.openIncidents} incidencias`, `${machine.pendingServices} servicios pendientes`], provider: "Proveedor pendiente", nextInspection: machine.serviceItems[0]?.due_date ? format(new Date(machine.serviceItems[0].due_date), "d MMM yyyy", { locale: es }) : "Sin revisión programada", nextIvt: machine.incidentItems[0]?.due_date ? format(new Date(machine.incidentItems[0].due_date), "d MMM yyyy", { locale: es }) : "Sin ITV registrada", fluids: ["Aceite motor", "Aceite hidráulico", "Anticongelante"], notes: machine.noteItems, priority: machine.riskLevel, serviceOverview: machine.serviceItems.slice(0, 4).map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.due_date })), incidentOverview: machine.incidentItems.slice(0, 4).map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.due_date })), usage: { totalHours30d: formatHoursCompact(machine.usage.totalHours30d), activeOperator: machine.usage.activeReport?.worker_name ?? "Sin uso activo", activeSince: machine.usage.activeReport?.started_at ? `Desde ${format(new Date(machine.usage.activeReport.started_at), "d MMM · HH:mm", { locale: es })}` : "No hay sesión abierta", operators: machine.usage.uniqueOperators, recentTimeline: machine.usage.recentTimeline.map((item) => ({ id: item.id, workerName: item.workerName, startedAt: item.startedAt, endedAt: item.endedAt, durationLabel: formatHoursCompact(item.durationHours), isActive: item.isActive })) } })}>
+                {machine.visual ? (
+                  <div className="mb-4 overflow-hidden rounded-lg border border-border bg-muted">
+                    <img src={machine.visual} alt={machine.display_name} className="h-40 w-full object-cover" loading="lazy" />
+                  </div>
+                ) : null}
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-foreground">{machine.display_name}</p>
