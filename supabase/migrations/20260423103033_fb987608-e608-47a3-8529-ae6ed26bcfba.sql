@@ -1,0 +1,1 @@
+ALTER VIEW public.worker_year_summary SET (security_invoker = true);

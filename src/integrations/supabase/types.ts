@@ -261,6 +261,36 @@ export type Database = {
         }
         Relationships: []
       }
+      holidays: {
+        Row: {
+          color_hex: string
+          created_at: string
+          date: string
+          id: string
+          label: string
+          type: Database["public"]["Enums"]["holiday_type"]
+          updated_at: string
+        }
+        Insert: {
+          color_hex: string
+          created_at?: string
+          date: string
+          id?: string
+          label: string
+          type: Database["public"]["Enums"]["holiday_type"]
+          updated_at?: string
+        }
+        Update: {
+          color_hex?: string
+          created_at?: string
+          date?: string
+          id?: string
+          label?: string
+          type?: Database["public"]["Enums"]["holiday_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       machine_assets: {
         Row: {
           asset_code: string | null
@@ -920,6 +950,108 @@ export type Database = {
         }
         Relationships: []
       }
+      vacation_slots: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          note: string | null
+          shift: Database["public"]["Enums"]["shift_slot"]
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          note?: string | null
+          shift: Database["public"]["Enums"]["shift_slot"]
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          shift?: Database["public"]["Enums"]["shift_slot"]
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_slots_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "worker_year_summary"
+            referencedColumns: ["worker_id"]
+          },
+          {
+            foreignKeyName: "vacation_slots_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workers: {
+        Row: {
+          annual_contract_hours: number
+          color_hex: string
+          company_vacation_hours: number
+          created_at: string
+          display_name: string
+          extra_vacation_days: number
+          extra_vacation_reason: string | null
+          id: string
+          is_active: boolean
+          linked_staff_member_id: string | null
+          linked_user_id: string | null
+          name: string
+          shift_default: Database["public"]["Enums"]["shift_default_type"]
+          total_annual_hours: number
+          updated_at: string
+          worker_vacation_days: number
+        }
+        Insert: {
+          annual_contract_hours?: number
+          color_hex: string
+          company_vacation_hours?: number
+          created_at?: string
+          display_name: string
+          extra_vacation_days?: number
+          extra_vacation_reason?: string | null
+          id?: string
+          is_active?: boolean
+          linked_staff_member_id?: string | null
+          linked_user_id?: string | null
+          name: string
+          shift_default?: Database["public"]["Enums"]["shift_default_type"]
+          total_annual_hours?: number
+          updated_at?: string
+          worker_vacation_days?: number
+        }
+        Update: {
+          annual_contract_hours?: number
+          color_hex?: string
+          company_vacation_hours?: number
+          created_at?: string
+          display_name?: string
+          extra_vacation_days?: number
+          extra_vacation_reason?: string | null
+          id?: string
+          is_active?: boolean
+          linked_staff_member_id?: string | null
+          linked_user_id?: string | null
+          name?: string
+          shift_default?: Database["public"]["Enums"]["shift_default_type"]
+          total_annual_hours?: number
+          updated_at?: string
+          worker_vacation_days?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       staff_directory_public: {
@@ -972,6 +1104,19 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_year_summary: {
+        Row: {
+          extra_days: number | null
+          remaining_hours: number | null
+          total_annual_hours: number | null
+          vacation_days_total: number | null
+          vacation_days_used: number | null
+          worked_hours: number | null
+          worker_id: string | null
+          year: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_access_chat_channel: {
@@ -987,6 +1132,7 @@ export type Database = {
         Args: { _channel_id: string }
         Returns: boolean
       }
+      can_manage_vacation_journeys: { Args: never; Returns: boolean }
       ensure_current_user_setup: {
         Args: { _full_name?: string }
         Returns: undefined
@@ -1004,7 +1150,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "worker"
+      app_role: "admin" | "worker" | "secretary"
       calendar_event_type:
         | "task_deadline"
         | "workday"
@@ -1016,6 +1162,11 @@ export type Database = {
         | "itv"
         | "maintenance"
         | "personal"
+      holiday_type:
+        | "festivo_nacional"
+        | "cierre_fabrica"
+        | "festivo_local"
+        | "otro"
       machine_issue_horizon: "short_term" | "medium_term" | "long_term"
       machine_issue_status: "open" | "monitoring" | "resolved"
       machine_service_type:
@@ -1032,6 +1183,8 @@ export type Database = {
         | "repair"
         | "inspection"
         | "inactive"
+      shift_default_type: "dia" | "tarde" | "noche" | "variable"
+      shift_slot: "dia" | "tarde" | "noche"
       staff_event_status: "planned" | "active" | "completed" | "cancelled"
       staff_event_type:
         | "completed_work"
@@ -1177,7 +1330,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "worker"],
+      app_role: ["admin", "worker", "secretary"],
       calendar_event_type: [
         "task_deadline",
         "workday",
@@ -1189,6 +1342,12 @@ export const Constants = {
         "itv",
         "maintenance",
         "personal",
+      ],
+      holiday_type: [
+        "festivo_nacional",
+        "cierre_fabrica",
+        "festivo_local",
+        "otro",
       ],
       machine_issue_horizon: ["short_term", "medium_term", "long_term"],
       machine_issue_status: ["open", "monitoring", "resolved"],
@@ -1208,6 +1367,8 @@ export const Constants = {
         "inspection",
         "inactive",
       ],
+      shift_default_type: ["dia", "tarde", "noche", "variable"],
+      shift_slot: ["dia", "tarde", "noche"],
       staff_event_status: ["planned", "active", "completed", "cancelled"],
       staff_event_type: [
         "completed_work",
