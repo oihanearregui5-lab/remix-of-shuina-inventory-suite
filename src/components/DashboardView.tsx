@@ -72,26 +72,37 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
 
       <section className="hero-surface overflow-hidden rounded-[20px] px-4 py-4 md:px-6 md:py-6">
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"><span className={`h-2.5 w-2.5 rounded-full ${activeEntry ? "bg-destructive" : "bg-muted-foreground/40"}`} />{activeEntry ? "Trabajando" : "Fuera de jornada"}</div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Estado</p><p className="mt-2 text-base font-semibold text-foreground">{activeEntry ? "Activo" : "Sin iniciar"}</p></div>
-            <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Hoy</p><p className="mt-2 text-base font-semibold text-foreground">{hours}h {minutes}m</p></div>
-            <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Último</p><p className="mt-2 text-base font-semibold text-foreground">{latestEntry ? format(new Date(latestEntry.clock_in), "HH:mm", { locale: es }) : "Sin registros"}</p></div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"><span className={`h-2.5 w-2.5 rounded-full ${activeEntry ? "bg-destructive" : "bg-muted-foreground/40"}`} />{activeEntry ? "Trabajando ahora" : "Parado"}</div>
+          <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-2xl border border-border/80 bg-background/88 p-5 shadow-[var(--shadow-soft)]">
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Estado actual</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">{activeEntry ? "Jornada activa" : "Listo para empezar"}</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{activeEntry ? "Tienes una jornada abierta. Puedes seguir con tu parte o registrar la salida cuando termines." : "Accede rápido a lo importante sin ruido ni pasos innecesarios."}</p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <Button className="justify-between" size="lg" onClick={() => onNavigate(activeEntry ? "workReports" : "fichajes")}>{activeEntry ? "Ir al parte activo" : "Fichar ahora"}<ArrowRight className="h-4 w-4" /></Button>
+                <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("workReports")}>Iniciar parte<ArrowRight className="h-4 w-4" /></Button>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Hoy</p><p className="mt-2 text-base font-semibold text-foreground">{hours}h {minutes}m</p></div>
+              <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Último fichaje</p><p className="mt-2 text-base font-semibold text-foreground">{latestEntry ? format(new Date(latestEntry.clock_in), "HH:mm", { locale: es }) : "Sin registros"}</p></div>
+              <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Pendientes</p><p className="mt-2 text-base font-semibold text-foreground">{pendingTasks.length} tareas</p></div>
+            </div>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <Button className="justify-between" size="lg" onClick={() => onNavigate("fichajes")}>{activeEntry ? "Registrar salida" : "Registrar entrada"}<ArrowRight className="h-4 w-4" /></Button>
-            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("staff")}>Turnos y vacaciones<ArrowRight className="h-4 w-4" /></Button>
-            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("workReports")}>Parte de trabajo<ArrowRight className="h-4 w-4" /></Button>
+            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("tasks")}>Tareas<ArrowRight className="h-4 w-4" /></Button>
+            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("chat")}>Chat<ArrowRight className="h-4 w-4" /></Button>
             <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("gasoline")}>Gasolina<ArrowRight className="h-4 w-4" /></Button>
+            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("staff")}>Calendario<ArrowRight className="h-4 w-4" /></Button>
           </div>
         </div>
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Jornada actual" value={activeEntry ? "Activa" : "Sin iniciar"} hint={activeEntry ? `Desde las ${format(new Date(activeEntry.clock_in), "HH:mm", { locale: es })}` : "Aún no has fichado hoy"} icon={Clock3} tone={activeEntry ? "danger" : "primary"} onClick={() => onNavigate("fichajes")} />
+        <MetricCard title="Jornada" value={activeEntry ? "Activa" : "Parada"} hint={activeEntry ? `Desde las ${format(new Date(activeEntry.clock_in), "HH:mm", { locale: es })}` : "Sin fichaje abierto"} icon={Clock3} tone={activeEntry ? "danger" : "primary"} onClick={() => onNavigate("fichajes")} />
+        <MetricCard title="Parte de trabajo" value={activeEntry ? "En marcha" : "Preparado"} hint="Inicio rápido y cierre simple" icon={FileText} tone="primary" onClick={() => onNavigate("workReports")} />
         <MetricCard title="Tareas abiertas" value={pendingTasks.length} hint="Pendientes o en curso" icon={ClipboardList} tone="secondary" onClick={() => onNavigate("tasks")} />
-        <MetricCard title="Solicitudes" value={requests.length} hint={`${pendingRequests.length} pendientes`} icon={CalendarRange} tone="success" onClick={() => onNavigate("staff")} />
-        <MetricCard title="Base operativa" value="Lista" hint="Gasolina y partes preparados" icon={FileText} tone="primary" onClick={() => onNavigate("workReports")} />
+        <MetricCard title="Calendario" value={requests.length} hint={`${pendingRequests.length} pendientes`} icon={CalendarRange} tone="success" onClick={() => onNavigate("staff")} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr] md:gap-6">

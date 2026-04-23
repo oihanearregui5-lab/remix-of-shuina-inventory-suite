@@ -191,11 +191,46 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
         })}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <Card className="border-border/80 shadow-[var(--shadow-soft)] xl:order-2">
+          <CardHeader className="space-y-2">
+            <CardTitle className="flex items-center gap-2 text-lg"><CalendarDays className="h-5 w-5 text-primary" /> Movimientos de la tarjeta</CardTitle>
+            <p className="text-sm text-muted-foreground">Lista simple para revisar y corregir gastos sin perder tiempo.</p>
+          </CardHeader>
+          <CardContent>
+            {cardRecords.length === 0 ? (
+              <EmptyState icon={Fuel} title="Sin movimientos todavía" description="Cuando registres el primer gasto aparecerá aquí con acceso rápido para editarlo." />
+            ) : (
+              <div className="space-y-3">
+                {cardRecords.map((record) => (
+                  <article key={record.id} className="rounded-2xl border border-border bg-background p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="font-semibold text-foreground">{record.station || "Gasolinera sin nombre"}</p>
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> {record.date}</span>
+                          {record.vehicle ? <span className="inline-flex items-center gap-1"><MapPinned className="h-3.5 w-3.5" /> {record.vehicle}</span> : null}
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(record)}><PencilLine className="h-4 w-4" /> Editar</Button>
+                    </div>
+                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                      <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Importe</span><p className="mt-1 font-semibold text-foreground">{record.amount || "—"} €</p></div>
+                      <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Litros</span><p className="mt-1 font-semibold text-foreground">{record.liters || "—"}</p></div>
+                    </div>
+                    {record.observations ? <p className="mt-3 text-sm text-muted-foreground">{record.observations}</p> : null}
+                    {record.receiptPhotoName ? <p className="mt-2 text-xs text-muted-foreground">Ticket: {record.receiptPhotoName}</p> : null}
+                  </article>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="border-border/80 shadow-[var(--shadow-soft)]">
           <CardHeader className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-lg"><Fuel className="h-5 w-5 text-primary" /> {selectedCard.alias}</CardTitle>
-            <p className="text-sm text-muted-foreground">Detalle base preparado para registrar pagos, tickets y observaciones sin complicar la operativa diaria.</p>
+            <p className="text-sm text-muted-foreground">Formulario compacto para añadir o corregir un gasto de forma rápida.</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -261,44 +296,9 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
                 {editingId ? (
                   <Button variant="outline" onClick={() => { setEditingId(null); setDraft(emptyForm(selectedCardId)); }}>Cancelar</Button>
                 ) : null}
-                <Button onClick={handleSave}>{editingId ? <PencilLine className="h-4 w-4" /> : <FileText className="h-4 w-4" />}{editingId ? "Guardar cambios" : "Guardar registro"}</Button>
+                <Button onClick={handleSave}>{editingId ? <PencilLine className="h-4 w-4" /> : <FileText className="h-4 w-4" />}{editingId ? "Guardar cambios" : "Añadir gasto"}</Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/80 shadow-[var(--shadow-soft)]">
-          <CardHeader className="space-y-2">
-            <CardTitle className="flex items-center gap-2 text-lg"><CalendarDays className="h-5 w-5 text-primary" /> Historial de la tarjeta</CardTitle>
-            <p className="text-sm text-muted-foreground">Registros recientes listos para editar rápidamente cuando haga falta corregir un pago o un ticket.</p>
-          </CardHeader>
-          <CardContent>
-            {cardRecords.length === 0 ? (
-              <EmptyState icon={Fuel} title="Sin registros todavía" description="Esta tarjeta ya está preparada; cuando empieces a cargar repostajes aparecerán aquí para editar o revisar." />
-            ) : (
-              <div className="space-y-3">
-                {cardRecords.map((record) => (
-                  <article key={record.id} className="rounded-2xl border border-border bg-background p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="font-semibold text-foreground">{record.station || "Gasolinera sin nombre"}</p>
-                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> {record.date}</span>
-                          {record.vehicle ? <span className="inline-flex items-center gap-1"><MapPinned className="h-3.5 w-3.5" /> {record.vehicle}</span> : null}
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(record)}><PencilLine className="h-4 w-4" /> Editar</Button>
-                    </div>
-                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                      <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Importe</span><p className="mt-1 font-semibold text-foreground">{record.amount || "—"} €</p></div>
-                      <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Litros</span><p className="mt-1 font-semibold text-foreground">{record.liters || "—"}</p></div>
-                    </div>
-                    {record.observations ? <p className="mt-3 text-sm text-muted-foreground">{record.observations}</p> : null}
-                    {record.receiptPhotoName ? <p className="mt-2 text-xs text-muted-foreground">Ticket: {record.receiptPhotoName}</p> : null}
-                  </article>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
       </section>
