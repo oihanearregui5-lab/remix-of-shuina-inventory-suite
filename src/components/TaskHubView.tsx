@@ -1,23 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, startOfMonth, endOfMonth, isSameDay, isToday } from "date-fns";
+import { endOfMonth, format, isSameDay, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, CheckCircle2, Pencil, Plus, Tags, Trash2 } from "lucide-react";
+import { CalendarDays, Filter, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
 import TaskDetailDialog, { type TaskDialogItem } from "@/components/tasks/TaskDetailDialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import TaskComposerDialog from "@/components/tasks/TaskComposerDialog";
+import TaskListSection, { type TaskListItem } from "@/components/tasks/TaskListSection";
+import { parseTaskLabels, serializeTaskLabels, type TaskPriority, type TaskStatus } from "@/components/tasks/task-utils";
 import { toast } from "sonner";
-
-type TaskStatus = "planned" | "in_progress" | "blocked" | "completed" | "cancelled";
-type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 interface TaskItem extends TaskDialogItem {
   assigned_staff_id?: string | null;
+  assigned_staff_name?: string | null;
 }
 
 interface StaffOption {
@@ -31,14 +30,12 @@ interface CalendarEventItem {
   start_at: string;
 }
 
-const lanes: Array<{ key: TaskStatus | "mine"; label: string }> = [
-  { key: "mine", label: "Activas" },
+const statusFilters: Array<{ key: "active" | TaskStatus; label: string }> = [
+  { key: "active", label: "Activas" },
+  { key: "planned", label: "Pendientes" },
   { key: "in_progress", label: "En curso" },
-  { key: "blocked", label: "Bloqueadas" },
   { key: "completed", label: "Completadas" },
 ];
-
-const priorityLabel: Record<TaskPriority, string> = { low: "Baja", medium: "Media", high: "Alta", urgent: "Urgente" };
 
 const TaskHubView = () => {
   const { user, isAdmin } = useAuth();
@@ -46,16 +43,21 @@ const TaskHubView = () => {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [staff, setStaff] = useState<StaffOption[]>([]);
   const [events, setEvents] = useState<CalendarEventItem[]>([]);
-  const [activeLane, setActiveLane] = useState<TaskStatus | "mine">("mine");
+  const [activeStatusFilter, setActiveStatusFilter] = useState<"active" | TaskStatus>("active");
+  const [activeLabelFilter, setActiveLabelFilter] = useState<string>("all");
+  const [activeAssigneeFilter, setActiveAssigneeFilter] = useState<string>("all");
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
   const [month, setMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
-    category: "General",
+    labels: "",
     due_date: "",
     priority: "medium" as TaskPriority,
     assigned_staff_id: "unassigned",
@@ -67,14 +69,26 @@ const TaskHubView = () => {
   }, [user]);
 
   const fetchTasks = async () => {
+    setLoading(true);
     const { data, error } = await db
       .from("tasks")
       .select("id, title, description, start_date, due_date, category, priority, status, created_at, updated_at, completed_at, assigned_staff_id")
       .order("updated_at", { ascending: false })
       .limit(100);
 
-    if (error) return toast.error("No se pudieron cargar las tareas");
-    setTasks((data ?? []) as TaskItem[]);
+    if (error) {
+      setLoading(false);
+      setError("No se pudieron cargar las tareas.");
+      return toast.error("No se pudieron cargar las tareas");
+    }
+
+    const assignedIds = Array.from(new Set((data ?? []).map((task: { assigned_staff_id?: string | null }) => task.assigned_staff_id).filter(Boolean)));
+    const { data: staffRows } = assignedIds.length ? await db.from("staff_directory").select("id, full_name").in("id", assignedIds) : { data: [] };
+    const names = Object.fromEntries(((staffRows ?? []) as StaffOption[]).map((person) => [person.id, person.full_name]));
+
+    setTasks(((data ?? []) as TaskItem[]).map((task) => ({ ...task, assigned_staff_name: task.assigned_staff_id ? names[task.assigned_staff_id] ?? null : null })));
+    setError(null);
+    setLoading(false);
   };
 
   const fetchStaff = async () => {
@@ -94,22 +108,40 @@ const TaskHubView = () => {
   }, [month]);
 
   const resetForm = () => {
-    setForm({ title: "", description: "", category: "General", due_date: "", priority: "medium", assigned_staff_id: "unassigned" });
+    setForm({ title: "", description: "", labels: "", due_date: "", priority: "medium", assigned_staff_id: "unassigned" });
     setEditingId(null);
   };
 
-  const submitTask = async () => {
-    if (!user || !form.title.trim()) return;
+  const openCreate = () => {
+    resetForm();
+    setComposerOpen(true);
+  };
+
+  const openEdit = (task: TaskItem) => {
+    setForm({
+      title: task.title,
+      description: task.description || "",
+      labels: serializeTaskLabels(parseTaskLabels(task.category)),
+      due_date: task.due_date || "",
+      priority: task.priority,
+      assigned_staff_id: task.assigned_staff_id || "unassigned",
+    });
+    setEditingId(task.id);
+    setComposerOpen(true);
+  };
+
+  const submitTask = async (values = form) => {
+    if (!user || !values.title.trim()) return;
     setSaving(true);
 
     const payload = {
-      title: form.title.trim(),
-      description: form.description.trim() || null,
-      category: form.category.trim() || null,
-      due_date: form.due_date || null,
-      priority: form.priority,
+      title: values.title.trim(),
+      description: values.description.trim() || null,
+      category: serializeTaskLabels(parseTaskLabels(values.labels)) || null,
+      due_date: values.due_date || null,
+      priority: values.priority,
       created_by_user_id: user.id,
-      assigned_staff_id: isAdmin && form.assigned_staff_id !== "unassigned" ? form.assigned_staff_id : null,
+      assigned_staff_id: isAdmin && values.assigned_staff_id !== "unassigned" ? values.assigned_staff_id : null,
     };
 
     const query = editingId ? db.from("tasks").update(payload).eq("id", editingId) : db.from("tasks").insert({ ...payload, status: "planned" });
@@ -118,6 +150,7 @@ const TaskHubView = () => {
     if (error) return toast.error(editingId ? "No se pudo editar la tarea" : "No se pudo crear la tarea");
     toast.success(editingId ? "Tarea actualizada" : "Tarea creada");
     resetForm();
+    setComposerOpen(false);
     void fetchTasks();
   };
 
@@ -138,129 +171,146 @@ const TaskHubView = () => {
     setTasks((current) => current.map((task) => (task.id === taskId ? { ...task, status, completed_at: status === "completed" ? new Date().toISOString() : null } : task)));
   };
 
-  const visibleTasks = useMemo(() => {
-    if (activeLane === "mine") return tasks.filter((task) => task.status !== "completed" && task.status !== "cancelled");
-    return tasks.filter((task) => task.status === activeLane);
-  }, [activeLane, tasks]);
+  const availableLabels = useMemo(() => Array.from(new Set(tasks.flatMap((task) => parseTaskLabels(task.category)))).sort((a, b) => a.localeCompare(b, "es")), [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const statusOk = activeStatusFilter === "active" ? !["completed", "cancelled"].includes(task.status) : task.status === activeStatusFilter;
+      const labelOk = activeLabelFilter === "all" ? true : parseTaskLabels(task.category).includes(activeLabelFilter);
+      const assigneeOk = activeAssigneeFilter === "all" ? true : (task.assigned_staff_id || "unassigned") === activeAssigneeFilter;
+      return statusOk && labelOk && assigneeOk;
+    });
+  }, [activeAssigneeFilter, activeLabelFilter, activeStatusFilter, tasks]);
 
   const selectedDayTasks = useMemo(() => tasks.filter((task) => task.due_date && selectedDate && isSameDay(new Date(task.due_date), selectedDate)), [selectedDate, tasks]);
   const selectedDayEvents = useMemo(() => events.filter((event) => selectedDate && isSameDay(new Date(event.start_at), selectedDate)), [events, selectedDate]);
   const taskDates = useMemo(() => tasks.filter((task) => task.due_date).map((task) => new Date(task.due_date as string)), [tasks]);
+  const activeTasks = useMemo(() => filteredTasks.filter((task) => task.status !== "completed" && task.status !== "cancelled"), [filteredTasks]);
+  const completedTasks = useMemo(() => tasks.filter((task) => task.status === "completed"), [tasks]);
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <PageHeader eyebrow="Tareas" title="Trabajo organizado" description="Etiquetas claras, edición rápida y vista mensual para revisar el mes de un vistazo." />
+      <PageHeader
+        eyebrow="Tareas"
+        title="Trabajo claro y rápido"
+        description="Inspirado en herramientas modernas, pero simplificado para móvil y uso real diario."
+        actions={<Button className="h-11 rounded-2xl" onClick={openCreate}><Plus className="h-4 w-4" /> Nueva tarea</Button>}
+      />
 
-      <section className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="panel-surface p-4">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Bandeja por estado</p>
-              <p className="text-xs text-muted-foreground">Pulsa una etiqueta y abre cualquier tarea para ver historial.</p>
-            </div>
-            <div className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{tasks.filter((task) => task.status !== "completed").length} activas</div>
-          </div>
-
-          <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-            {lanes.map((lane) => (
-              <button key={lane.key} onClick={() => setActiveLane(lane.key)} className={activeLane === lane.key ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground" : "rounded-full bg-muted px-4 py-2 text-sm font-medium text-foreground"}>
-                {lane.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="space-y-3">
-            {visibleTasks.length === 0 && <div className="rounded-xl bg-muted px-4 py-6 text-sm text-muted-foreground">No hay tareas en esta vista.</div>}
-            {visibleTasks.map((task) => (
-              <article key={task.id} className="rounded-xl border border-border bg-background p-4">
-                <button type="button" onClick={() => setSelectedTask(task)} className="w-full text-left">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="font-semibold text-foreground">{task.title}</p>
-                      <p className="line-clamp-2 text-sm text-muted-foreground">{task.description || "Sin detalle adicional."}</p>
-                      <div className="flex flex-wrap gap-2 pt-1 text-xs text-muted-foreground">
-                        <span className="rounded-full bg-muted px-2.5 py-1">{task.category || "General"}</span>
-                        <span className="rounded-full bg-muted px-2.5 py-1">{priorityLabel[task.priority]}</span>
-                        <span className="rounded-full bg-muted px-2.5 py-1">{task.due_date ? format(new Date(task.due_date), "d MMM", { locale: es }) : "Sin fecha"}</span>
-                      </div>
-                    </div>
-                    {task.status === "completed" ? <CheckCircle2 className="h-5 w-5 text-success" /> : <Tags className="h-5 w-5 text-primary" />}
-                  </div>
-                </button>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button size="sm" variant="soft" onClick={() => {
-                    setForm({ title: task.title, description: task.description || "", category: task.category || "General", due_date: task.due_date || "", priority: task.priority, assigned_staff_id: task.assigned_staff_id || "unassigned" });
-                    setEditingId(task.id);
-                  }}>
-                    <Pencil className="h-4 w-4" /> Editar
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => void updateTaskStatus(task.id, task.status === "completed" ? "planned" : "completed")}>
-                    {task.status === "completed" ? "Reabrir" : "Completar"}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => void deleteTask(task.id)}>
-                    <Trash2 className="h-4 w-4" /> Eliminar
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-
+      <section className="grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-3">
           <section className="panel-surface p-4">
-            <div className="mb-4 flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">{editingId ? "Editar tarea" : "Nueva tarea"}</p></div>
-            <div className="space-y-3">
-              <Input value={form.title} onChange={(e) => setForm((current) => ({ ...current, title: e.target.value }))} placeholder="Título de la tarea" />
-              <Input value={form.category} onChange={(e) => setForm((current) => ({ ...current, category: e.target.value }))} placeholder="Etiqueta o categoría" />
-              <div className="grid grid-cols-2 gap-3">
-                <Input type="date" value={form.due_date} onChange={(e) => setForm((current) => ({ ...current, due_date: e.target.value }))} />
-                <Select value={form.priority} onValueChange={(value: TaskPriority) => setForm((current) => ({ ...current, priority: value }))}>
-                  <SelectTrigger><SelectValue placeholder="Prioridad" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Baja</SelectItem>
-                    <SelectItem value="medium">Media</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
-                    <SelectItem value="urgent">Urgente</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Bandeja</p>
+                <p className="text-xs text-muted-foreground">Estado, etiquetas y asignación con lectura rápida.</p>
               </div>
-              {isAdmin && (
-                <Select value={form.assigned_staff_id} onValueChange={(value) => setForm((current) => ({ ...current, assigned_staff_id: value }))}>
-                  <SelectTrigger><SelectValue placeholder="Asignar trabajador" /></SelectTrigger>
+              <div className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{activeTasks.length} activas</div>
+            </div>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Filter className="h-4 w-4" /> Filtros</div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {statusFilters.map((filter) => (
+                  <button key={filter.key} onClick={() => setActiveStatusFilter(filter.key)} className={activeStatusFilter === filter.key ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground" : "rounded-full bg-muted px-4 py-2 text-sm font-medium text-foreground"}>
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <Select value={activeLabelFilter} onValueChange={setActiveLabelFilter}>
+                  <SelectTrigger className="h-11 rounded-2xl"><SelectValue placeholder="Etiqueta" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="unassigned">Sin asignar</SelectItem>
-                    {staff.map((person) => <SelectItem key={person.id} value={person.id}>{person.full_name}</SelectItem>)}
+                    <SelectItem value="all">Todas las etiquetas</SelectItem>
+                    {availableLabels.map((label) => <SelectItem key={label} value={label}>{label}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              )}
-              <Textarea value={form.description} onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))} placeholder="Detalles rápidos para que el trabajador entienda la tarea al instante" className="min-h-24" />
-              <div className="flex gap-2">
-                <Button className="flex-1" onClick={() => void submitTask()} disabled={saving || !form.title.trim()}>{editingId ? "Guardar cambios" : "Crear tarea"}</Button>
-                {editingId && <Button variant="outline" onClick={resetForm}>Cancelar</Button>}
+                {isAdmin ? (
+                  <Select value={activeAssigneeFilter} onValueChange={setActiveAssigneeFilter}>
+                    <SelectTrigger className="h-11 rounded-2xl"><SelectValue placeholder="Asignado a" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todo el equipo</SelectItem>
+                      <SelectItem value="unassigned">Sin asignar</SelectItem>
+                      {staff.map((person) => <SelectItem key={person.id} value={person.id}>{person.full_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                ) : null}
               </div>
             </div>
           </section>
 
+          <TaskListSection
+            title="Activas"
+            subtitle="Solo lo que requiere acción ahora mismo."
+            tasks={activeTasks as TaskListItem[]}
+            loading={loading}
+            error={error}
+            isAdmin={isAdmin}
+            onOpenTask={setSelectedTask}
+            onEditTask={openEdit}
+            onDeleteTask={(taskId) => void deleteTask(taskId)}
+            onToggleComplete={(task) => void updateTaskStatus(task.id, task.status === "completed" ? "planned" : "completed")}
+          />
+
+          {completedTasks.length > 0 ? (
+            <TaskListSection
+              title="Completadas"
+              subtitle="Historial reciente para revisar avances." 
+              tasks={completedTasks.slice(0, 8) as TaskListItem[]}
+              loading={false}
+              error={null}
+              isAdmin={isAdmin}
+              onOpenTask={setSelectedTask}
+              onEditTask={openEdit}
+              onDeleteTask={(taskId) => void deleteTask(taskId)}
+              onToggleComplete={(task) => void updateTaskStatus(task.id, "planned")}
+            />
+          ) : null}
+        </div>
+
+        <div className="space-y-3">
           <section className="panel-surface p-4">
             <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Calendario del mes</p></div>
-            <div className="rounded-xl border border-border bg-background p-3">
+            <div className="rounded-3xl border border-border bg-background p-3">
               <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} month={month} onMonthChange={setMonth} modifiers={{ hasTask: taskDates }} modifiersClassNames={{ hasTask: "bg-primary/15 text-foreground font-semibold" }} className="w-full" />
             </div>
             <div className="mt-3 space-y-2">
               {selectedDate && <p className="text-sm font-medium text-foreground">{format(selectedDate, "EEEE d MMMM", { locale: es })}</p>}
               {selectedDayTasks.map((task) => (
-                <button key={task.id} onClick={() => setSelectedTask(task)} className="block w-full rounded-xl border border-border bg-background px-3 py-3 text-left text-sm text-foreground">
+                <button key={task.id} onClick={() => setSelectedTask(task)} className="block w-full rounded-2xl border border-border bg-background px-3 py-3 text-left text-sm text-foreground">
                   {task.title}
-                  <span className="mt-1 block text-xs text-muted-foreground">{task.category || "General"}{task.due_date && isToday(new Date(task.due_date)) ? " · Hoy" : ""}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{task.category || "Sin etiquetas"}</span>
                 </button>
               ))}
-              {selectedDayEvents.map((event) => <div key={event.id} className="rounded-xl bg-muted px-3 py-3 text-sm text-foreground">{event.title}</div>)}
+              {selectedDayEvents.map((event) => <div key={event.id} className="rounded-2xl bg-muted px-3 py-3 text-sm text-foreground">{event.title}</div>)}
               {selectedDayTasks.length === 0 && selectedDayEvents.length === 0 && <p className="text-sm text-muted-foreground">No hay nada organizado para este día.</p>}
+            </div>
+          </section>
+
+          <section className="panel-surface p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Acción rápida</p>
+                <p className="text-xs text-muted-foreground">Crea trabajo nuevo sin perder tiempo.</p>
+              </div>
+              <Button variant="surface" className="h-11 rounded-2xl" onClick={openCreate}><Plus className="h-4 w-4" /> Crear</Button>
             </div>
           </section>
         </div>
       </section>
+
+      <TaskComposerDialog
+        open={composerOpen}
+        editing={Boolean(editingId)}
+        saving={saving}
+        isAdmin={isAdmin}
+        staff={staff}
+        initialValues={form}
+        onOpenChange={(open) => {
+          setComposerOpen(open);
+          if (!open) resetForm();
+        }}
+        onSubmit={(values) => void submitTask(values)}
+      />
 
       <TaskDetailDialog open={Boolean(selectedTask)} task={selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)} onStatusChange={updateTaskStatus} />
     </div>
