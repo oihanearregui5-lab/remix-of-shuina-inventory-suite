@@ -10,12 +10,16 @@ interface Props {
   summaries: WorkerYearSummaryItem[];
   vacationSlots: VacationSlotItem[];
   holidays: HolidayItem[];
+  selectedWorkerId?: string;
+  onSelectedWorkerChange?: (workerId: string) => void;
 }
 
 const weekDays = ["L", "M", "X", "J", "V", "S", "D"];
 
-const WorkerProfilesSection = ({ workers, summaries, vacationSlots, holidays }: Props) => {
-  const [selectedWorkerId, setSelectedWorkerId] = useState(workers[0]?.id ?? "");
+const WorkerProfilesSection = ({ workers, summaries, vacationSlots, holidays, selectedWorkerId: controlledSelectedWorkerId, onSelectedWorkerChange }: Props) => {
+  const [internalSelectedWorkerId, setInternalSelectedWorkerId] = useState(workers[0]?.id ?? "");
+  const selectedWorkerId = controlledSelectedWorkerId ?? internalSelectedWorkerId;
+  const setSelectedWorkerId = onSelectedWorkerChange ?? setInternalSelectedWorkerId;
   const worker = workers.find((item) => item.id === selectedWorkerId) ?? workers[0] ?? null;
   const summary = useMemo(() => summaries.find((item) => item.worker_id === worker?.id) ?? null, [summaries, worker?.id]);
   const workerSlots = useMemo(() => vacationSlots.filter((slot) => slot.worker_id === worker?.id).slice(0, 18), [vacationSlots, worker?.id]);
