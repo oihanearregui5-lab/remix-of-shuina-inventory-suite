@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { eachDayOfInterval, endOfMonth, format, getYear, isSameDay, startOfMonth } from "date-fns";
+import { addDays, eachDayOfInterval, endOfMonth, format, getYear, isSameDay, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarDays, Clock3, Edit3, Send, SunMedium, Sunset } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,6 +101,24 @@ const StaffHubView = () => {
   const myAllowance = useMemo(() => allowances.find((item) => item.staff_member_id === currentStaffId) ?? null, [allowances, currentStaffId]);
   const approvedVacationDays = useMemo(() => requests.filter((request) => request.staff_member_id === currentStaffId && request.request_type === "vacation" && request.status === "approved").reduce((total, request) => total + eachDayOfInterval({ start: new Date(request.start_date), end: new Date(request.end_date) }).length, 0), [currentStaffId, requests]);
   const approvedPersonalDays = useMemo(() => requests.filter((request) => request.staff_member_id === currentStaffId && request.request_type === "leave" && request.status === "approved").reduce((total, request) => total + eachDayOfInterval({ start: new Date(request.start_date), end: new Date(request.end_date) }).length, 0), [currentStaffId, requests]);
+  const weekRange = useMemo(() => {
+    const baseDate = selectedDate ?? new Date();
+    const start = startOfWeek(baseDate, { weekStartsOn: 1 });
+    return Array.from({ length: 7 }, (_, index) => addDays(start, index));
+  }, [selectedDate]);
+  const weekSummary = useMemo(() => {
+    const days = weekRange.map((date) => {
+      const dayRequests = requests.filter((request) => date >= new Date(request.start_date) && date <= new Date(request.end_date));
+      const dayShifts = shifts.filter((shift) => isSameDay(new Date(shift.shift_date), date));
+      return { date, requests: dayRequests.length, shifts: dayShifts.length };
+    });
+    return {
+      days,
+      totalRequests: days.reduce((sum, day) => sum + day.requests, 0),
+      totalShifts: days.reduce((sum, day) => sum + day.shifts, 0),
+    };
+  }, [requests, shifts, weekRange]);
+  const nextOwnRequests = useMemo(() => requests.filter((request) => request.staff_member_id === currentStaffId).slice(0, 3), [currentStaffId, requests]);
 
   useEffect(() => {
     const target = allowances.find((item) => item.staff_member_id === selectedStaffId);
@@ -114,6 +132,45 @@ const StaffHubView = () => {
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Vacaciones restantes</p><p className="mt-2 text-3xl font-bold text-foreground">{Math.max(0, (myAllowance?.vacation_days_base ?? 30) + (myAllowance?.vacation_adjustment_days ?? 0) - approvedVacationDays)}</p></div>
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Asuntos propios restantes</p><p className="mt-2 text-3xl font-bold text-foreground">{Math.max(0, (myAllowance?.personal_days_base ?? 2) + (myAllowance?.personal_adjustment_days ?? 0) - approvedPersonalDays)}</p></div>
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Turnos hoy</p><p className="mt-2 text-3xl font-bold text-foreground">{todayShifts.length}</p></div>
+      </section>
+
+      <section className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
+        <section className="panel-surface p-4">
+          <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Lectura semanal</p></div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Solicitudes</p><p className="mt-1 text-xl font-semibold text-foreground">{weekSummary.totalRequests}</p></div>
+            <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Turnos</p><p className="mt-1 text-xl font-semibold text-foreground">{weekSummary.totalShifts}</p></div>
+            <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Día activo</p><p className="mt-1 text-xl font-semibold text-foreground">{selectedDate ? format(selectedDate, "EEE d", { locale: es }) : "—"}</p></div>
+            <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Próximos hitos</p><p className="mt-1 text-xl font-semibold text-foreground">{nextOwnRequests.length}</p></div>
+          </div>
+          <div className="mt-4 grid grid-cols-7 gap-2">
+            {weekSummary.days.map((day) => (
+              <div key={day.date.toISOString()} className="rounded-lg border border-border bg-background px-2 py-3 text-center">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{format(day.date, "EEE", { locale: es })}</p>
+                <p className="mt-1 text-base font-semibold text-foreground">{format(day.date, "d")}</p>
+                <p className="mt-2 text-[11px] text-muted-foreground">{day.requests} sol.</p>
+                <p className="text-[11px] text-muted-foreground">{day.shifts} turnos</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel-surface p-4">
+          <div className="mb-4 flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Próximos movimientos</p></div>
+          <div className="space-y-3">
+            {nextOwnRequests.length === 0 ? <div className="rounded-xl bg-muted px-4 py-6 text-sm text-muted-foreground">No tienes solicitudes recientes en calendario.</div> : nextOwnRequests.map((request) => (
+              <button key={request.id} onClick={() => setSelectedRequest(request)} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-left">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-foreground">{request.request_type === "vacation" ? "Vacaciones" : request.request_type === "leave" ? "Asuntos propios" : "Baja / revisión"}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{format(new Date(request.start_date), "d MMM", { locale: es })} → {format(new Date(request.end_date), "d MMM yyyy", { locale: es })}</p>
+                  </div>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-foreground">{request.status}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
       </section>
 
       <section className="grid gap-3 xl:grid-cols-[0.9fr_1.1fr]">
