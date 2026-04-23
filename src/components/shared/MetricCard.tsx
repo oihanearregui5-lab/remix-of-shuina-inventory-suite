@@ -28,21 +28,21 @@ const MetricCard = ({ title, value, hint, icon: Icon, tone = "primary", active =
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden rounded-lg border border-border/80 bg-card px-5 py-4 text-left shadow-[var(--shadow-soft)] transition-all duration-200",
+        "group relative overflow-hidden rounded-2xl border border-border/80 bg-card px-4 py-4 text-left shadow-[var(--shadow-soft)] transition-all duration-200 md:px-5",
         "before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-primary/20 before:to-transparent",
         onClick && "hover:-translate-y-0.5 hover:border-border hover:shadow-[var(--shadow-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         active && "border-primary/30 bg-primary/5"
       )}
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <div className="space-y-1">
-            <p className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{value}</p>
-            {hint ? <p className="text-xs leading-5 text-muted-foreground">{hint}</p> : null}
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <div className="space-y-1">
+              <p className="text-xl font-bold tracking-tight text-foreground md:text-3xl">{value}</p>
+              {hint ? <p className="text-xs leading-5 text-muted-foreground">{hint}</p> : null}
           </div>
         </div>
-        <div className={cn("inline-flex h-11 w-11 items-center justify-center rounded-lg ring-1", toneClassMap[tone])}>
+         <div className={cn("inline-flex h-10 w-10 items-center justify-center rounded-xl ring-1 md:h-11 md:w-11", toneClassMap[tone])}>
           <Icon className="h-5 w-5" />
         </div>
       </div>

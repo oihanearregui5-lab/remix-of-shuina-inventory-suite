@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Clock, MapPin, LogIn, LogOut, Calendar } from "lucide-react";
+import { Calendar, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { format, differenceInMinutes } from "date-fns";
 import { es } from "date-fns/locale";
+import PageHeader from "@/components/shared/PageHeader";
+import FichajeStatusCard from "@/components/fichajes/FichajeStatusCard";
+import FichajeHistoryList from "@/components/fichajes/FichajeHistoryList";
 
 interface TimeEntry {
   id: string;
@@ -24,6 +27,7 @@ const Fichajes = () => {
   const [activeEntry, setActiveEntry] = useState<TimeEntry | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [historyFilter, setHistoryFilter] = useState<"all" | "open" | "closed">("all");
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -107,112 +111,68 @@ const Fichajes = () => {
     return `${h}h ${m}m`;
   };
 
+  const todayEntries = entries.filter((entry) => new Date(entry.clock_in).toDateString() === new Date().toDateString());
+  const workedTodayMinutes = todayEntries.reduce(
+    (total, entry) => total + Math.max(0, differenceInMinutes(entry.clock_out ? new Date(entry.clock_out) : new Date(), new Date(entry.clock_in))),
+    0
+  );
+  const workedTodayLabel = `${Math.floor(workedTodayMinutes / 60)}h ${workedTodayMinutes % 60}m`;
+  const currentSessionLabel = activeEntry ? formatDuration(activeEntry.clock_in, null) : "Sin jornada activa";
+  const lastMovementLabel = entries[0]
+    ? `${entries[0].clock_out ? "Salida" : "Entrada"} ${format(new Date(entries[0].clock_out ?? entries[0].clock_in), "HH:mm")}`
+    : "Sin registros";
+  const filteredEntries = entries.filter((entry) => {
+    if (historyFilter === "open") return !entry.clock_out;
+    if (historyFilter === "closed") return !!entry.clock_out;
+    return true;
+  });
+
   return (
-    <div className="animate-fade-in">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Fichajes</h1>
-        <p className="text-muted-foreground mt-1">Registro de jornada laboral</p>
-      </div>
+    <div className="space-y-5 animate-fade-in">
+      <PageHeader
+        eyebrow="Fichaje móvil"
+        title="Fichar en un toque"
+        description="Abre, comprueba tu estado y registra la jornada sin pasos extra. Todo lo importante queda visible en la primera pantalla."
+      />
 
-      <div className="mb-6 flex items-center justify-center">
-        <div className={`inline-flex items-center gap-3 rounded-full border px-5 py-2 text-sm font-semibold ${activeEntry ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-border bg-card text-muted-foreground"}`}>
-          <span className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-bold ${activeEntry ? "bg-destructive text-destructive-foreground" : "bg-muted text-foreground"}`}>
-            {activeEntry ? "ON" : "OFF"}
-          </span>
-          <span>{activeEntry ? "Activo en plantilla" : "Fuera de servicio"}</span>
-        </div>
-      </div>
+      <FichajeStatusCard
+        active={!!activeEntry}
+        loading={loading}
+        currentTime={currentTime}
+        workedTodayLabel={workedTodayLabel}
+        currentSessionLabel={currentSessionLabel}
+        lastMovementLabel={lastMovementLabel}
+        onPrimaryAction={activeEntry ? handleClockOut : handleClockIn}
+      />
 
-      {/* Clock Card */}
-      <div className="bg-card border border-border rounded-xl p-8 mb-6 text-center shadow-sm">
-        <div className="text-5xl font-bold text-foreground mb-1 tabular-nums">
-          {format(currentTime, "HH:mm:ss")}
-        </div>
-        <p className="text-muted-foreground text-sm mb-6">
-          {format(currentTime, "EEEE, d 'de' MMMM yyyy", { locale: es })}
-        </p>
-
-        {activeEntry ? (
-          <div>
-            <div className="inline-flex items-center gap-2 bg-success/10 text-success px-4 py-2 rounded-full text-sm font-medium mb-4">
-              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              Trabajando desde {format(new Date(activeEntry.clock_in), "HH:mm")}
-              <span className="text-muted-foreground">
-                ({formatDuration(activeEntry.clock_in, null)})
-              </span>
-            </div>
-            <br />
-            <Button
-              onClick={handleClockOut}
-              disabled={loading}
-              variant="destructive"
-              size="lg"
-              className="text-base px-8 py-6"
-            >
-              <LogOut className="w-5 h-5 mr-2" />
-              Fichar Salida
-            </Button>
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <Calendar className="h-4.5 w-4.5" /> Historial
+          </h2>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Button size="sm" variant={historyFilter === "all" ? "default" : "outline"} onClick={() => setHistoryFilter("all")}>Todo</Button>
+            <Button size="sm" variant={historyFilter === "open" ? "default" : "outline"} onClick={() => setHistoryFilter("open")}>Activos</Button>
+            <Button size="sm" variant={historyFilter === "closed" ? "default" : "outline"} onClick={() => setHistoryFilter("closed")}>Cerrados</Button>
           </div>
-        ) : (
-          <Button
-            onClick={handleClockIn}
-            disabled={loading}
-            size="lg"
-            className="text-base px-8 py-6 bg-secondary text-secondary-foreground hover:bg-secondary/90"
-          >
-            <LogIn className="w-5 h-5 mr-2" />
-            Fichar Entrada
-          </Button>
-        )}
-      </div>
+        </div>
 
-      {/* Recent entries */}
-      <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-        <Calendar className="w-5 h-5" /> Registro reciente
-      </h2>
-
-      <div className="space-y-3">
-        {entries.length === 0 && (
-          <p className="text-muted-foreground text-center py-8">No hay fichajes registrados</p>
-        )}
-        {entries.map((entry) => (
-          <div
-            key={entry.id}
-            className="bg-card border border-border rounded-lg p-4 flex items-center justify-between shadow-sm transition-colors hover:bg-muted/40"
-          >
+        <div className="rounded-2xl border border-border/80 bg-muted/25 p-1.5">
+          <div className="flex items-center justify-between rounded-xl bg-background px-4 py-3 shadow-[var(--shadow-soft)]">
             <div>
-              <p className="text-sm text-muted-foreground">
-                {format(new Date(entry.clock_in), "EEEE d MMM", { locale: es })}
-              </p>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-foreground font-medium">
-                  {format(new Date(entry.clock_in), "HH:mm")}
-                </span>
-                <span className="text-muted-foreground">→</span>
-                <span className="text-foreground font-medium">
-                  {entry.clock_out
-                    ? format(new Date(entry.clock_out), "HH:mm")
-                    : "En curso..."}
-                </span>
-              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Estado actual</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{activeEntry ? "Jornada en marcha" : "Esperando próximo fichaje"}</p>
             </div>
             <div className="text-right">
-              <span
-                className={`text-sm font-semibold ${
-                  entry.clock_out ? "text-primary" : "text-success"
-                }`}
-              >
-                {formatDuration(entry.clock_in, entry.clock_out)}
-              </span>
-              {entry.latitude_in && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                  <MapPin className="w-3 h-3" /> GPS
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground">Tiempo hoy</p>
+              <p className="text-sm font-semibold text-foreground">{workedTodayLabel}</p>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+
+        <FichajeHistoryList entries={filteredEntries} />
+      </section>
     </div>
   );
 };

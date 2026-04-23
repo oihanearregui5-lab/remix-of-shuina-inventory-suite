@@ -91,4 +91,8 @@
     box-shadow: var(--shadow-elevated);
     border: 1px solid hsl(var(--border) / 0.8);
   }
+
+  .app-safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 5.5rem);
+  }
 }
