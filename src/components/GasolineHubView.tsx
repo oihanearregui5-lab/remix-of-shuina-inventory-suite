@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
-import { CalendarDays, Camera, CarFront, CreditCard, Download, FileText, Fuel, MapPinned, PencilLine } from "lucide-react";
+import { AlertTriangle, CalendarDays, Camera, CarFront, CreditCard, Download, FileText, Fuel, MapPinned, PencilLine } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { buildGasolineAlerts, getFuelUnitPrice, parseFuelNumber, validateFuelDraft } from "@/lib/gasoline-alerts";
 
 type GasolineRecord = {
   id: string;
@@ -81,6 +83,8 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
     () => records.filter((record) => record.cardId === selectedCardId).sort((a, b) => b.date.localeCompare(a.date)),
     [records, selectedCardId],
   );
+  const alerts = useMemo(() => buildGasolineAlerts(records), [records]);
+  const selectedCardAlerts = useMemo(() => alerts.filter((alert) => alert.cardId === selectedCardId), [alerts, selectedCardId]);
 
   const cardSummaries = useMemo(
     () =>
@@ -98,6 +102,12 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
   );
 
   const handleSave = () => {
+    const validationError = validateFuelDraft(draft);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
     const payload = {
       ...draft,
       id: editingId ?? crypto.randomUUID(),
@@ -112,6 +122,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
     }
 
     setDraft(emptyForm(selectedCardId));
+    toast.success(editingId ? "Gasto actualizado" : "Gasto guardado");
   };
 
   const handleEdit = (record: GasolineRecord) => {
@@ -140,6 +151,8 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
   };
 
   const totalAmount = cardRecords.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+  const totalLiters = cardRecords.reduce((sum, record) => sum + parseFuelNumber(record.liters), 0);
+  const averagePrice = totalAmount > 0 && totalLiters > 0 ? totalAmount / totalLiters : null;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -191,6 +204,26 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
         })}
       </section>
 
+      {selectedCardAlerts.length > 0 ? (
+        <section className="panel-surface p-4">
+          <div className="mb-4 flex items-center gap-2">
+            <AlertTriangle className="h-4.5 w-4.5 text-primary" />
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Alertas de revisión</h2>
+              <p className="text-sm text-muted-foreground">Movimientos de esta tarjeta que conviene revisar.</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {selectedCardAlerts.slice(0, 4).map((alert) => (
+              <article key={alert.id} className={cn("rounded-xl border p-4", alert.severity === "danger" ? "border-destructive/20 bg-destructive/5" : "border-primary/20 bg-primary/5")}>
+                <p className="font-semibold text-foreground">{alert.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{alert.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
         <Card className="border-border/80 shadow-[var(--shadow-soft)] xl:order-2">
           <CardHeader className="space-y-2">
@@ -217,7 +250,9 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
                     <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                       <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Importe</span><p className="mt-1 font-semibold text-foreground">{record.amount || "—"} €</p></div>
                       <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Litros</span><p className="mt-1 font-semibold text-foreground">{record.liters || "—"}</p></div>
+                      <div className="rounded-xl bg-muted/45 px-3 py-2 sm:col-span-2"><span className="text-muted-foreground">Precio medio</span><p className="mt-1 font-semibold text-foreground">{getFuelUnitPrice(record) ? `${getFuelUnitPrice(record)?.toFixed(2)} €/l` : "Sin cálculo"}</p></div>
                     </div>
+                    {alerts.some((alert) => alert.recordId === record.id) ? <p className="mt-3 text-xs font-medium text-primary">Requiere revisión por patrón anómalo</p> : null}
                     {record.observations ? <p className="mt-3 text-sm text-muted-foreground">{record.observations}</p> : null}
                     {record.receiptPhotoName ? <p className="mt-2 text-xs text-muted-foreground">Ticket: {record.receiptPhotoName}</p> : null}
                   </article>
@@ -237,6 +272,9 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
               <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Tarjeta</p><p className="mt-1 font-semibold text-foreground">{selectedCard.masked}</p></div>
               <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Registros</p><p className="mt-1 font-semibold text-foreground">{cardRecords.length}</p></div>
               <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Importe acumulado</p><p className="mt-1 font-semibold text-foreground">{totalAmount.toFixed(2)} €</p></div>
+              <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Litros acumulados</p><p className="mt-1 font-semibold text-foreground">{totalLiters.toFixed(2)}</p></div>
+              <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Precio medio</p><p className="mt-1 font-semibold text-foreground">{averagePrice ? `${averagePrice.toFixed(2)} €/l` : "—"}</p></div>
+              <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Alertas</p><p className="mt-1 font-semibold text-foreground">{selectedCardAlerts.length}</p></div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
