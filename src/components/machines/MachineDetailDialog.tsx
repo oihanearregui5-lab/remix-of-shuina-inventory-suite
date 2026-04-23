@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarClock, CircleGauge, Fuel, ShieldCheck, ShoppingCart, Wrench } from "lucide-react";
+import { CalendarClock, CircleGauge, Fuel, PlayCircle, ShieldCheck, ShoppingCart, TimerReset, Users, Wrench } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,20 @@ export interface MachineDialogItem {
   nextIvt: string;
   fluids: string[];
   notes: MachineDialogNote[];
+  usage: {
+    totalHours30d: string;
+    activeOperator: string;
+    activeSince: string;
+    operators: number;
+    recentTimeline: Array<{
+      id: string;
+      workerName: string;
+      startedAt: string;
+      endedAt: string | null;
+      durationLabel: string;
+      isActive: boolean;
+    }>;
+  };
 }
 
 interface MachineDetailDialogProps {
@@ -110,6 +124,28 @@ const MachineDetailDialog = ({ open, machine, onOpenChange }: MachineDetailDialo
               </div>
             </div>
 
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border border-border bg-card p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <TimerReset className="h-4 w-4 text-primary" /> Uso 30 días
+                </div>
+                <p className="text-lg font-semibold text-foreground">{machine.usage.totalHours30d}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <PlayCircle className="h-4 w-4 text-secondary" /> Activa ahora
+                </div>
+                <p className="font-semibold text-foreground">{machine.usage.activeOperator}</p>
+                <p className="text-sm text-muted-foreground">{machine.usage.activeSince}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Users className="h-4 w-4 text-primary" /> Operarios
+                </div>
+                <p className="text-lg font-semibold text-foreground">{machine.usage.operators}</p>
+              </div>
+            </div>
+
             <div className="rounded-lg border border-border bg-card p-4">
               <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
                 <Wrench className="h-4 w-4 text-warning" /> Puntos a vigilar
@@ -117,6 +153,31 @@ const MachineDetailDialog = ({ open, machine, onOpenChange }: MachineDetailDialo
               <div className="flex flex-wrap gap-2">
                 {machine.focus.map((item) => (
                   <span key={item} className="rounded-full bg-muted px-2.5 py-1 text-xs text-foreground">{item}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+                <PlayCircle className="h-4 w-4 text-primary" /> Uso reciente
+              </div>
+              <div className="space-y-3">
+                {machine.usage.recentTimeline.length === 0 && <p className="text-sm text-muted-foreground">Todavía no hay uso operativo vinculado a esta máquina.</p>}
+                {machine.usage.recentTimeline.map((item) => (
+                  <div key={item.id} className="rounded-lg bg-muted p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{item.workerName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(item.startedAt), "d MMM yyyy · HH:mm", { locale: es })}
+                          {item.endedAt ? ` → ${format(new Date(item.endedAt), "HH:mm", { locale: es })}` : " · En curso"}
+                        </p>
+                      </div>
+                      <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${item.isActive ? "bg-primary/15 text-foreground" : "bg-background text-muted-foreground"}`}>
+                        {item.durationLabel}
+                      </span>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
