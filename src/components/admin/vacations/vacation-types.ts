@@ -1,4 +1,4 @@
-export type VacationViewMode = "week" | "month" | "year";
+export type VacationViewMode = "day" | "week" | "month" | "year";
 export type ShiftSlot = "dia" | "tarde" | "noche";
 export type HolidayType = "festivo_nacional" | "cierre_fabrica" | "festivo_local" | "otro";
 
