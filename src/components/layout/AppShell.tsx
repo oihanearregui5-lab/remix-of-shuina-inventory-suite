@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Bell, ChevronRight, LogOut, Menu, PanelLeftClose, Truck } from "lucide-react";
+import { Bell, ChevronRight, LogOut, Menu, PanelLeftClose } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import logoHorizontal from "@/assets/logo-horizontal.png";
 
 export interface AppShellSection<T extends string> {
   key: T;
@@ -35,15 +36,12 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
   const navigation = (
     <>
       <div className="border-b border-sidebar-border/70 px-5 py-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-sidebar-primary/90 shadow-[var(--shadow-soft)]">
-            <Truck className="h-5 w-5 text-sidebar-primary-foreground" />
+          <div className="space-y-2">
+            <img src={logoHorizontal} alt="Transtubari" className="h-10 w-auto object-contain" />
+            <div className="min-w-0">
+              <p className="truncate text-xs uppercase tracking-[0.16em] text-sidebar-foreground/60">Sistema de Fichajes</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-base font-semibold tracking-[0.12em] text-sidebar-foreground">TRANSTUBARI</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">Sistema de Fichajes</p>
-          </div>
-        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">

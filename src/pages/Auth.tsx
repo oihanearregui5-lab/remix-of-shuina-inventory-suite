@@ -1,19 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, CheckCircle2, LockKeyhole, Mail, Truck, LogIn, UserPlus } from "lucide-react";
+import { ArrowRight, CheckCircle2, LockKeyhole, Mail, Truck, LogIn, UserPlus, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
+import logoHorizontal from "@/assets/logo-horizontal.png";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [recovering, setRecovering] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { bootstrapUser } = useAuth();
@@ -52,6 +54,26 @@ const Auth = () => {
     } catch (error: any) {
       toast.error(error.message ?? "No se pudo iniciar con Google");
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast.error("Escribe tu correo para recuperar el acceso");
+      return;
+    }
+
+    setRecovering(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      toast.success("Te hemos enviado un correo para recuperar tu contraseña");
+    } catch (error: any) {
+      toast.error(error.message ?? "No se pudo enviar el correo de recuperación");
+    } finally {
+      setRecovering(false);
     }
   };
 
@@ -106,8 +128,8 @@ const Auth = () => {
         <section className="flex items-center justify-center">
           <div className="panel-surface w-full max-w-xl p-6 md:p-8">
             <div className="mb-8 space-y-3 text-center xl:text-left">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] xl:mx-0">
-                <Truck className="h-8 w-8" />
+              <div className="mx-auto xl:mx-0">
+                <img src={logoHorizontal} alt="Transtubari" className="h-12 w-auto object-contain" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Transtubari</h1>
@@ -158,6 +180,13 @@ const Auth = () => {
                   required
                 />
               </div>
+
+              {isLogin && (
+                <button type="button" onClick={() => void handleForgotPassword()} className="flex items-center gap-2 text-sm font-medium text-primary hover:underline" disabled={recovering || loading}>
+                  <KeyRound className="h-4 w-4" />
+                  {recovering ? "Enviando recuperación..." : "¿Has olvidado tu contraseña?"}
+                </button>
+              )}
 
               <Button type="submit" variant="premium" size="xl" className="w-full" disabled={loading}>
                 {loading ? (
