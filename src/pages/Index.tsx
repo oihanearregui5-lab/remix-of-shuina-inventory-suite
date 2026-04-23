@@ -33,14 +33,14 @@ const sections: AppShellSection<AppSection>[] = [
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentSection, setCurrentSection] = useState<AppSection>("fichajes");
+  const [currentSection, setCurrentSection] = useState<AppSection>("dashboard");
   const [workspaceMode, setWorkspaceMode] = useState<"worker" | "admin">("worker");
   const { canViewAdmin, isAdmin, profile, role, signOut } = useAuth();
 
   useEffect(() => {
     if (!canViewAdmin && workspaceMode === "admin") {
       setWorkspaceMode("worker");
-      setCurrentSection("fichajes");
+      setCurrentSection("dashboard");
     }
   }, [canViewAdmin, workspaceMode]);
 
