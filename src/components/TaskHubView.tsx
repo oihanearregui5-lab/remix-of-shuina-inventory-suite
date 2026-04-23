@@ -13,6 +13,8 @@ import TaskComposerDialog from "@/components/tasks/TaskComposerDialog";
 import TaskListSection, { type TaskListItem } from "@/components/tasks/TaskListSection";
 import { parseTaskLabels, serializeTaskLabels, type TaskPriority, type TaskStatus } from "@/components/tasks/task-utils";
 import { toast } from "sonner";
+import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
+import { useSmartReminders } from "@/hooks/useSmartReminders";
 
 interface TaskItem extends TaskDialogItem {
   assigned_staff_id?: string | null;
@@ -40,6 +42,7 @@ const statusFilters: Array<{ key: "active" | TaskStatus; label: string }> = [
 const TaskHubView = () => {
   const { user, isAdmin } = useAuth();
   const db = supabase as any;
+  const { reminders } = useSmartReminders();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [staff, setStaff] = useState<StaffOption[]>([]);
   const [events, setEvents] = useState<CalendarEventItem[]>([]);
@@ -196,6 +199,8 @@ const TaskHubView = () => {
         description="Inspirado en herramientas modernas, pero simplificado para móvil y uso real diario."
         actions={<Button className="h-11 rounded-2xl" onClick={openCreate}><Plus className="h-4 w-4" /> Nueva tarea</Button>}
       />
+
+      <SmartRemindersPanel reminders={reminders.filter((reminder) => reminder.section === "tasks")} compact />
 
       <section className="grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-3">

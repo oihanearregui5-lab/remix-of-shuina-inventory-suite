@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import MetricCard from "@/components/shared/MetricCard";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
+import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
+import { useSmartReminders } from "@/hooks/useSmartReminders";
 
 interface DashboardViewProps {
   onNavigate: (section: "fichajes" | "tasks" | "staff" | "chat" | "admin" | "gasoline" | "workReports" | "notes") => void;
@@ -22,6 +24,7 @@ interface HighlightItem { id: string; title: string; summary: string | null; cat
 const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
   const { user, profile } = useAuth();
   const db = supabase as any;
+  const { reminders } = useSmartReminders();
   const [entries, setEntries] = useState<TimeEntryItem[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [requests, setRequests] = useState<RequestItem[]>([]);
@@ -69,6 +72,8 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
         description="Tu estado, tu siguiente paso y poco más."
         actions={<Button size="lg" className="min-w-[160px] flex-1 sm:flex-none" onClick={() => onNavigate("fichajes")}><Clock3 className="h-4 w-4" />{activeEntry ? "Volver a fichar" : "Fichar"}</Button>}
       />
+
+      <SmartRemindersPanel reminders={reminders} onNavigate={onNavigate} />
 
       <section className="hero-surface overflow-hidden rounded-[20px] px-4 py-4 md:px-6 md:py-6">
         <div className="space-y-4">
