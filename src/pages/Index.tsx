@@ -18,17 +18,20 @@ import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes";
 
 const sections: AppShellSection<AppSection>[] = [
-  { key: "dashboard", label: "Inicio", description: "Vista general del día y accesos clave.", icon: LayoutDashboard, workspace: "shared", mobilePrimary: true },
-  { key: "fichajes", label: "Fichar", description: "Entrada, salida e historial.", icon: Clock, workspace: "shared", mobilePrimary: true },
-  { key: "workReports", label: "Parte de trabajo", description: "Iniciar, retomar y cerrar partes.", icon: FileText, workspace: "shared", mobilePrimary: true },
-  { key: "gasoline", label: "Gasolina", description: "Tarjetas y repostajes asociados.", icon: Fuel, workspace: "shared", mobilePrimary: true },
-  { key: "tasks", label: "Tareas", description: "Agenda y prioridades.", icon: ClipboardList, workspace: "worker" },
-  { key: "machines", label: "Máquinas", description: "Flota y mantenimiento.", icon: Truck, workspace: "worker" },
-  { key: "staff", label: "Personal", description: "Turnos, vacaciones y solicitudes.", icon: CalendarRange, workspace: "worker" },
-  { key: "chat", label: "Chat", description: "Mensajes internos.", icon: MessageSquare, workspace: "worker" },
-  { key: "vacations", label: "Vacaciones", description: "Calendario, jornadas y fichas.", icon: CalendarRange, workspace: "admin" },
-  { key: "albaranes", label: "Albaranes", description: "Módulo reservado para gestión documental.", icon: ReceiptText, workspace: "admin", adminOnly: true },
-  { key: "admin", label: "Admin", description: "Control general y validaciones.", icon: ShieldCheck, workspace: "admin", adminOnly: true },
+  { key: "dashboard", label: "Inicio", description: "Estado actual y accesos rápidos.", icon: LayoutDashboard, workspace: "worker", mobilePrimary: true },
+  { key: "workReports", label: "Parte", description: "Iniciar, seguir y finalizar trabajo.", icon: FileText, workspace: "worker", mobilePrimary: true },
+  { key: "tasks", label: "Tareas", description: "Pendientes y prioridades del día.", icon: ClipboardList, workspace: "worker", mobilePrimary: true },
+  { key: "chat", label: "Chat", description: "Mensajes internos del equipo.", icon: MessageSquare, workspace: "worker", mobilePrimary: true },
+  { key: "machines", label: "Máquinas", description: "Flota, incidencias y mantenimiento.", icon: Truck, workspace: "worker" },
+  { key: "gasoline", label: "Gasolina", description: "Tarjetas y movimientos de repostaje.", icon: Fuel, workspace: "worker", mobilePrimary: true },
+  { key: "staff", label: "Calendario", description: "Vacaciones, turnos y solicitudes.", icon: CalendarRange, workspace: "worker" },
+  { key: "admin", label: "Dashboard", description: "Resumen global y control operativo.", icon: ShieldCheck, workspace: "admin", adminOnly: true, mobilePrimary: true },
+  { key: "fichajes", label: "Fichajes", description: "Control y revisión de entradas y salidas.", icon: Clock, workspace: "admin", mobilePrimary: true },
+  { key: "workReports", label: "Partes", description: "Seguimiento y corrección de partes.", icon: FileText, workspace: "admin", mobilePrimary: true },
+  { key: "gasoline", label: "Gasolina", description: "Tarjetas, gastos y exportación.", icon: Fuel, workspace: "admin", mobilePrimary: true },
+  { key: "vacations", label: "Calendario", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
+  { key: "albaranes", label: "Albaranes", description: "Módulo preparado para gestión documental.", icon: ReceiptText, workspace: "admin", adminOnly: true },
+  { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
 ];
 
 const Index = () => {
@@ -50,12 +53,16 @@ const Index = () => {
   };
 
   const visibleSections = useMemo(() => {
-    const workerSections: AppSection[] = ["dashboard", "fichajes", "workReports", "gasoline", "tasks", "machines", "staff", "chat"];
+    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "machines", "gasoline", "staff"];
     const adminSections: AppSection[] = role === "admin"
-      ? ["dashboard", "workReports", "gasoline", "vacations", "albaranes", "admin", "fichajes", "staff", "tasks", "machines", "chat"]
-      : ["dashboard", "workReports", "gasoline", "vacations", "fichajes", "staff", "tasks", "machines", "chat"];
+      ? ["admin", "fichajes", "workReports", "gasoline", "vacations", "albaranes", "staff"]
+      : ["fichajes", "workReports", "gasoline", "vacations", "staff"];
     const allowed = workspaceMode === "admin" && canViewAdmin ? adminSections : workerSections;
-    return sections.filter((section) => allowed.includes(section.key) && (!section.adminOnly || canViewAdmin));
+    return sections.filter((section) => {
+      const sectionWorkspace = section.workspace ?? "worker";
+      const matchesWorkspace = workspaceMode === "admin" ? sectionWorkspace === "admin" : sectionWorkspace === "worker";
+      return matchesWorkspace && allowed.includes(section.key) && (!section.adminOnly || canViewAdmin);
+    });
   }, [canViewAdmin, role, workspaceMode]);
 
   useEffect(() => {
@@ -66,7 +73,7 @@ const Index = () => {
 
   const handleWorkspaceModeChange = (mode: "worker" | "admin") => {
     setWorkspaceMode(mode);
-    setCurrentSection(mode === "admin" ? (role === "admin" ? "admin" : "vacations") : "dashboard");
+    setCurrentSection(mode === "admin" ? (role === "admin" ? "admin" : "fichajes") : "dashboard");
     setMobileMenuOpen(false);
   };
 

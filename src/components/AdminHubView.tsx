@@ -87,7 +87,7 @@ const AdminHubView = () => {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <PageHeader eyebrow="Administración" title="Espacio de control" description="Todo lo administrativo queda aquí: revisión, calendario global y seguimiento del equipo." />
+      <PageHeader eyebrow="Administración" title="Dashboard" description="Vista clara para controlar fichajes, partes, gasolina, calendario y equipo desde un solo sitio." />
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Fichajes activos</p><p className="mt-2 text-3xl font-bold text-foreground">{metrics.activeClockings}</p></div>
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Tareas abiertas</p><p className="mt-2 text-3xl font-bold text-foreground">{metrics.openTasks}</p></div>
@@ -96,10 +96,10 @@ const AdminHubView = () => {
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><FileText className="h-4 w-4 text-primary" /> Parte de trabajo</div><p className="mt-2 text-sm text-foreground">Flujo iniciar / en curso / finalizar con corrección manual listo para crecer.</p></div>
-        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Fuel className="h-4 w-4 text-primary" /> Gasolina</div><p className="mt-2 text-sm text-foreground">Tarjetas, registros editables y base preparada para exportación Excel.</p></div>
-        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><ReceiptText className="h-4 w-4 text-primary" /> Albaranes</div><p className="mt-2 text-sm text-foreground">Sección reservada dentro del esqueleto administrativo para desarrollarla después.</p></div>
-        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><CalendarRange className="h-4 w-4 text-primary" /> Vacaciones y jornadas</div><p className="mt-2 text-sm text-foreground">Área central de planificación para trabajarlo por módulos sin perder coherencia.</p></div>
+        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><FileText className="h-4 w-4 text-primary" /> Partes de trabajo</div><p className="mt-2 text-sm text-foreground">Seguimiento rápido de partes con edición manual de horas y revisión centralizada.</p></div>
+        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Fuel className="h-4 w-4 text-primary" /> Gasolina</div><p className="mt-2 text-sm text-foreground">Tarjetas claras, movimientos simples y exportación lista para administración.</p></div>
+        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><ReceiptText className="h-4 w-4 text-primary" /> Albaranes</div><p className="mt-2 text-sm text-foreground">Módulo ya integrado en la estructura general para completarlo más adelante.</p></div>
+        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><CalendarRange className="h-4 w-4 text-primary" /> Calendario</div><p className="mt-2 text-sm text-foreground">Vista central para vacaciones, jornadas y organización global del equipo.</p></div>
       </section>
 
       <section className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
