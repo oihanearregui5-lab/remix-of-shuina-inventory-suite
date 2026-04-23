@@ -1028,6 +1028,60 @@ export type Database = {
           },
         ]
       }
+      work_reports: {
+        Row: {
+          action: string | null
+          created_at: string
+          description: string
+          ended_at: string | null
+          ended_latitude: number | null
+          ended_longitude: number | null
+          id: string
+          machine: string | null
+          observations: string | null
+          started_at: string
+          started_latitude: number | null
+          started_longitude: number | null
+          updated_at: string
+          user_id: string
+          worker_name: string
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          description?: string
+          ended_at?: string | null
+          ended_latitude?: number | null
+          ended_longitude?: number | null
+          id?: string
+          machine?: string | null
+          observations?: string | null
+          started_at?: string
+          started_latitude?: number | null
+          started_longitude?: number | null
+          updated_at?: string
+          user_id: string
+          worker_name?: string
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          description?: string
+          ended_at?: string | null
+          ended_latitude?: number | null
+          ended_longitude?: number | null
+          id?: string
+          machine?: string | null
+          observations?: string | null
+          started_at?: string
+          started_latitude?: number | null
+          started_longitude?: number | null
+          updated_at?: string
+          user_id?: string
+          worker_name?: string
+        }
+        Relationships: []
+      }
       workers: {
         Row: {
           annual_contract_hours: number
