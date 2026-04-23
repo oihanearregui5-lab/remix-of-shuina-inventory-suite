@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import Fichajes from "@/pages/Fichajes";
@@ -26,17 +26,39 @@ const sections: AppShellSection<AppSection>[] = [
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentSection, setCurrentSection] = useState<AppSection>("fichajes");
+  const [workspaceMode, setWorkspaceMode] = useState<"worker" | "admin">("worker");
   const { canViewAdmin, profile, signOut } = useAuth();
+
+  useEffect(() => {
+    if (!canViewAdmin && workspaceMode === "admin") {
+      setWorkspaceMode("worker");
+      setCurrentSection("fichajes");
+    }
+  }, [canViewAdmin, workspaceMode]);
 
   const handleSectionChange = (section: AppSection) => {
     setCurrentSection(section);
     setMobileMenuOpen(false);
   };
 
-  const visibleSections = useMemo(
-    () => sections.filter((section) => !section.adminOnly || canViewAdmin),
-    [canViewAdmin]
-  );
+  const visibleSections = useMemo(() => {
+    const workerSections: AppSection[] = ["fichajes", "dashboard", "tasks", "machines", "staff", "chat"];
+    const adminSections: AppSection[] = ["admin", "fichajes", "staff", "tasks", "machines", "chat"];
+    const allowed = workspaceMode === "admin" && canViewAdmin ? adminSections : workerSections;
+    return sections.filter((section) => allowed.includes(section.key) && (!section.adminOnly || canViewAdmin));
+  }, [canViewAdmin, workspaceMode]);
+
+  useEffect(() => {
+    if (!visibleSections.some((section) => section.key === currentSection)) {
+      setCurrentSection(visibleSections[0]?.key ?? "fichajes");
+    }
+  }, [currentSection, visibleSections]);
+
+  const handleWorkspaceModeChange = (mode: "worker" | "admin") => {
+    setWorkspaceMode(mode);
+    setCurrentSection(mode === "admin" ? "admin" : "fichajes");
+    setMobileMenuOpen(false);
+  };
 
   const renderCurrentSection = () => {
     switch (currentSection) {
@@ -66,9 +88,24 @@ const Index = () => {
       onSectionChange={handleSectionChange}
       sections={visibleSections}
       canViewAdmin={canViewAdmin}
+      workspaceMode={workspaceMode}
+      onWorkspaceModeChange={canViewAdmin ? handleWorkspaceModeChange : undefined}
       profileName={profile?.full_name}
       onSignOut={signOut}
     >
+      <section className="panel-surface px-4 py-3 md:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Espacio activo</p>
+            <p className="text-sm font-semibold text-foreground">{workspaceMode === "admin" ? "Administración" : "Trabajador"}</p>
+          </div>
+          <p className="text-right text-xs text-muted-foreground">
+            {workspaceMode === "admin"
+              ? "Control global, calendarios y revisión"
+              : "Tus fichajes, tareas y vacaciones"}
+          </p>
+        </div>
+      </section>
       {renderCurrentSection()}
     </AppShell>
   );

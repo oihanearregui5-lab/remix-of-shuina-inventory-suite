@@ -1,15 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CalendarRange, CheckCircle2, Clock3, ShieldCheck, Users2, Wrench, XCircle } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { AlertTriangle, CalendarDays, CalendarRange, CheckCircle2, Clock3, ShieldCheck, Users2, Wrench, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
+import EmptyState from "@/components/shared/EmptyState";
+import { buildClosureDates, NATIONAL_HOLIDAYS_BY_YEAR } from "@/lib/company-calendar";
 import { toast } from "sonner";
 
 interface AdminMetrics { openTasks: number; openIncidents: number; serviceItems: number; activeClockings: number }
 interface DailyHighlight { id: string; title: string; summary: string | null; category: string }
 interface VacationReviewItem { id: string; request_type: string; start_date: string; end_date: string; reason: string | null; requester_user_id: string; requester_name?: string | null }
+interface CompanyCalendarDay { id: string; calendar_date: string; title: string; day_type: string; color_tag: string | null; notes: string | null }
 
 const AdminHubView = () => {
   const { canViewAdmin } = useAuth();
@@ -17,8 +23,13 @@ const AdminHubView = () => {
   const [highlights, setHighlights] = useState<DailyHighlight[]>([]);
   const [pendingRequests, setPendingRequests] = useState<VacationReviewItem[]>([]);
   const [responseDrafts, setResponseDrafts] = useState<Record<string, string>>({});
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [calendarDays, setCalendarDays] = useState<CompanyCalendarDay[]>([]);
 
-  useEffect(() => { if (canViewAdmin) void loadMetrics(); }, [canViewAdmin]);
+  useEffect(() => {
+    if (!canViewAdmin) return;
+    void Promise.all([loadMetrics(), loadCalendarDays()]);
+  }, [canViewAdmin]);
 
   const loadMetrics = async () => {
     const [tasksRes, incidentsRes, serviceRes, clockingsRes, highlightsRes, vacationRes] = await Promise.all([
@@ -38,7 +49,24 @@ const AdminHubView = () => {
     setPendingRequests(baseRequests.map((item) => ({ ...item, requester_name: namesByUserId.get(item.requester_user_id) ?? null })));
   };
 
+  const loadCalendarDays = async () => {
+    const { data } = await supabase.from("company_calendar_days").select("id, calendar_date, title, day_type, color_tag, notes").order("calendar_date", { ascending: true });
+    setCalendarDays((data as CompanyCalendarDay[]) ?? []);
+  };
+
   const pendingCount = useMemo(() => pendingRequests.length, [pendingRequests]);
+  const calendarYear = selectedDate?.getFullYear() ?? new Date().getFullYear();
+  const holidayDates = useMemo(() => NATIONAL_HOLIDAYS_BY_YEAR[calendarYear]?.map((item) => new Date(item.date)) ?? [], [calendarYear]);
+  const closureDates = useMemo(() => buildClosureDates(calendarYear).map((item) => new Date(item)), [calendarYear]);
+  const customDates = useMemo(() => calendarDays.filter((item) => item.day_type === "custom").map((item) => new Date(item.calendar_date)), [calendarDays]);
+  const selectedDayItems = useMemo(() => {
+    if (!selectedDate) return [];
+    const selectedKey = format(selectedDate, "yyyy-MM-dd");
+    const companyDay = calendarDays.filter((item) => item.calendar_date === selectedKey);
+    const holidays = (NATIONAL_HOLIDAYS_BY_YEAR[calendarYear] ?? []).filter((item) => item.date === selectedKey).map((item) => ({ title: item.title, day_type: "holiday", notes: null }));
+    const closures = buildClosureDates(calendarYear).includes(selectedKey) ? [{ title: "Cierre empresa", day_type: "closure", notes: "Cierre del 12 al 25" }] : [];
+    return [...holidays, ...closures, ...companyDay];
+  }, [calendarDays, calendarYear, selectedDate]);
 
   const reviewVacationRequest = async (requestId: string, status: "approved" | "rejected") => {
     const adminResponse = responseDrafts[requestId]?.trim() || null;
@@ -54,7 +82,7 @@ const AdminHubView = () => {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <PageHeader eyebrow="Administración" title="Centro de revisión" description="Fichajes activos, pendientes de personal y control diario desde una sola pantalla." />
+      <PageHeader eyebrow="Administración" title="Espacio de control" description="Todo lo administrativo queda aquí: revisión, calendario global y seguimiento del equipo." />
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Fichajes activos</p><p className="mt-2 text-3xl font-bold text-foreground">{metrics.activeClockings}</p></div>
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Tareas abiertas</p><p className="mt-2 text-3xl font-bold text-foreground">{metrics.openTasks}</p></div>
@@ -88,6 +116,46 @@ const AdminHubView = () => {
         </section>
 
         <div className="space-y-3">
+          <section className="panel-surface p-4">
+            <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Calendario general</p></div>
+            <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
+              <div className="rounded-2xl border border-border bg-background p-3">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  modifiers={{ holiday: holidayDates, closure: closureDates, custom: customDates }}
+                  modifiersClassNames={{ holiday: "bg-destructive/15 text-destructive font-semibold", closure: "bg-secondary/25 text-secondary-foreground font-semibold", custom: "bg-primary/10 text-primary font-semibold" }}
+                  className="w-full"
+                />
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-destructive/15 px-2.5 py-1 text-destructive">Festivo</span>
+                  <span className="rounded-full bg-secondary/25 px-2.5 py-1 text-secondary-foreground">Cierre empresa</span>
+                  <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary">Editable</span>
+                </div>
+              </div>
+              <div className="space-y-3 rounded-2xl border border-border bg-background p-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{selectedDate ? format(selectedDate, "EEEE d MMMM yyyy", { locale: es }) : "Selecciona un día"}</p>
+                  <p className="text-xs text-muted-foreground">Vista rápida del calendario corporativo.</p>
+                </div>
+                {selectedDayItems.length === 0 ? (
+                  <EmptyState icon={CalendarDays} title="Día sin eventos" description="Aquí verás festivos, cierres y cambios cuando queden configurados." />
+                ) : (
+                  <div className="space-y-2">
+                    {selectedDayItems.map((item, index) => (
+                      <div key={`${item.title}-${index}`} className="rounded-xl border border-border bg-card px-3 py-3">
+                        <p className="font-medium text-foreground">{item.title}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">{item.day_type}</p>
+                        {item.notes ? <p className="mt-2 text-sm text-muted-foreground">{item.notes}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
           <section className="panel-surface p-4">
             <div className="mb-4 flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Indicadores rápidos</p></div>
             <div className="grid gap-3 sm:grid-cols-2">
