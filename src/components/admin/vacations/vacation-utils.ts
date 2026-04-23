@@ -19,6 +19,7 @@ export const SHIFT_LABELS: Record<ShiftSlot, string> = {
 };
 
 export const VIEW_LABELS: Record<VacationViewMode, string> = {
+  day: "Diaria",
   week: "Semanal",
   month: "Mensual",
   year: "Anual",
@@ -45,6 +46,10 @@ export const getHolidayTone = (type: HolidayType) => {
 };
 
 export const getDaysForView = (anchorDate: Date, mode: VacationViewMode) => {
+  if (mode === "day") {
+    return [anchorDate];
+  }
+
   if (mode === "week") {
     return eachDayOfInterval({
       start: startOfWeek(anchorDate, { weekStartsOn: 1 }),
@@ -83,6 +88,7 @@ export const sameDate = (left: Date, right: Date) => isSameDay(left, right);
 export const isNonWorkingWeekend = (date: Date) => isWeekend(date);
 
 export const getNextAnchorDate = (anchorDate: Date, mode: VacationViewMode, direction: 1 | -1) => {
+  if (mode === "day") return addDays(anchorDate, direction);
   if (mode === "week") return addDays(anchorDate, direction * 7);
   if (mode === "month") return new Date(anchorDate.getFullYear(), anchorDate.getMonth() + direction, 1);
   return new Date(anchorDate.getFullYear() + direction, anchorDate.getMonth(), 1);
