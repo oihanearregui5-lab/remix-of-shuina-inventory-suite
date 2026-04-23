@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Loader2, NotebookPen, Pin, Plus, Search, Trash2 } from "lucide-react";
+import { CheckCircle2, ClipboardPlus, Loader2, NotebookPen, Pin, Plus, Search, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,7 @@ const PersonalNotesView = () => {
   const { user } = useAuth();
   const db = supabase as any;
   const [notes, setNotes] = useState<PersonalNote[]>([]);
+  const [ownStaffId, setOwnStaffId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<NoteDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -65,8 +66,22 @@ const PersonalNotesView = () => {
     setLoading(false);
   };
 
+  const loadOwnStaff = async () => {
+    if (!user) return;
+
+    const { data } = await db
+      .from("staff_directory")
+      .select("id")
+      .eq("linked_user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    setOwnStaffId(data?.id ?? null);
+  };
+
   useEffect(() => {
     void loadNotes();
+    void loadOwnStaff();
   }, [user]);
 
   const filteredNotes = useMemo(() => {
@@ -184,6 +199,37 @@ const PersonalNotesView = () => {
     void loadNotes();
   };
 
+  const convertToTask = async (note: PersonalNote) => {
+    if (!user) return;
+
+    const normalizedTitle = note.title?.trim() || note.content.trim().slice(0, 60) || "Tarea desde nota";
+    const payload = {
+      title: normalizedTitle,
+      description: note.content.trim(),
+      category: "nota personal",
+      priority: "medium",
+      status: "planned",
+      created_by_user_id: user.id,
+      assigned_staff_id: ownStaffId,
+    };
+
+    const { error } = await db.from("tasks").insert(payload);
+
+    if (error) {
+      toast.error("No se pudo convertir la nota en tarea");
+      return;
+    }
+
+    await db
+      .from("personal_notes")
+      .update({ is_completed: true, is_pinned: false })
+      .eq("id", note.id)
+      .eq("user_id", user.id);
+
+    toast.success("Nota convertida en tarea");
+    void loadNotes();
+  };
+
   const pinnedCount = notes.filter((note) => note.is_pinned).length;
   const completedCount = notes.filter((note) => note.is_completed).length;
 
@@ -270,6 +316,9 @@ const PersonalNotesView = () => {
                     </Button>
                     <Button variant="outline" size="icon" onClick={() => void toggleCompleted(note)} aria-label="Completar nota">
                       <CheckCircle2 className={cn("h-4 w-4", note.is_completed && "fill-current text-primary")} />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => void convertToTask(note)} aria-label="Convertir en tarea">
+                      <ClipboardPlus className="h-4 w-4" />
                     </Button>
                     <Button variant="outline" size="icon" onClick={() => handleEdit(note)} aria-label="Editar nota">
                       <NotebookPen className="h-4 w-4" />
