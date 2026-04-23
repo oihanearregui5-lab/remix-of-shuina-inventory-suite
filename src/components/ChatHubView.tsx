@@ -60,7 +60,7 @@ const ChatHubView = () => {
     return () => {
       db.removeChannel(subscription);
     };
-  }, [user, activeChannelId, lastSeenStorageKey, lastSeenMap]);
+  }, [user, activeChannelId]);
 
   useEffect(() => {
     if (!activeChannelId) return;
@@ -109,6 +109,17 @@ const ChatHubView = () => {
       const seenAt = lastSeenMap[row.channel_id];
       if (row.author_user_id !== user?.id && (!seenAt || new Date(row.created_at) > new Date(seenAt))) {
         summaries[row.channel_id].unreadCount += 1;
+      }
+    }
+    for (const channel of channels) {
+      if (!summaries[channel.id]) {
+        summaries[channel.id] = {
+          channelId: channel.id,
+          lastMessage: null,
+          lastMessageAt: null,
+          lastAuthorName: null,
+          unreadCount: 0,
+        };
       }
     }
     setChannelSummaries(summaries);
