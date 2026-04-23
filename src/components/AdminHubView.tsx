@@ -12,6 +12,8 @@ import EmptyState from "@/components/shared/EmptyState";
 import { buildClosureDates, NATIONAL_HOLIDAYS_BY_YEAR, resolveWorkerColor } from "@/lib/company-calendar";
 import { toast } from "sonner";
 import ExcelVacationPlanner from "@/components/admin/ExcelVacationPlanner";
+import WorkerLiveStatusPanel from "@/components/shared/WorkerLiveStatusPanel";
+import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
 
 interface AdminMetrics { openTasks: number; openIncidents: number; serviceItems: number; activeClockings: number }
 interface DailyHighlight { id: string; title: string; summary: string | null; category: string }
@@ -22,6 +24,7 @@ const excelVacationLegend = ["ADRIAN", "AITOR", "ANDRIY", "FRAN", "HAMID", "JUAN
 
 const AdminHubView = () => {
   const { canViewAdmin } = useAuth();
+  const { items: liveWorkers, loading: liveWorkersLoading, summary: liveSummary } = useWorkerLiveStatus();
   const [metrics, setMetrics] = useState<AdminMetrics>({ openTasks: 0, openIncidents: 0, serviceItems: 0, activeClockings: 0 });
   const [highlights, setHighlights] = useState<DailyHighlight[]>([]);
   const [pendingRequests, setPendingRequests] = useState<VacationReviewItem[]>([]);
@@ -206,13 +209,7 @@ const AdminHubView = () => {
             </div>
           </section>
 
-          <section className="panel-surface p-4">
-            <div className="mb-4 flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Indicadores rápidos</p></div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-muted px-4 py-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Users2 className="h-4 w-4" /> Personal</div><p className="mt-2 text-sm text-foreground">Visión resumida para jefatura y administración.</p></div>
-              <div className="rounded-xl bg-muted px-4 py-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="h-4 w-4" /> Operativa</div><p className="mt-2 text-sm text-foreground">Seguimiento de incidencias, tareas y tiempos activos.</p></div>
-            </div>
-          </section>
+          <WorkerLiveStatusPanel items={liveWorkers} loading={liveWorkersLoading} />
 
           <section className="panel-surface p-4">
             <div className="mb-4 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Noticias y cambios del día</p></div>
@@ -225,7 +222,9 @@ const AdminHubView = () => {
           <section className="panel-surface p-4">
             <div className="mb-4 flex items-center gap-2"><Wrench className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Resumen de control</p></div>
             <div className="space-y-2 text-sm text-foreground">
-              <div className="rounded-xl bg-muted px-4 py-3">{metrics.activeClockings} personas activas ahora mismo.</div>
+              <div className="rounded-xl bg-muted px-4 py-3">{liveSummary.working} trabajando ahora mismo.</div>
+              <div className="rounded-xl bg-muted px-4 py-3">{liveSummary.paused} con jornada abierta sin parte activo.</div>
+              <div className="rounded-xl bg-muted px-4 py-3">{liveSummary.off} fuera de jornada.</div>
               <div className="rounded-xl bg-muted px-4 py-3">{metrics.openTasks} tareas siguen abiertas.</div>
               <div className="rounded-xl bg-muted px-4 py-3">{metrics.openIncidents} incidencias siguen en seguimiento.</div>
             </div>
