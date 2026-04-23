@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarRange, CheckCircle2, Clock3, ClipboardList, FileText, Fuel, MessageSquareMore } from "lucide-react";
+import { ArrowRight, CalendarRange, CheckCircle2, Clock3, ClipboardList, FileText, Fuel, Link2, MessageSquareMore, NotebookPen, ScanSearch } from "lucide-react";
 import { differenceInMinutes, format, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +66,34 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
   const hours = Math.floor(workedTodayMinutes / 60);
   const minutes = workedTodayMinutes % 60;
   const monthlyHoursSummary = useMemo(() => summarizeCurrentMonth(entries), [entries]);
+  const connectedSummary = useMemo(
+    () => [
+      {
+        title: "Ritmo laboral",
+        detail: activeEntry ? "Hay jornada activa y el siguiente paso natural es seguir con el parte." : "No hay jornada abierta; el sistema está listo para arrancar desde fichajes.",
+      },
+      {
+        title: "Carga operativa",
+        detail: pendingTasks.length > 0 ? `${pendingTasks.length} tareas siguen abiertas y piden lectura prioritaria.` : "No hay tareas bloqueando la operativa inmediata.",
+      },
+      {
+        title: "Coordinación",
+        detail: pendingRequests.length > 0 || highlights.length > 0
+          ? `${pendingRequests.length} solicitudes y ${highlights.length} avisos refuerzan el contexto del día.`
+          : "Sin alertas relevantes ni solicitudes pendientes ahora mismo.",
+      },
+    ],
+    [activeEntry, highlights.length, pendingRequests.length, pendingTasks.length],
+  );
+  const quickLinks = useMemo(
+    () => [
+      { key: "workReports", label: "Parte activo", hint: activeEntry ? "Continúa el trabajo abierto" : "Arranca desde cero", icon: FileText },
+      { key: "tasks", label: "Tareas", hint: `${pendingTasks.length} en seguimiento`, icon: ClipboardList },
+      { key: "staff", label: "Calendario", hint: `${pendingRequests.length} solicitudes pendientes`, icon: CalendarRange },
+      { key: "notes", label: "Mi espacio", hint: "Apuntes y recordatorios rápidos", icon: NotebookPen },
+    ] as const,
+    [activeEntry, pendingRequests.length, pendingTasks.length],
+  );
 
   return (
     <div className="space-y-4 animate-fade-in md:space-y-6">
@@ -78,6 +106,50 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
       />
 
       <SmartRemindersPanel reminders={reminders} onNavigate={onNavigate} />
+
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <article className="panel-surface p-4 md:p-5">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Link2 className="h-4 w-4 text-primary" /> Cierre operativo
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {connectedSummary.map((item) => (
+              <div key={item.title} className="rounded-lg border border-border/80 bg-background px-4 py-4">
+                <p className="text-sm font-medium text-foreground">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <aside className="panel-surface p-4 md:p-5">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <ScanSearch className="h-4 w-4 text-primary" /> Enlace rápido entre módulos
+          </div>
+          <div className="mt-4 space-y-3">
+            {quickLinks.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => onNavigate(item.key)}
+                  className="flex w-full items-center gap-3 rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"
+                >
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-4.5 w-4.5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-foreground">{item.label}</span>
+                    <span className="block text-xs text-muted-foreground">{item.hint}</span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+      </section>
 
       <section className="hero-surface overflow-hidden rounded-[20px] px-4 py-4 md:px-6 md:py-6">
         <div className="space-y-4">
@@ -129,10 +201,10 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
           </section>
 
           <section className="panel-surface space-y-4 p-4 md:p-6">
-            <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Estructura preparada</h2><p className="text-sm text-muted-foreground">Base clara para seguir creciendo sin mezclar módulos.</p></div><Fuel className="h-5 w-5 text-primary" /></div>
+            <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Sistema conectado</h2><p className="text-sm text-muted-foreground">Relación directa entre trabajo, combustible, notas y trazabilidad diaria.</p></div><Fuel className="h-5 w-5 text-primary" /></div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => onNavigate("workReports")} className="rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><p className="font-medium text-foreground">Parte de trabajo</p><p className="mt-1 text-sm text-muted-foreground">Inicio, estado en curso y cierre con edición manual.</p></button>
-              <button type="button" onClick={() => onNavigate("gasoline")} className="rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><p className="font-medium text-foreground">Gasolina</p><p className="mt-1 text-sm text-muted-foreground">14 tarjetas, detalle base y registros listos para ampliar.</p></button>
+              <button type="button" onClick={() => onNavigate("workReports")} className="rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><p className="font-medium text-foreground">Parte de trabajo</p><p className="mt-1 text-sm text-muted-foreground">Conecta jornada abierta, máquina utilizada y cierre del día.</p></button>
+              <button type="button" onClick={() => onNavigate("gasoline")} className="rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><p className="font-medium text-foreground">Gasolina</p><p className="mt-1 text-sm text-muted-foreground">Cruza movimientos de repostaje con actividad y seguimiento operativo.</p></button>
             </div>
           </section>
 
