@@ -18,6 +18,7 @@ interface Props {
 
 const shiftOrder: ShiftSlot[] = ["dia", "tarde", "noche"];
 const shortWeekDays = ["L", "M", "X", "J", "V", "S", "D"];
+const shiftLabels: Record<ShiftSlot, string> = { dia: "Día", tarde: "Tarde", noche: "Noche" };
 
 const VacationGridSection = ({ workers, holidays, vacationSlots, onSaveVacationSlot, onDeleteVacationSlot, onUpdateWorker }: Props) => {
   const [viewMode, setViewMode] = useState<VacationViewMode>("month");
@@ -194,7 +195,7 @@ const VacationGridSection = ({ workers, holidays, vacationSlots, onSaveVacationS
                       {worker.display_name}
                     </div>
                     <div className="mt-2 grid grid-cols-3 gap-px text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      {shiftOrder.map((shift) => <span key={shift}>{SHIFT_LABELS[shift].slice(0, 1)}</span>)}
+                      {shiftOrder.map((shift) => <span key={shift}>{shiftLabels[shift].slice(0, 1)}</span>)}
                     </div>
                   </div>
                 ))}
@@ -230,7 +231,7 @@ const VacationGridSection = ({ workers, holidays, vacationSlots, onSaveVacationS
             <div className="space-y-3 text-sm">
               <div className="rounded-lg border border-border bg-background p-3">
                 <p className="font-semibold text-foreground">{selectedCell.date}</p>
-                <p className="text-muted-foreground">{SHIFT_LABELS[selectedCell.shift]}</p>
+                <p className="text-muted-foreground">{shiftLabels[selectedCell.shift]}</p>
               </div>
               <label className="block space-y-1">
                 <span className="text-muted-foreground">Trabajador</span>
