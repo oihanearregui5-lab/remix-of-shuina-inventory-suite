@@ -14,8 +14,8 @@ import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
-  { key: "dashboard", label: "Resumen", description: "Estado actual, KPIs y accesos rápidos.", icon: LayoutDashboard },
-  { key: "fichajes", label: "Fichajes", description: "Entrada, salida e historial de jornada.", icon: Clock },
+  { key: "fichajes", label: "Fichar", description: "Entrada, salida e historial de jornada.", icon: Clock },
+  { key: "dashboard", label: "Inicio", description: "Estado actual y accesos rápidos.", icon: LayoutDashboard },
   { key: "tasks", label: "Tareas", description: "Agenda operativa, prioridades y calendario.", icon: ClipboardList },
   { key: "machines", label: "Máquinas", description: "Flota, averías, mantenimiento y observaciones.", icon: Truck },
   { key: "staff", label: "Personal", description: "Turnos, vacaciones y solicitudes del equipo.", icon: CalendarRange },
@@ -25,7 +25,7 @@ const sections: AppShellSection<AppSection>[] = [
 
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentSection, setCurrentSection] = useState<AppSection>("dashboard");
+  const [currentSection, setCurrentSection] = useState<AppSection>("fichajes");
   const { canViewAdmin, profile, signOut } = useAuth();
 
   const handleSectionChange = (section: AppSection) => {
