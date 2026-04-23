@@ -6,6 +6,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import ChatChannelDialog from "@/components/chat/ChatChannelDialog";
 import ChatChannelList from "@/components/chat/ChatChannelList";
 import ChatConversation from "@/components/chat/ChatConversation";
+import { Button } from "@/components/ui/button";
 import type { ChannelSummary, ChatChannelItem, ChatMessageItem } from "@/components/chat/chat-types";
 import { toast } from "sonner";
 import { normalizeChatQuery, validateChatDraft } from "@/lib/chat-utils";
