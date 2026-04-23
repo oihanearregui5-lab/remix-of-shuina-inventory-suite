@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { ChatChannelItem, ChatMessageItem } from "./chat-types";
+import { CHAT_MESSAGE_MAX_LENGTH, formatChatDayLabel } from "@/lib/chat-utils";
 
 interface ChatConversationProps {
   channel: ChatChannelItem | null;
@@ -31,6 +32,19 @@ interface ChatConversationProps {
 
 const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, messages, loading, sending, error, draft, editingMessageId, authorNames, onBack, onDraftChange, onSend, onStartEdit, onCancelEdit, onDeleteMessage, listRef }: ChatConversationProps) => {
   const title = useMemo(() => (channel ? `# ${channel.name}` : "Selecciona un canal"), [channel]);
+  const groupedMessages = useMemo(() => {
+    const groups: Array<{ day: string; items: ChatMessageItem[] }> = [];
+    messages.forEach((message) => {
+      const dayKey = new Date(message.created_at).toDateString();
+      const lastGroup = groups[groups.length - 1];
+      if (!lastGroup || lastGroup.day !== dayKey) {
+        groups.push({ day: dayKey, items: [message] });
+        return;
+      }
+      lastGroup.items.push(message);
+    });
+    return groups;
+  }, [messages]);
 
   return (
     <section className="panel-surface flex min-h-[70vh] flex-col overflow-hidden p-0">
@@ -58,38 +72,45 @@ const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, me
         ) : messages.length === 0 ? (
           <EmptyState icon={SendHorizonal} title="Todavía no hay mensajes" description="Envía el primero para iniciar la conversación." />
         ) : (
-          messages.map((message) => {
-            const own = message.author_user_id === currentUserId;
-            const edited = message.updated_at !== message.created_at;
-            const authorName = own ? currentUserName || "Tú" : authorNames[message.author_user_id] || "Equipo";
+          groupedMessages.map((group) => (
+            <div key={group.day} className="space-y-3">
+              <div className="flex justify-center">
+                <span className="rounded-full border border-border bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground">{formatChatDayLabel(group.items[0].created_at)}</span>
+              </div>
+              {group.items.map((message) => {
+                const own = message.author_user_id === currentUserId;
+                const edited = message.updated_at !== message.created_at;
+                const authorName = own ? currentUserName || "Tú" : authorNames[message.author_user_id] || "Equipo";
 
-            return (
-              <article key={message.id} className={cn("flex", own ? "justify-end" : "justify-start")}>
-                <div className={cn("max-w-[86%] rounded-[24px] px-4 py-3 shadow-[var(--shadow-soft)]", own ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md border border-border/80 bg-card text-foreground")}>
-                  <div className="flex items-center justify-between gap-4 text-[11px] opacity-80">
-                    <span className="truncate font-medium">{authorName}</span>
-                    <span>{format(new Date(message.created_at), "HH:mm", { locale: es })}</span>
-                  </div>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{message.message}</p>
-                  <div className="mt-3 flex items-center justify-between gap-3 text-[11px] opacity-80">
-                    <span>{edited ? "Editado" : "Enviado"}</span>
-                    {(own || isAdmin) ? (
-                      <div className="flex items-center gap-1">
-                        {own ? (
-                          <button type="button" className="inline-flex h-8 items-center gap-1 rounded-full px-2 font-medium" onClick={() => onStartEdit(message)}>
-                            <Pencil className="h-3.5 w-3.5" /> Editar
-                          </button>
-                        ) : null}
-                        <button type="button" className="inline-flex h-8 items-center gap-1 rounded-full px-2 font-medium" onClick={() => onDeleteMessage(message.id)}>
-                          <Trash2 className="h-3.5 w-3.5" /> Borrar
-                        </button>
+                return (
+                  <article key={message.id} className={cn("flex", own ? "justify-end" : "justify-start")}>
+                    <div className={cn("max-w-[86%] rounded-[24px] px-4 py-3 shadow-[var(--shadow-soft)]", own ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md border border-border/80 bg-card text-foreground")}>
+                      <div className="flex items-center justify-between gap-4 text-[11px] opacity-80">
+                        <span className="truncate font-medium">{authorName}</span>
+                        <span>{format(new Date(message.created_at), "HH:mm", { locale: es })}</span>
                       </div>
-                    ) : null}
-                  </div>
-                </div>
-              </article>
-            );
-          })
+                      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{message.message}</p>
+                      <div className="mt-3 flex items-center justify-between gap-3 text-[11px] opacity-80">
+                        <span>{edited ? "Editado" : "Enviado"}</span>
+                        {(own || isAdmin) ? (
+                          <div className="flex items-center gap-1">
+                            {own ? (
+                              <button type="button" className="inline-flex h-8 items-center gap-1 rounded-full px-2 font-medium" onClick={() => onStartEdit(message)}>
+                                <Pencil className="h-3.5 w-3.5" /> Editar
+                              </button>
+                            ) : null}
+                            <button type="button" className="inline-flex h-8 items-center gap-1 rounded-full px-2 font-medium" onClick={() => onDeleteMessage(message.id)}>
+                              <Trash2 className="h-3.5 w-3.5" /> Borrar
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ))
         )}
       </div>
 
@@ -114,11 +135,13 @@ const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, me
             placeholder="Escribe un mensaje"
             className="min-h-[52px] rounded-[22px] border-border bg-card px-4 py-3 text-sm"
             disabled={!channel || sending}
+            maxLength={CHAT_MESSAGE_MAX_LENGTH}
           />
           <Button size="icon" className="h-12 w-12 flex-none rounded-2xl" onClick={() => void onSend()} disabled={!channel || !draft.trim() || sending} aria-label={editingMessageId ? "Guardar mensaje" : "Enviar mensaje"}>
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
           </Button>
         </div>
+        <div className="mt-2 flex items-center justify-end text-[11px] text-muted-foreground">{draft.trim().length}/{CHAT_MESSAGE_MAX_LENGTH}</div>
       </div>
     </section>
   );
