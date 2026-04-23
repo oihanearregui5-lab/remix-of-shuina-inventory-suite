@@ -1,0 +1,235 @@
+import { useEffect, useMemo, useState } from "react";
+import { eachDayOfInterval, endOfMonth, format, getYear, isSameDay, startOfMonth } from "date-fns";
+import { es } from "date-fns/locale";
+import { CalendarDays, Clock3, Edit3, Send, SunMedium, Sunset } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import PageHeader from "@/components/shared/PageHeader";
+import StaffRequestDetailDialog, { type StaffRequestDialogItem } from "@/components/staff/StaffRequestDetailDialog";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+
+interface VacationRequestItem extends StaffRequestDialogItem { requester_user_id?: string; reviewed_at?: string | null; reviewed_by_user_id?: string | null; staff_member_id?: string | null }
+interface StaffShiftItem { id: string; shift_date: string; shift_label: string; starts_at: string | null; ends_at: string | null; location: string | null; notes: string | null; staff_directory?: { full_name: string } | null }
+interface AllowanceItem { id: string; staff_member_id: string; vacation_days_base: number; personal_days_base: number; vacation_adjustment_days: number; personal_adjustment_days: number; notes: string | null }
+interface StaffOption { id: string; full_name: string; linked_user_id: string | null }
+
+const holidayDatesForYear = (year: number) => [
+  `${year}-01-01`, `${year}-01-06`, `${year}-05-01`, `${year}-08-15`, `${year}-10-12`, `${year}-11-01`, `${year}-12-06`, `${year}-12-08`, `${year}-12-25`,
+].map((item) => new Date(item));
+
+const StaffHubView = () => {
+  const { user, isAdmin } = useAuth();
+  const db = supabase as any;
+  const [requests, setRequests] = useState<VacationRequestItem[]>([]);
+  const [shifts, setShifts] = useState<StaffShiftItem[]>([]);
+  const [staff, setStaff] = useState<StaffOption[]>([]);
+  const [allowances, setAllowances] = useState<AllowanceItem[]>([]);
+  const [requestType, setRequestType] = useState("vacation");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<StaffRequestDialogItem | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedStaffId, setSelectedStaffId] = useState<string>("");
+  const [allowanceDraft, setAllowanceDraft] = useState({ vacation_days_base: "30", personal_days_base: "2", vacation_adjustment_days: "0", personal_adjustment_days: "0", notes: "" });
+
+  useEffect(() => { if (!user) return; void Promise.all([fetchRequests(), fetchShifts(), fetchStaff(), fetchAllowances()]); }, [user, isAdmin, calendarMonth]);
+
+  const fetchRequests = async () => {
+    const { data, error } = await db.from("vacation_requests").select("id, request_type, start_date, end_date, status, reason, admin_response, created_at, requester_user_id, reviewed_at, reviewed_by_user_id, staff_member_id").order("created_at", { ascending: false }).limit(50);
+    if (error) return toast.error("No se pudieron cargar las solicitudes");
+    setRequests((data ?? []) as VacationRequestItem[]);
+  };
+
+  const fetchShifts = async () => {
+    const monthStart = format(startOfMonth(calendarMonth), "yyyy-MM-dd");
+    const monthEnd = format(endOfMonth(calendarMonth), "yyyy-MM-dd");
+    const { data, error } = await db.from("staff_shifts").select("id, shift_date, shift_label, starts_at, ends_at, location, notes, staff_directory(full_name)").gte("shift_date", monthStart).lte("shift_date", monthEnd).order("shift_date", { ascending: true }).limit(100);
+    if (error) return toast.error("No se pudieron cargar los turnos");
+    setShifts((data ?? []) as StaffShiftItem[]);
+  };
+
+  const fetchStaff = async () => {
+    const { data } = await db.from("staff_directory").select("id, full_name, linked_user_id").eq("active", true).order("sort_order", { ascending: true });
+    const list = (data ?? []) as StaffOption[];
+    setStaff(list);
+    if (!selectedStaffId && list[0]?.id) setSelectedStaffId(list[0].id);
+  };
+
+  const fetchAllowances = async () => {
+    const { data } = await db.from("staff_allowances").select("id, staff_member_id, vacation_days_base, personal_days_base, vacation_adjustment_days, personal_adjustment_days, notes");
+    setAllowances((data ?? []) as AllowanceItem[]);
+  };
+
+  const submitRequest = async () => {
+    if (!user || !startDate || !endDate) return;
+    setSaving(true);
+    const ownStaff = staff.find((item) => item.linked_user_id === user.id)?.id ?? null;
+    const { error } = await db.from("vacation_requests").insert({ requester_user_id: user.id, request_type: requestType, start_date: startDate, end_date: endDate, reason: reason.trim() || null, status: "pending", staff_member_id: ownStaff });
+    setSaving(false);
+    if (error) return toast.error("No se pudo enviar la solicitud");
+    toast.success("Solicitud enviada");
+    setStartDate(""); setEndDate(""); setReason("");
+    void fetchRequests();
+  };
+
+  const saveAllowance = async () => {
+    if (!selectedStaffId) return;
+    const existing = allowances.find((item) => item.staff_member_id === selectedStaffId);
+    const payload = { staff_member_id: selectedStaffId, vacation_days_base: Number(allowanceDraft.vacation_days_base), personal_days_base: Number(allowanceDraft.personal_days_base), vacation_adjustment_days: Number(allowanceDraft.vacation_adjustment_days), personal_adjustment_days: Number(allowanceDraft.personal_adjustment_days), notes: allowanceDraft.notes || null };
+    const { error } = existing ? await db.from("staff_allowances").update(payload).eq("id", existing.id) : await db.from("staff_allowances").insert(payload);
+    if (error) return toast.error("No se pudo guardar el saldo");
+    toast.success("Saldo actualizado");
+    void fetchAllowances();
+  };
+
+  const todayShifts = useMemo(() => shifts.filter((shift) => shift.shift_date === format(new Date(), "yyyy-MM-dd")), [shifts]);
+  const holidayDates = useMemo(() => holidayDatesForYear(getYear(calendarMonth)), [calendarMonth]);
+  const requestDatesByType = useMemo(() => {
+    const build = (type: string, status?: string) => requests.filter((item) => item.request_type === type && (!status || item.status === status)).flatMap((item) => eachDayOfInterval({ start: new Date(item.start_date), end: new Date(item.end_date) }));
+    return { vacations: build("vacation", "approved"), leaves: build("leave", "approved"), pending: requests.filter((item) => item.status === "pending").flatMap((item) => eachDayOfInterval({ start: new Date(item.start_date), end: new Date(item.end_date) })) };
+  }, [requests]);
+  const selectedDayData = useMemo(() => !selectedDate ? { shifts: [], requests: [] as VacationRequestItem[] } : ({ shifts: shifts.filter((shift) => isSameDay(new Date(shift.shift_date), selectedDate)), requests: requests.filter((request) => selectedDate >= new Date(request.start_date) && selectedDate <= new Date(request.end_date)) }), [requests, selectedDate, shifts]);
+  const currentStaffId = useMemo(() => staff.find((item) => item.linked_user_id === user?.id)?.id ?? null, [staff, user]);
+  const myAllowance = useMemo(() => allowances.find((item) => item.staff_member_id === currentStaffId) ?? null, [allowances, currentStaffId]);
+  const approvedVacationDays = useMemo(() => requests.filter((request) => request.staff_member_id === currentStaffId && request.request_type === "vacation" && request.status === "approved").reduce((total, request) => total + eachDayOfInterval({ start: new Date(request.start_date), end: new Date(request.end_date) }).length, 0), [currentStaffId, requests]);
+  const approvedPersonalDays = useMemo(() => requests.filter((request) => request.staff_member_id === currentStaffId && request.request_type === "leave" && request.status === "approved").reduce((total, request) => total + eachDayOfInterval({ start: new Date(request.start_date), end: new Date(request.end_date) }).length, 0), [currentStaffId, requests]);
+
+  useEffect(() => {
+    const target = allowances.find((item) => item.staff_member_id === selectedStaffId);
+    setAllowanceDraft({ vacation_days_base: String(target?.vacation_days_base ?? 30), personal_days_base: String(target?.personal_days_base ?? 2), vacation_adjustment_days: String(target?.vacation_adjustment_days ?? 0), personal_adjustment_days: String(target?.personal_adjustment_days ?? 0), notes: target?.notes ?? "" });
+  }, [allowances, selectedStaffId]);
+
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <PageHeader eyebrow="Personal" title="Turnos, vacaciones y ausencias" description="Vista móvil clara, calendario en español y saldos visibles para cada trabajador." />
+      <section className="grid gap-3 md:grid-cols-3">
+        <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Vacaciones restantes</p><p className="mt-2 text-3xl font-bold text-foreground">{Math.max(0, (myAllowance?.vacation_days_base ?? 30) + (myAllowance?.vacation_adjustment_days ?? 0) - approvedVacationDays)}</p></div>
+        <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Asuntos propios restantes</p><p className="mt-2 text-3xl font-bold text-foreground">{Math.max(0, (myAllowance?.personal_days_base ?? 2) + (myAllowance?.personal_adjustment_days ?? 0) - approvedPersonalDays)}</p></div>
+        <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Turnos hoy</p><p className="mt-2 text-3xl font-bold text-foreground">{todayShifts.length}</p></div>
+      </section>
+
+      <section className="grid gap-3 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="space-y-3">
+          <section className="panel-surface p-4">
+            <div className="mb-4 flex items-center gap-2"><Send className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Nueva solicitud</p></div>
+            <div className="space-y-3">
+              <Select value={requestType} onValueChange={setRequestType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vacation">Vacaciones</SelectItem>
+                  <SelectItem value="leave">Asuntos propios</SelectItem>
+                  <SelectItem value="medical">Baja / revisión</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
+              <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo u observaciones" className="min-h-24" />
+              <Button onClick={() => void submitRequest()} disabled={saving || !startDate || !endDate}><Send className="h-4 w-4" /> Enviar solicitud</Button>
+            </div>
+          </section>
+
+          {isAdmin && (
+            <section className="panel-surface p-4">
+              <div className="mb-4 flex items-center gap-2"><Edit3 className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Saldos por trabajador</p></div>
+              <div className="space-y-3">
+                <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar trabajador" /></SelectTrigger>
+                  <SelectContent>{staff.map((person) => <SelectItem key={person.id} value={person.id}>{person.full_name}</SelectItem>)}</SelectContent>
+                </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input value={allowanceDraft.vacation_days_base} onChange={(e) => setAllowanceDraft((current) => ({ ...current, vacation_days_base: e.target.value }))} placeholder="Vacaciones base" />
+                  <Input value={allowanceDraft.personal_days_base} onChange={(e) => setAllowanceDraft((current) => ({ ...current, personal_days_base: e.target.value }))} placeholder="Asuntos propios base" />
+                  <Input value={allowanceDraft.vacation_adjustment_days} onChange={(e) => setAllowanceDraft((current) => ({ ...current, vacation_adjustment_days: e.target.value }))} placeholder="Ajuste vacaciones" />
+                  <Input value={allowanceDraft.personal_adjustment_days} onChange={(e) => setAllowanceDraft((current) => ({ ...current, personal_adjustment_days: e.target.value }))} placeholder="Ajuste asuntos propios" />
+                </div>
+                <Textarea value={allowanceDraft.notes} onChange={(e) => setAllowanceDraft((current) => ({ ...current, notes: e.target.value }))} placeholder="Notas internas" className="min-h-20" />
+                <Button onClick={() => void saveAllowance()}>Guardar saldo</Button>
+              </div>
+            </section>
+          )}
+
+          <section className="panel-surface p-4">
+            <div className="mb-4 flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Historial de solicitudes</p></div>
+            <div className="space-y-2">
+              {requests.map((request) => (
+                <button key={request.id} onClick={() => setSelectedRequest(request)} className="w-full rounded-xl border border-border bg-background px-4 py-3 text-left">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-foreground">{request.request_type === "vacation" ? "Vacaciones" : request.request_type === "leave" ? "Asuntos propios" : "Baja / revisión"}</p>
+                      <p className="text-sm text-muted-foreground">{format(new Date(request.start_date), "d MMM", { locale: es })} → {format(new Date(request.end_date), "d MMM yyyy", { locale: es })}</p>
+                    </div>
+                    <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-foreground">{request.status}</span>
+                  </div>
+                </button>
+              ))}
+              {requests.length === 0 && <p className="text-sm text-muted-foreground">Aún no hay solicitudes.</p>}
+            </div>
+          </section>
+        </div>
+
+        <section className="panel-surface p-4">
+          <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Calendario laboral</p></div>
+          <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
+            <div className="rounded-xl border border-border bg-background p-3">
+              <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} month={calendarMonth} onMonthChange={setCalendarMonth} locale={es} modifiers={{ holiday: holidayDates, vacation: requestDatesByType.vacations, leave: requestDatesByType.leaves, pending: requestDatesByType.pending }} modifiersClassNames={{ holiday: "bg-destructive/15 text-destructive font-semibold", vacation: "bg-success/20 text-success font-semibold", leave: "bg-primary text-primary-foreground font-semibold", pending: "ring-1 ring-warning text-foreground" }} className="w-full" />
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full bg-destructive/15 px-2.5 py-1 text-destructive">Festivo</span>
+                <span className="rounded-full bg-success/20 px-2.5 py-1 text-success">Vacaciones</span>
+                <span className="rounded-full bg-primary px-2.5 py-1 text-primary-foreground">Asuntos propios</span>
+                <span className="rounded-full border border-warning/40 px-2.5 py-1 text-foreground">Pendiente</span>
+              </div>
+            </div>
+            <div className="space-y-4 rounded-xl border border-border bg-background p-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground">{selectedDate ? format(selectedDate, "EEEE d MMMM yyyy", { locale: es }) : "Selecciona un día"}</p>
+                <p className="text-xs text-muted-foreground">Turnos y solicitudes del día.</p>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Solicitudes</p>
+                <div className="space-y-2">
+                  {selectedDayData.requests.map((request) => <button key={request.id} onClick={() => setSelectedRequest(request)} className="w-full rounded-xl border border-border bg-card px-3 py-3 text-left text-sm text-foreground">{request.request_type === "vacation" ? "Vacaciones" : request.request_type === "leave" ? "Asuntos propios" : "Baja / revisión"}<span className="mt-1 block text-xs text-muted-foreground">{request.status}</span></button>)}
+                  {selectedDayData.requests.length === 0 && <p className="text-sm text-muted-foreground">Sin solicitudes este día.</p>}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Turnos</p>
+                <div className="space-y-2">
+                  {selectedDayData.shifts.map((shift) => <div key={shift.id} className="rounded-xl border border-border bg-card px-3 py-3"><p className="font-medium text-foreground">{shift.shift_label}</p><p className="mt-1 text-xs text-muted-foreground">{shift.starts_at?.slice(0, 5) ?? "--:--"} · {shift.ends_at?.slice(0, 5) ?? "--:--"} · {shift.location ?? "Sin lugar"}</p></div>)}
+                  {selectedDayData.shifts.length === 0 && <p className="text-sm text-muted-foreground">Sin turnos este día.</p>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {shifts.map((shift) => (
+              <div key={shift.id} className="rounded-xl border border-border bg-background p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-foreground">{shift.staff_directory?.full_name ?? "Equipo"}</p>
+                    <p className="text-sm text-muted-foreground">{format(new Date(shift.shift_date), "EEEE d MMMM", { locale: es })}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">{shift.shift_label.toLowerCase().includes("tarde") ? <Sunset className="h-3.5 w-3.5" /> : <SunMedium className="h-3.5 w-3.5" />}{shift.shift_label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </section>
+
+      <StaffRequestDetailDialog open={Boolean(selectedRequest)} request={selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)} />
+    </div>
+  );
+};
+
+export default StaffHubView;
