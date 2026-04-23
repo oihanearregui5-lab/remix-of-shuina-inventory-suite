@@ -73,10 +73,10 @@ const Index = () => {
       case "chat":
         return <ChatHubView />;
       case "admin":
-        return <AdminFichajes />;
+        return <AdminHubView />;
       case "fichajes":
       default:
-        return <Fichajes />;
+        return workspaceMode === "admin" && canViewAdmin ? <AdminFichajes /> : <Fichajes />;
     }
   };
 
