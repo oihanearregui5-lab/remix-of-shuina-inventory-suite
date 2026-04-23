@@ -11,6 +11,8 @@ export interface AppShellSection<T extends string> {
   description: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  workspace?: "worker" | "admin" | "shared";
+  mobilePrimary?: boolean;
 }
 
 interface AppShellProps<T extends string> {
@@ -32,9 +34,11 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
   const visibleSections = useMemo(() => sections.filter((section) => !section.adminOnly || isAdmin), [isAdmin, sections]);
   const activeSection = visibleSections.find((section) => section.key === currentSection) ?? visibleSections[0];
   const mobilePrimarySections = useMemo(() => {
-    const preferredKeys = new Set(["fichajes", "tasks", canViewAdmin ? "admin" : "staff"]);
-    return visibleSections.filter((section) => preferredKeys.has(String(section.key))).slice(0, 3);
-  }, [canViewAdmin, visibleSections]);
+    const pinned = visibleSections.filter((section) => section.mobilePrimary);
+    const current = visibleSections.find((section) => section.key === currentSection);
+    const unique = [...pinned, current].filter((section, index, array) => section && array.findIndex((item) => item?.key === section.key) === index);
+    return unique.slice(0, 4);
+  }, [currentSection, visibleSections]);
 
   const navigation = (
     <>
@@ -55,32 +59,47 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50">Áreas de trabajo</div>
-        <nav className="space-y-1.5">
-          {visibleSections.map((section) => {
-            const isActive = section.key === currentSection;
-            const Icon = section.icon;
+        <div className="space-y-5">
+          {[
+            { key: "shared", label: workspaceMode === "admin" ? "Base operativa" : "Uso diario" },
+            { key: workspaceMode, label: workspaceMode === "admin" ? "Gestión y control" : "Trabajo y seguimiento" },
+          ].map((group) => {
+            const groupSections = visibleSections.filter((section) => (section.workspace ?? "shared") === group.key || ((section.workspace ?? "shared") === "shared" && group.key === "shared"));
+            if (!groupSections.length) return null;
 
             return (
-              <button
-                key={section.key}
-                type="button"
-                onClick={() => onSectionChange(section.key)}
-                className={cn(
-                  "group flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-                  isActive ? "bg-sidebar-primary/18 text-sidebar-foreground shadow-[var(--shadow-soft)] ring-1 ring-sidebar-primary/20" : "text-sidebar-foreground/72 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground"
-                )}
-              >
-                <span className={cn("mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-lg border border-transparent transition-colors", isActive ? "bg-sidebar-primary text-sidebar-primary-foreground" : "bg-sidebar-accent/80 text-sidebar-foreground/85")}>
-                  <Icon className="h-4.5 w-4.5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">{section.label}</span>
-                  <span className="mt-0.5 block text-xs leading-5 text-sidebar-foreground/55">{section.description}</span>
-                </span>
-              </button>
+              <div key={group.key} className="space-y-2">
+                <div className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/40">{group.label}</div>
+                <nav className="space-y-1.5">
+                  {groupSections.map((section) => {
+                    const isActive = section.key === currentSection;
+                    const Icon = section.icon;
+
+                    return (
+                      <button
+                        key={section.key}
+                        type="button"
+                        onClick={() => onSectionChange(section.key)}
+                        className={cn(
+                          "group flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                          isActive ? "bg-sidebar-primary/18 text-sidebar-foreground shadow-[var(--shadow-soft)] ring-1 ring-sidebar-primary/20" : "text-sidebar-foreground/72 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground"
+                        )}
+                      >
+                        <span className={cn("mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-lg border border-transparent transition-colors", isActive ? "bg-sidebar-primary text-sidebar-primary-foreground" : "bg-sidebar-accent/80 text-sidebar-foreground/85")}>
+                          <Icon className="h-4.5 w-4.5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium">{section.label}</span>
+                          <span className="mt-0.5 block text-xs leading-5 text-sidebar-foreground/55">{section.description}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
             );
           })}
-        </nav>
+        </div>
       </div>
 
       <div className="border-t border-sidebar-border/70 px-4 py-4">
@@ -196,7 +215,7 @@ const AppShell = <T extends string>({ mobileMenuOpen, onMobileMenuOpenChange, cu
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/96 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-xl md:hidden">
-        <div className="grid grid-cols-3 gap-2">
+        <div className={cn("grid gap-2", mobilePrimarySections.length > 3 ? "grid-cols-4" : "grid-cols-3")}>
           {mobilePrimarySections.map((section) => {
             const isActive = section.key === currentSection;
             const Icon = section.icon;
