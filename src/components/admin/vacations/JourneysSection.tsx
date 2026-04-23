@@ -269,7 +269,7 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
                   );
                 })}
                 {shiftOrder.map((shift) => (
-                  <>
+                  <div key={shift} className="contents">
                     <div key={`${shift}-label`} className="border-t border-border bg-muted px-3 py-4 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
                       {shiftLongLabel[shift]}
                       <div className="mt-1 text-[10px] normal-case tracking-normal">{shiftHours[shift]}</div>
@@ -289,7 +289,7 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
                         </div>
                       );
                     })}
-                  </>
+                  </div>
                 ))}
               </div>
             </div>
@@ -366,7 +366,7 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><UserSquare2 className="h-4 w-4 text-primary" /> Balance filtrado</div>
-          <p className="mt-3 text-2xl font-bold text-foreground">{selectedWorkerId ? format(((summaries.find((item) => item.worker_id === selectedWorkerId)?.remaining_hours) ?? 0), ".2f") : `${workers.length} pers.`}</p>
+          <p className="mt-3 text-2xl font-bold text-foreground">{selectedWorkerId ? `${((summaries.find((item) => item.worker_id === selectedWorkerId)?.remaining_hours) ?? 0).toFixed(2)} h` : `${workers.length} pers.`}</p>
           <p className="mt-1 text-sm text-muted-foreground">{selectedWorkerId ? "Horas pendientes del trabajador activo." : "Trabajadores disponibles en planificación."}</p>
         </div>
       </div>
