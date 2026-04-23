@@ -11,7 +11,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
 import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
-import { summarizeCurrentMonth } from "@/lib/time-balance";
+import { formatMinutes, summarizeCurrentMonth } from "@/lib/time-balance";
 
 interface DashboardViewProps {
   onNavigate: (section: "fichajes" | "tasks" | "staff" | "chat" | "admin" | "gasoline" | "workReports" | "notes") => void;
@@ -110,7 +110,7 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="Jornada" value={activeEntry ? "Activa" : "Parada"} hint={activeEntry ? `Desde las ${format(new Date(activeEntry.clock_in), "HH:mm", { locale: es })}` : "Sin fichaje abierto"} icon={Clock3} tone={activeEntry ? "danger" : "primary"} onClick={() => onNavigate("fichajes")} />
         <MetricCard title="Parte de trabajo" value={activeEntry ? "En marcha" : "Preparado"} hint="Inicio rápido y cierre simple" icon={FileText} tone="primary" onClick={() => onNavigate("workReports")} />
-        <MetricCard title="Balance mensual" value={`${hours}h ${minutes}m`} hint={`${monthlyHoursSummary.balanceMinutes >= 0 ? "+" : ""}${Math.floor(monthlyHoursSummary.balanceMinutes / 60)}h ${Math.abs(monthlyHoursSummary.balanceMinutes % 60)}m vs objetivo hoy`} icon={ClipboardList} tone="secondary" onClick={() => onNavigate("fichajes")} />
+        <MetricCard title="Balance mensual" value={formatMinutes(monthlyHoursSummary.balanceMinutes)} hint={`${formatMinutes(monthlyHoursSummary.workedMinutes)} trabajadas este mes`} icon={ClipboardList} tone="secondary" onClick={() => onNavigate("fichajes")} />
         <MetricCard title="Calendario" value={requests.length} hint={`${pendingRequests.length} pendientes`} icon={CalendarRange} tone="success" onClick={() => onNavigate("staff")} />
       </section>
 
