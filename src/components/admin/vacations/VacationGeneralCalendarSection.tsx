@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, PencilLine, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { HolidayItem, HolidayType, VacationViewMode } from "./vacation-types";
 import {
   formatDayLabel,
@@ -29,6 +30,7 @@ const VacationGeneralCalendarSection = ({ holidays, onSaveHoliday, onDeleteHolid
   const [editorLabel, setEditorLabel] = useState("");
   const [editorType, setEditorType] = useState<HolidayType>("festivo_nacional");
   const [editorColor, setEditorColor] = useState("#FF0000");
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const holidaysByDate = useMemo(() => new Map(holidays.map((holiday) => [holiday.date, holiday])), [holidays]);
   const selectedHoliday = holidaysByDate.get(selectedDateKey) ?? null;
@@ -40,6 +42,7 @@ const VacationGeneralCalendarSection = ({ holidays, onSaveHoliday, onDeleteHolid
     setEditorLabel(holiday?.label ?? "");
     setEditorType(holiday?.type ?? "festivo_nacional");
     setEditorColor(holiday?.color_hex ?? "#FF0000");
+    setEditorOpen(true);
   };
 
   const renderDayCell = (date: Date, compact = false) => {
@@ -48,19 +51,21 @@ const VacationGeneralCalendarSection = ({ holidays, onSaveHoliday, onDeleteHolid
     const typeTone = holiday ? getHolidayTone(holiday.type) : date.getDay() === 0 || date.getDay() === 6 ? "bg-muted text-muted-foreground" : "bg-background text-foreground";
     const selected = selectedDateKey === dateKey;
 
+    const isOutsideMonth = viewMode === "month" && date.getMonth() !== anchorDate.getMonth();
+
     return (
       <button
         key={dateKey}
         type="button"
         title={holiday?.label ?? formatLongDate(date)}
         onClick={() => startEditingDate(dateKey)}
-        className={`rounded-lg border px-2 py-2 text-left transition-colors ${typeTone} ${selected ? "border-primary shadow-[var(--shadow-soft)]" : "border-border"} ${compact ? "min-h-[80px]" : "min-h-[112px]"}`}
+        className={`rounded-lg border px-2 py-2 text-left transition-colors ${typeTone} ${selected ? "border-primary shadow-[var(--shadow-soft)]" : "border-border"} ${compact ? "min-h-[80px]" : "min-h-[112px]"} ${isOutsideMonth ? "opacity-35" : ""}`}
       >
         <div className="flex items-start justify-between gap-2">
           <span className="text-sm font-semibold">{date.getDate()}</span>
           {holiday ? <PencilLine className="h-3.5 w-3.5" /> : null}
         </div>
-        <p className="mt-3 text-xs leading-5">{holiday?.label ?? (date.getDay() === 0 || date.getDay() === 6 ? "Fin de semana" : "Laborable")}</p>
+        <p className="mt-3 text-xs leading-5">{holiday?.label ?? ""}</p>
       </button>
     );
   };
@@ -73,6 +78,7 @@ const VacationGeneralCalendarSection = ({ holidays, onSaveHoliday, onDeleteHolid
       label: editorLabel || HOLIDAY_TYPE_OPTIONS.find((option) => option.value === editorType)?.label || "Festivo",
       color_hex: editorColor,
     });
+    setEditorOpen(false);
   };
 
   const handleTypeChange = (nextType: HolidayType) => {
@@ -81,8 +87,8 @@ const VacationGeneralCalendarSection = ({ holidays, onSaveHoliday, onDeleteHolid
   };
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1.5fr_0.5fr]">
-      <section className="space-y-4 rounded-lg border border-border bg-card p-4">
+    <>
+      <div className="space-y-4 rounded-lg border border-border bg-card p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarDays className="h-4 w-4 text-primary" /> Calendario general</div>
@@ -108,7 +114,7 @@ const VacationGeneralCalendarSection = ({ holidays, onSaveHoliday, onDeleteHolid
         </div>
 
         {viewMode === "year" ? (
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 xl:grid-cols-4">
             {Array.from({ length: 12 }, (_, monthIndex) => {
               const monthDate = new Date(anchorDate.getFullYear(), monthIndex, 1);
               const monthWeeks = getMonthMatrix(monthDate);
@@ -157,37 +163,41 @@ const VacationGeneralCalendarSection = ({ holidays, onSaveHoliday, onDeleteHolid
           <span className="rounded-full bg-accent px-3 py-1 text-accent-foreground">Festivo local</span>
           <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">Fin de semana</span>
         </div>
-      </section>
+      </div>
 
-      <aside className="space-y-4 rounded-lg border border-border bg-card p-4">
-        <div>
-          <p className="text-sm font-semibold text-foreground">Editor del día</p>
-          <p className="mt-1 text-xs text-muted-foreground">{selectedDateKey}</p>
-        </div>
+      <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar día</DialogTitle>
+            <DialogDescription>{selectedDateKey}</DialogDescription>
+          </DialogHeader>
 
-        <label className="block space-y-1 text-sm">
-          <span className="text-muted-foreground">Tipo</span>
-          <select value={editorType} onChange={(event) => handleTypeChange(event.target.value as HolidayType)} className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground">
-            {HOLIDAY_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </label>
+          <div className="space-y-4">
+            <label className="block space-y-1 text-sm">
+              <span className="text-muted-foreground">Tipo</span>
+              <select value={editorType} onChange={(event) => handleTypeChange(event.target.value as HolidayType)} className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground">
+                {HOLIDAY_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </label>
 
-        <label className="block space-y-1 text-sm">
-          <span className="text-muted-foreground">Etiqueta</span>
-          <Input value={editorLabel} onChange={(event) => setEditorLabel(event.target.value)} placeholder="Nombre del festivo" />
-        </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-muted-foreground">Etiqueta</span>
+              <Input value={editorLabel} onChange={(event) => setEditorLabel(event.target.value)} placeholder="Nombre del festivo" />
+            </label>
 
-        <label className="block space-y-1 text-sm">
-          <span className="text-muted-foreground">Color</span>
-          <Input type="color" value={editorColor} onChange={(event) => setEditorColor(event.target.value)} className="h-10 p-1" />
-        </label>
+            <label className="block space-y-1 text-sm">
+              <span className="text-muted-foreground">Color</span>
+              <Input type="color" value={editorColor} onChange={(event) => setEditorColor(event.target.value)} className="h-10 p-1" />
+            </label>
+          </div>
 
-        <div className="space-y-2">
-          <Button className="w-full" onClick={() => void handleSave()}><Save className="h-4 w-4" /> Guardar</Button>
-          <Button className="w-full" variant="outline" disabled={!selectedHoliday} onClick={() => selectedHoliday && void onDeleteHoliday(selectedHoliday.id)}><Trash2 className="h-4 w-4" /> Eliminar festivo</Button>
-        </div>
-      </aside>
-    </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="outline" disabled={!selectedHoliday} onClick={() => selectedHoliday && void onDeleteHoliday(selectedHoliday.id)}><Trash2 className="h-4 w-4" /> Eliminar festivo</Button>
+            <Button onClick={() => void handleSave()}><Save className="h-4 w-4" /> Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
