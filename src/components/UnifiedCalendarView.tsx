@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Filter, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -106,9 +106,9 @@ const UnifiedCalendarView = () => {
   return (
     <section className="flex flex-col gap-6">
       <PageHeader
+        eyebrow="Visión global"
         title="Calendario unificado"
         description="Tareas, vacaciones, ITV, inspecciones y festivos en una sola vista."
-        icon={Filter}
       />
 
       {/* Filtros */}
