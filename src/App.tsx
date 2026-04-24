@@ -88,6 +88,7 @@ const App = () => {
             <TooltipProvider>
               <Sonner />
               <BrowserRouter>
+                <OfflineBanner />
                 <PWABanner />
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
