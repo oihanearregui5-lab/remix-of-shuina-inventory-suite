@@ -284,6 +284,8 @@ const AppShell = <T extends string>({
           })}
         </div>
       </nav>
+
+      <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} onNavigate={handleSearchNavigate} />
     </div>
   );
 };
