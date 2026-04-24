@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, Download, Pencil, Plus, Search, TimerReset, Trash2, UserRound, Wrench } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Activity, AlertTriangle, Download, ImagePlus, Loader2, Pencil, Plus, Search, TimerReset, Trash2, UserRound, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
