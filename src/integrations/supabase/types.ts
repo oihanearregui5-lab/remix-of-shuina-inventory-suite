@@ -605,6 +605,45 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          kind: Database["public"]["Enums"]["notification_kind"]
+          link: string | null
+          read_at: string | null
+          related_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          kind: Database["public"]["Enums"]["notification_kind"]
+          link?: string | null
+          read_at?: string | null
+          related_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          kind?: Database["public"]["Enums"]["notification_kind"]
+          link?: string | null
+          read_at?: string | null
+          related_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       personal_notes: {
         Row: {
           content: string
@@ -1422,6 +1461,17 @@ export type Database = {
         Returns: boolean
       }
       can_manage_vacation_journeys: { Args: never; Returns: boolean }
+      create_notification: {
+        Args: {
+          _body: string
+          _kind: Database["public"]["Enums"]["notification_kind"]
+          _link: string
+          _related_id: string
+          _title: string
+          _user_id: string
+        }
+        Returns: string
+      }
       create_private_group: {
         Args: { _description: string; _member_ids: string[]; _name: string }
         Returns: string
@@ -1481,6 +1531,13 @@ export type Database = {
         | "repair"
         | "inspection"
         | "inactive"
+      notification_kind:
+        | "task_assigned"
+        | "chat_message"
+        | "vacation_response"
+        | "machine_incident"
+        | "work_report"
+        | "delivery_note"
       shift_default_type: "dia" | "tarde" | "noche" | "variable"
       shift_slot: "dia" | "tarde" | "noche"
       staff_event_status: "planned" | "active" | "completed" | "cancelled"
@@ -1666,6 +1723,14 @@ export const Constants = {
         "repair",
         "inspection",
         "inactive",
+      ],
+      notification_kind: [
+        "task_assigned",
+        "chat_message",
+        "vacation_response",
+        "machine_incident",
+        "work_report",
+        "delivery_note",
       ],
       shift_default_type: ["dia", "tarde", "noche", "variable"],
       shift_slot: ["dia", "tarde", "noche"],
