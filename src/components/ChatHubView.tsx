@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
 import ChatChannelDialog from "@/components/chat/ChatChannelDialog";
+import ChatComposerDialog from "@/components/chat/ChatComposerDialog";
 import ChatChannelList from "@/components/chat/ChatChannelList";
 import ChatConversation from "@/components/chat/ChatConversation";
 import { Button } from "@/components/ui/button";
-import type { ChannelSummary, ChatChannelItem, ChatMessageItem } from "@/components/chat/chat-types";
+import type { ChannelSummary, ChatChannelItem, ChatMessageItem, ChatPersonOption } from "@/components/chat/chat-types";
 import { toast } from "sonner";
 import { normalizeChatQuery, validateChatDraft } from "@/lib/chat-utils";
 
