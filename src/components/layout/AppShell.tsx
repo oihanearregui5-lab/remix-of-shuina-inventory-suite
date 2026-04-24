@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Bell, ChevronRight, Eye, LogOut, Menu, PanelLeftClose, RefreshCcw, Sparkles } from "lucide-react";
+import { ChevronRight, Eye, LogOut, Menu, PanelLeftClose, RefreshCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUIMode } from "@/hooks/useUIMode";
+import NotificationsBell from "@/components/shared/NotificationsBell";
 
 export interface AppShellSection<T extends string> {
   key: T;
