@@ -394,9 +394,17 @@ const MachineFleetView = () => {
                 </SelectContent>
               </Select>
               <Textarea value={form.notes} onChange={(e) => setForm((current) => ({ ...current, notes: e.target.value }))} placeholder="Observaciones generales" className="min-h-24" />
+              <div className="space-y-2">
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadPhoto(editingId, file); event.target.value = ""; }} />
+                <Button type="button" variant="soft" className="w-full" onClick={() => fileInputRef.current?.click()} disabled={uploadingPhotoFor !== null}>
+                  {uploadingPhotoFor === (editingId || "drafts") ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                  {form.photo_url ? "Cambiar foto" : "Subir foto"}
+                </Button>
+                {form.photo_url && !editingId ? <p className="text-xs text-muted-foreground">Foto cargada. Se asociará al guardar.</p> : null}
+              </div>
               <div className="flex gap-2">
                 <Button className="flex-1" onClick={() => void saveMachine()}>Guardar</Button>
-                {editingId && <Button variant="outline" onClick={() => { setEditingId(null); setForm({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active", notes: "" }); }}>Cancelar</Button>}
+                {editingId && <Button variant="outline" onClick={() => { setEditingId(null); setForm({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active", notes: "", photo_url: "" }); }}>Cancelar</Button>}
               </div>
             </div>
           </aside>
