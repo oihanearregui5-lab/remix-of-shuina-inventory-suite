@@ -27,14 +27,14 @@ const PWABanner = () => {
       {!isOnline && (
         <div
           className={cn(
-            "flex items-center gap-2 rounded-2xl border border-amber-300/60 bg-amber-50/95 px-4 py-2.5 text-sm text-amber-900 shadow-[var(--shadow-elevated)] backdrop-blur",
+            "flex items-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive shadow-[var(--shadow-elevated)] backdrop-blur",
           )}
           role="status"
           aria-live="polite"
         >
           <WifiOff className="h-4 w-4" />
           <span className="font-medium">Sin conexión</span>
-          <span className="text-amber-800/80">· Mostrando datos en caché</span>
+          <span className="opacity-80">· Mostrando datos en caché</span>
         </div>
       )}
 
