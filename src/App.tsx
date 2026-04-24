@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { UIModeProvider } from "@/hooks/useUIMode";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import PWABanner from "@/components/shared/PWABanner";
+import OfflineBanner from "@/components/shared/OfflineBanner";
+import { shouldRetryError } from "@/lib/error-utils";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
