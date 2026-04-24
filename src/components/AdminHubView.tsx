@@ -15,6 +15,8 @@ import ExcelVacationPlanner from "@/components/admin/ExcelVacationPlanner";
 import WorkerLiveStatusPanel from "@/components/shared/WorkerLiveStatusPanel";
 import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
 import WorkerProfileDialog from "@/components/staff/WorkerProfileDialog";
+import HighlightComposerDialog, { type HighlightRecord } from "@/components/admin/HighlightComposerDialog";
+import { Plus, Pencil } from "lucide-react";
 
 interface AdminMetrics {
   openTasks: number;
