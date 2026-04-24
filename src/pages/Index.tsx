@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen } from "lucide-react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardView from "@/components/DashboardView";
 import Fichajes from "@/pages/Fichajes";
@@ -14,10 +14,12 @@ const WorkReportsHubView = lazy(() => import("@/components/WorkReportsHubView"))
 const VacationsJourneysView = lazy(() => import("@/components/admin/VacationsJourneysView"));
 const AdminAlbaranesView = lazy(() => import("@/components/admin/AdminAlbaranesView"));
 const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
+const TonnageTripsView = lazy(() => import("@/components/TonnageTripsView"));
+const AdminTonnageView = lazy(() => import("@/components/admin/AdminTonnageView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage";
 type WorkspaceMode = "worker" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
@@ -28,11 +30,13 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "notes", label: "Mi espacio", description: "Notas privadas, rápidas y personales.", icon: NotebookPen, workspace: "worker", mobilePrimary: true },
   { key: "machines", label: "Máquinas", description: "Flota, incidencias y mantenimiento.", icon: Truck, workspace: "worker" },
   { key: "gasoline", label: "Gasolina", description: "Tarjetas y movimientos de repostaje.", icon: Fuel, workspace: "worker", mobilePrimary: true },
+  { key: "tonnage", label: "Toneladas", description: "Registra los viajes de hoy en pocos segundos.", icon: Scale, workspace: "worker", mobilePrimary: true },
   { key: "staff", label: "Calendario", description: "Vacaciones, turnos y solicitudes.", icon: CalendarRange, workspace: "worker" },
   { key: "admin", label: "Dashboard", description: "Resumen global y control operativo.", icon: ShieldCheck, workspace: "admin", adminOnly: true, mobilePrimary: true },
   { key: "fichajes", label: "Fichajes", description: "Control y revisión de entradas y salidas.", icon: Clock, workspace: "admin", mobilePrimary: true },
   { key: "workReports", label: "Partes", description: "Seguimiento y corrección de partes.", icon: FileText, workspace: "admin", mobilePrimary: true },
   { key: "gasoline", label: "Gasolina", description: "Tarjetas, gastos y exportación.", icon: Fuel, workspace: "admin", mobilePrimary: true },
+  { key: "tonnage", label: "Toneladas", description: "Tabla mensual de viajes y kilos por camión.", icon: Scale, workspace: "admin", mobilePrimary: true },
   { key: "vacations", label: "Calendario", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
   { key: "albaranes", label: "Albaranes", description: "Módulo preparado para gestión documental.", icon: ReceiptText, workspace: "admin", adminOnly: true },
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
@@ -65,10 +69,10 @@ const Index = () => {
 
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
-    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "notes", "machines", "gasoline", "staff"];
+    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "notes", "machines", "gasoline", "tonnage", "staff"];
     const adminSections: AppSection[] = role === "admin"
-      ? ["admin", "fichajes", "workReports", "gasoline", "vacations", "albaranes", "staff"]
-      : ["fichajes", "workReports", "gasoline", "vacations", "staff"];
+      ? ["admin", "fichajes", "workReports", "gasoline", "tonnage", "vacations", "albaranes", "staff"]
+      : ["fichajes", "workReports", "gasoline", "tonnage", "vacations", "staff"];
     const allowed = workspaceMode === "admin" && canViewAdmin ? adminSections : workerSections;
     return sections.filter((section) => {
       const sectionWorkspace = section.workspace ?? "worker";
@@ -128,6 +132,8 @@ const Index = () => {
         return <ChatHubView />;
       case "notes":
         return <PersonalNotesView />;
+      case "tonnage":
+        return workspaceMode === "admin" && canViewAdmin ? <AdminTonnageView /> : <TonnageTripsView />;
       case "albaranes":
         return <AdminAlbaranesView />;
       case "admin":

@@ -1025,6 +1025,100 @@ export type Database = {
         }
         Relationships: []
       }
+      tonnage_trips: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          id: string
+          material_snapshot: string | null
+          notes: string | null
+          trip_date: string
+          trip_time: string | null
+          truck_id: string
+          updated_at: string
+          weight_kg: number
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          material_snapshot?: string | null
+          notes?: string | null
+          trip_date: string
+          trip_time?: string | null
+          truck_id: string
+          updated_at?: string
+          weight_kg: number
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          material_snapshot?: string | null
+          notes?: string | null
+          trip_date?: string
+          trip_time?: string | null
+          truck_id?: string
+          updated_at?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tonnage_trips_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "tonnage_trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tonnage_trucks: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          machine_asset_id: string | null
+          material: string
+          notes: string | null
+          sort_order: number
+          truck_number: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          machine_asset_id?: string | null
+          material?: string
+          notes?: string | null
+          sort_order?: number
+          truck_number: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          machine_asset_id?: string | null
+          material?: string
+          notes?: string | null
+          sort_order?: number
+          truck_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tonnage_trucks_machine_asset_id_fkey"
+            columns: ["machine_asset_id"]
+            isOneToOne: false
+            referencedRelation: "machine_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
