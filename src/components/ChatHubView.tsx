@@ -27,7 +27,9 @@ const ChatHubView = () => {
   const [sending, setSending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
-  const [channelDialogMode, setChannelDialogMode] = useState<"create" | "edit">("create");
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerLoading, setComposerLoading] = useState(false);
+  const [people, setPeople] = useState<ChatPersonOption[]>([]);
   const [activeChannelDraft, setActiveChannelDraft] = useState<{ id: string | null; name: string; description: string }>({ id: null, name: "", description: "" });
   const [savingChannel, setSavingChannel] = useState(false);
   const [showConversationOnMobile, setShowConversationOnMobile] = useState(false);
