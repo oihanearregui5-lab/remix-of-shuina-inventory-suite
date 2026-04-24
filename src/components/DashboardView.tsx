@@ -1,215 +1,255 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarRange, CheckCircle2, Clock3, ClipboardList, FileText, Fuel, Link2, MessageSquareMore, NotebookPen, ScanSearch } from "lucide-react";
-import { differenceInMinutes, format, startOfMonth, startOfWeek } from "date-fns";
+import { ArrowRight, Bell, CalendarRange, CheckCircle2, ClipboardList, Clock3, FileText, Inbox, MessageSquareMore, NotebookPen } from "lucide-react";
+import { differenceInMinutes, format, isSameDay, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import MetricCard from "@/components/shared/MetricCard";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
-import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
-import { formatMinutes, summarizeCurrentMonth } from "@/lib/time-balance";
 
 interface DashboardViewProps {
   onNavigate: (section: "fichajes" | "tasks" | "staff" | "chat" | "admin" | "gasoline" | "workReports" | "notes") => void;
   canViewAdmin: boolean;
 }
 
-interface TimeEntryItem { id: string; clock_in: string; clock_out: string | null; created_at: string; }
+interface TimeEntryItem { id: string; clock_in: string; clock_out: string | null; }
 interface TaskItem { id: string; title: string; due_date: string | null; status: string; priority: string; }
-interface RequestItem { id: string; request_type: string; start_date: string; end_date: string; status: string; }
-interface HighlightItem { id: string; title: string; summary: string | null; category: string; }
+interface ReportItem { id: string; description: string; started_at: string; ended_at: string | null; }
+interface HighlightItem { id: string; title: string; summary: string | null; category: string; highlight_date: string; }
 
-const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
+const DashboardView = ({ onNavigate }: DashboardViewProps) => {
   const { user, profile } = useAuth();
   const db = supabase as any;
   const { reminders } = useSmartReminders();
   const [entries, setEntries] = useState<TimeEntryItem[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [requests, setRequests] = useState<RequestItem[]>([]);
+  const [reports, setReports] = useState<ReportItem[]>([]);
   const [highlights, setHighlights] = useState<HighlightItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
+    let active = true;
     const load = async () => {
       setLoading(true);
-      const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString();
-        const monthStart = startOfMonth(new Date()).toISOString();
-        const [entriesRes, tasksRes, requestsRes, highlightsRes] = await Promise.all([
-          db.from("time_entries").select("id, clock_in, clock_out, created_at").gte("clock_in", monthStart).order("clock_in", { ascending: false }).limit(60),
-        db.from("tasks").select("id, title, due_date, status, priority").order("due_date", { ascending: true }).limit(8),
-        db.from("vacation_requests").select("id, request_type, start_date, end_date, status").order("created_at", { ascending: false }).limit(6),
-        db.from("daily_highlights").select("id, title, summary, category").gte("created_at", weekStart).order("highlight_date", { ascending: false }).limit(4),
+      const monthStart = startOfMonth(new Date()).toISOString();
+      const [entriesRes, tasksRes, reportsRes, highlightsRes] = await Promise.all([
+        db.from("time_entries").select("id, clock_in, clock_out").gte("clock_in", monthStart).order("clock_in", { ascending: false }).limit(20),
+        db.from("tasks").select("id, title, due_date, status, priority").neq("status", "cancelled").order("due_date", { ascending: true, nullsFirst: false }).limit(15),
+        db.from("work_reports").select("id, description, started_at, ended_at").order("started_at", { ascending: false }).limit(5),
+        db.from("daily_highlights").select("id, title, summary, category, highlight_date").order("highlight_date", { ascending: false }).limit(4),
       ]);
-      setEntries(entriesRes.data ?? []);
-      setTasks(tasksRes.data ?? []);
-      setRequests(requestsRes.data ?? []);
-      setHighlights(highlightsRes.data ?? []);
+      if (!active) return;
+      setEntries((entriesRes.data ?? []) as TimeEntryItem[]);
+      setTasks((tasksRes.data ?? []) as TaskItem[]);
+      setReports((reportsRes.data ?? []) as ReportItem[]);
+      setHighlights((highlightsRes.data ?? []) as HighlightItem[]);
       setLoading(false);
     };
     void load();
+
+    // Realtime: refresca al cambiar fichajes/partes/tareas propias
+    const channel = supabase
+      .channel("dashboard-inbox")
+      .on("postgres_changes", { event: "*", schema: "public", table: "time_entries" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "work_reports" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => void load())
+      .subscribe();
+
+    return () => {
+      active = false;
+      void supabase.removeChannel(channel);
+    };
   }, [db, user]);
 
   const activeEntry = useMemo(() => entries.find((entry) => !entry.clock_out) ?? null, [entries]);
-  const todayEntries = useMemo(() => {
-    const today = new Date().toDateString();
-    return entries.filter((entry) => new Date(entry.clock_in).toDateString() === today);
-  }, [entries]);
+  const activeReport = useMemo(() => reports.find((report) => !report.ended_at) ?? null, [reports]);
+  const today = new Date();
+  const todayEntries = useMemo(() => entries.filter((entry) => isSameDay(new Date(entry.clock_in), today)), [entries, today]);
   const workedTodayMinutes = useMemo(() => todayEntries.reduce((total, entry) => total + Math.max(0, differenceInMinutes(entry.clock_out ? new Date(entry.clock_out) : new Date(), new Date(entry.clock_in))), 0), [todayEntries]);
-  const pendingTasks = useMemo(() => tasks.filter((task) => task.status !== "completed" && task.status !== "cancelled"), [tasks]);
-  const pendingRequests = useMemo(() => requests.filter((request) => request.status === "pending"), [requests]);
-  const latestEntry = entries[0] ?? null;
   const hours = Math.floor(workedTodayMinutes / 60);
   const minutes = workedTodayMinutes % 60;
-  const monthlyHoursSummary = useMemo(() => summarizeCurrentMonth(entries), [entries]);
-  const connectedSummary = useMemo(
-    () => [
-      {
-        title: "Ritmo laboral",
-        detail: activeEntry ? "Hay jornada activa y el siguiente paso natural es seguir con el parte." : "No hay jornada abierta; el sistema está listo para arrancar desde fichajes.",
-      },
-      {
-        title: "Carga operativa",
-        detail: pendingTasks.length > 0 ? `${pendingTasks.length} tareas siguen abiertas y piden lectura prioritaria.` : "No hay tareas bloqueando la operativa inmediata.",
-      },
-      {
-        title: "Coordinación",
-        detail: pendingRequests.length > 0 || highlights.length > 0
-          ? `${pendingRequests.length} solicitudes y ${highlights.length} avisos refuerzan el contexto del día.`
-          : "Sin alertas relevantes ni solicitudes pendientes ahora mismo.",
-      },
-    ],
-    [activeEntry, highlights.length, pendingRequests.length, pendingTasks.length],
-  );
-  const quickLinks = useMemo(
-    () => [
-      { key: "workReports", label: "Parte activo", hint: activeEntry ? "Continúa el trabajo abierto" : "Arranca desde cero", icon: FileText },
-      { key: "tasks", label: "Tareas", hint: `${pendingTasks.length} en seguimiento`, icon: ClipboardList },
-      { key: "staff", label: "Calendario", hint: `${pendingRequests.length} solicitudes pendientes`, icon: CalendarRange },
-      { key: "notes", label: "Mi espacio", hint: "Apuntes y recordatorios rápidos", icon: NotebookPen },
-    ] as const,
-    [activeEntry, pendingRequests.length, pendingTasks.length],
-  );
+
+  const tasksToday = useMemo(() => tasks.filter((task) => task.due_date && isSameDay(new Date(task.due_date), today) && task.status !== "completed"), [tasks, today]);
+  const pendingTasks = useMemo(() => tasks.filter((task) => task.status !== "completed" && !tasksToday.includes(task)).slice(0, 6), [tasks, tasksToday]);
+  const todayHighlights = useMemo(() => highlights.filter((item) => isSameDay(new Date(item.highlight_date), today)), [highlights, today]);
+
+  const greeting = profile?.full_name ? `Hola, ${profile.full_name.split(" ")[0]}` : "Hola";
 
   return (
-    <div className="space-y-4 animate-fade-in md:space-y-6">
+    <div className="space-y-4 animate-fade-in">
       <PageHeader
-        eyebrow="Inicio"
-        breadcrumbs={["Inicio"]}
-        title={`Hola${profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}`}
-        description="Tu estado, tu siguiente paso y poco más."
-        actions={<Button size="lg" className="min-w-[160px] flex-1 sm:flex-none" onClick={() => onNavigate("fichajes")}><Clock3 className="h-4 w-4" />{activeEntry ? "Volver a fichar" : "Fichar"}</Button>}
+        eyebrow="Bandeja de entrada"
+        title={greeting}
+        description="Lo que tienes que ver y hacer hoy. Solo lo que importa."
+        actions={
+          <Button size="lg" onClick={() => onNavigate("fichajes")} className="min-w-[180px]">
+            <Clock3 className="h-4 w-4" />
+            {activeEntry ? "Volver a fichar" : "Fichar ahora"}
+          </Button>
+        }
       />
 
-      <SmartRemindersPanel reminders={reminders} onNavigate={onNavigate} />
+      {reminders.length > 0 ? <SmartRemindersPanel reminders={reminders} onNavigate={onNavigate} /> : null}
 
-      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-        <article className="panel-surface p-4 md:p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Link2 className="h-4 w-4 text-primary" /> Cierre operativo
+      {/* HOY */}
+      <section className="panel-surface p-5">
+        <header className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Inbox className="h-5 w-5 text-primary" />
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Hoy</h2>
+              <p className="text-xs text-muted-foreground">{format(today, "EEEE d 'de' MMMM", { locale: es })}</p>
+            </div>
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {connectedSummary.map((item) => (
-              <div key={item.title} className="rounded-lg border border-border/80 bg-background px-4 py-4">
-                <p className="text-sm font-medium text-foreground">{item.title}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.detail}</p>
+          <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            {hours}h {minutes}m trabajadas
+          </span>
+        </header>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <button
+            type="button"
+            onClick={() => onNavigate("fichajes")}
+            className="rounded-2xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/40"
+          >
+            <div className="mb-2 flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full ${activeEntry ? "bg-destructive" : "bg-muted-foreground/40"}`} />
+              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Jornada</span>
+            </div>
+            <p className="text-lg font-semibold text-foreground">{activeEntry ? "Activa" : "Sin abrir"}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {activeEntry ? `Desde las ${format(new Date(activeEntry.clock_in), "HH:mm")}` : "Pulsa para fichar entrada"}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate("workReports")}
+            className="rounded-2xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/40"
+          >
+            <div className="mb-2 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Parte</span>
+            </div>
+            <p className="text-lg font-semibold text-foreground">{activeReport ? "En curso" : "Sin parte"}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              {activeReport?.description || (activeEntry ? "Empieza un parte para registrar el trabajo" : "Abre la jornada primero")}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate("tasks")}
+            className="rounded-2xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/40"
+          >
+            <div className="mb-2 flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tareas hoy</span>
+            </div>
+            <p className="text-lg font-semibold text-foreground">{tasksToday.length}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {tasksToday.length === 0 ? "Nada con fecha de hoy" : tasksToday[0]?.title}
+            </p>
+          </button>
+        </div>
+      </section>
+
+      {/* PENDIENTES */}
+      <section className="panel-surface p-5">
+        <header className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-primary" />
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Pendientes</h2>
+              <p className="text-xs text-muted-foreground">Próximas tareas asignadas a ti.</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => onNavigate("tasks")}>
+            Ver todas <ArrowRight className="h-4 w-4" />
+          </Button>
+        </header>
+
+        {loading ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => <div key={i} className="h-14 animate-pulse rounded-xl bg-muted/60" />)}
+          </div>
+        ) : pendingTasks.length === 0 ? (
+          <EmptyState icon={CheckCircle2} title="Todo al día" description="No tienes tareas pendientes asignadas." />
+        ) : (
+          <ul className="divide-y divide-border">
+            {pendingTasks.map((task) => (
+              <li key={task.id}>
+                <button
+                  type="button"
+                  onClick={() => onNavigate("tasks")}
+                  className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-muted/40"
+                >
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${task.priority === "urgent" || task.priority === "high" ? "bg-destructive" : "bg-primary/60"}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {task.due_date ? format(new Date(task.due_date), "d MMM", { locale: es }) : "Sin fecha"} · {task.status === "in_progress" ? "En curso" : task.status === "blocked" ? "Bloqueada" : "Pendiente"}
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* AVISOS */}
+      <section className="panel-surface p-5">
+        <header className="mb-4 flex items-center gap-2">
+          <Bell className="h-5 w-5 text-primary" />
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Avisos</h2>
+            <p className="text-xs text-muted-foreground">Novedades y notas relevantes para el equipo.</p>
+          </div>
+        </header>
+
+        {todayHighlights.length === 0 && highlights.length === 0 ? (
+          <EmptyState icon={MessageSquareMore} title="Sin avisos" description="Cuando haya novedades importantes aparecerán aquí." />
+        ) : (
+          <div className="space-y-2">
+            {(todayHighlights.length > 0 ? todayHighlights : highlights.slice(0, 3)).map((item) => (
+              <div key={item.id} className="rounded-xl border border-border bg-background p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground">{item.title}</p>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                    {item.category}
+                  </span>
+                </div>
+                {item.summary ? <p className="mt-1 text-xs text-muted-foreground">{item.summary}</p> : null}
               </div>
             ))}
           </div>
-        </article>
-
-        <aside className="panel-surface p-4 md:p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <ScanSearch className="h-4 w-4 text-primary" /> Enlace rápido entre módulos
-          </div>
-          <div className="mt-4 space-y-3">
-            {quickLinks.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => onNavigate(item.key)}
-                  className="flex w-full items-center gap-3 rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"
-                >
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="h-4.5 w-4.5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-foreground">{item.label}</span>
-                    <span className="block text-xs text-muted-foreground">{item.hint}</span>
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </button>
-              );
-            })}
-          </div>
-        </aside>
+        )}
       </section>
 
-      <section className="hero-surface overflow-hidden rounded-[20px] px-4 py-4 md:px-6 md:py-6">
-        <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"><span className={`h-2.5 w-2.5 rounded-full ${activeEntry ? "bg-destructive" : "bg-muted-foreground/40"}`} />{activeEntry ? "Trabajando ahora" : "Parado"}</div>
-          <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-2xl border border-border/80 bg-background/88 p-5 shadow-[var(--shadow-soft)]">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Estado actual</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">{activeEntry ? "Jornada activa" : "Listo para empezar"}</p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{activeEntry ? "Tienes una jornada abierta. Puedes seguir con tu parte o registrar la salida cuando termines." : "Accede rápido a lo importante sin ruido ni pasos innecesarios."}</p>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <Button className="justify-between" size="lg" onClick={() => onNavigate(activeEntry ? "workReports" : "fichajes")}>{activeEntry ? "Ir al parte activo" : "Fichar ahora"}<ArrowRight className="h-4 w-4" /></Button>
-                <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("workReports")}>Iniciar parte<ArrowRight className="h-4 w-4" /></Button>
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Hoy</p><p className="mt-2 text-base font-semibold text-foreground">{hours}h {minutes}m</p></div>
-              <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Último fichaje</p><p className="mt-2 text-base font-semibold text-foreground">{latestEntry ? format(new Date(latestEntry.clock_in), "HH:mm", { locale: es }) : "Sin registros"}</p></div>
-              <div className="rounded-xl border border-border/80 bg-background/88 p-4 shadow-[var(--shadow-soft)]"><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Pendientes</p><p className="mt-2 text-base font-semibold text-foreground">{pendingTasks.length} tareas</p></div>
-            </div>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("tasks")}>Tareas<ArrowRight className="h-4 w-4" /></Button>
-            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("notes")}>Mi espacio<ArrowRight className="h-4 w-4" /></Button>
-            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("gasoline")}>Gasolina<ArrowRight className="h-4 w-4" /></Button>
-            <Button variant="outline" className="justify-between" size="lg" onClick={() => onNavigate("staff")}>Calendario<ArrowRight className="h-4 w-4" /></Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Jornada" value={activeEntry ? "Activa" : "Parada"} hint={activeEntry ? `Desde las ${format(new Date(activeEntry.clock_in), "HH:mm", { locale: es })}` : "Sin fichaje abierto"} icon={Clock3} tone={activeEntry ? "danger" : "primary"} onClick={() => onNavigate("fichajes")} />
-        <MetricCard title="Parte de trabajo" value={activeEntry ? "En marcha" : "Preparado"} hint="Inicio rápido y cierre simple" icon={FileText} tone="primary" onClick={() => onNavigate("workReports")} />
-        <MetricCard title="Balance mensual" value={formatMinutes(monthlyHoursSummary.balanceMinutes)} hint={`${formatMinutes(monthlyHoursSummary.workedMinutes)} trabajadas este mes`} icon={ClipboardList} tone="secondary" onClick={() => onNavigate("fichajes")} />
-        <MetricCard title="Calendario" value={requests.length} hint={`${pendingRequests.length} pendientes`} icon={CalendarRange} tone="success" onClick={() => onNavigate("staff")} />
-      </section>
-
-      <HoursBalancePanel summary={monthlyHoursSummary} title="Horas del mes" description="Resumen automático de horas trabajadas, extra y faltantes con base de 8h por día laborable." compact />
-
-      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr] md:gap-6">
-        <div className="panel-surface space-y-4 p-4 md:space-y-5 md:p-6">
-          <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Actividad reciente</h2><p className="text-sm text-muted-foreground">Tus últimos fichajes.</p></div><Button variant="outline" onClick={() => onNavigate("fichajes")}>Historial</Button></div>
-          {loading ? <div className="space-y-3">{[0,1,2].map((item) => <div key={item} className="h-20 animate-pulse rounded-lg bg-muted/70" />)}</div> : entries.length === 0 ? <EmptyState icon={Clock3} title="Todavía no hay fichajes" description="Cuando registres tu primera entrada aparecerá aquí tu historial reciente con horas y duración." /> : <div className="space-y-3">{entries.slice(0,5).map((entry) => { const duration = differenceInMinutes(entry.clock_out ? new Date(entry.clock_out) : new Date(), new Date(entry.clock_in)); return <div key={entry.id} className="rounded-lg border border-border/80 bg-background px-4 py-4 transition-colors hover:bg-muted/35"><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="font-medium text-foreground">{format(new Date(entry.clock_in), "EEEE d MMMM", { locale: es })}</p><p className="text-sm text-muted-foreground">Entrada {format(new Date(entry.clock_in), "HH:mm", { locale: es })}{entry.clock_out ? ` · Salida ${format(new Date(entry.clock_out), "HH:mm", { locale: es })}` : " · En curso"}</p></div><div className="text-sm font-medium text-foreground">{Math.floor(duration / 60)}h {duration % 60}m</div></div></div>; })}</div>}
-        </div>
-
-        <div className="space-y-4 md:space-y-6">
-          <section className="panel-surface space-y-4 p-4 md:p-6">
-            <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Próximas tareas</h2><p className="text-sm text-muted-foreground">Lo más urgente del área operativa.</p></div><ClipboardList className="h-5 w-5 text-primary" /></div>
-            {pendingTasks.length === 0 ? <EmptyState icon={CheckCircle2} title="Todo al día" description="No hay tareas abiertas ahora mismo. El siguiente trabajo aparecerá aquí automáticamente." /> : <div className="space-y-3">{pendingTasks.slice(0,4).map((task) => <button key={task.id} type="button" onClick={() => onNavigate("tasks")} className="w-full rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-foreground">{task.title}</p><p className="mt-1 text-sm text-muted-foreground">{task.due_date ? format(new Date(task.due_date), "d MMM yyyy", { locale: es }) : "Sin fecha asignada"}</p></div><span className="rounded-full bg-secondary/25 px-2.5 py-1 text-xs font-medium text-secondary-foreground">{task.priority}</span></div></button>)}</div>}
-          </section>
-
-          <section className="panel-surface space-y-4 p-4 md:p-6">
-            <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Sistema conectado</h2><p className="text-sm text-muted-foreground">Relación directa entre trabajo, combustible, notas y trazabilidad diaria.</p></div><Fuel className="h-5 w-5 text-primary" /></div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => onNavigate("workReports")} className="rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><p className="font-medium text-foreground">Parte de trabajo</p><p className="mt-1 text-sm text-muted-foreground">Conecta jornada abierta, máquina utilizada y cierre del día.</p></button>
-              <button type="button" onClick={() => onNavigate("gasoline")} className="rounded-lg border border-border/80 bg-background px-4 py-4 text-left transition-all hover:border-primary/20 hover:bg-muted/35"><p className="font-medium text-foreground">Gasolina</p><p className="mt-1 text-sm text-muted-foreground">Cruza movimientos de repostaje con actividad y seguimiento operativo.</p></button>
-            </div>
-          </section>
-
-          {highlights.length > 0 ? <section className="panel-surface space-y-4 p-4 md:p-6"><div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-foreground">Avisos</h2><p className="text-sm text-muted-foreground">Cambios importantes del día.</p></div><MessageSquareMore className="h-5 w-5 text-primary" /></div><div className="space-y-3">{highlights.slice(0, 2).map((item) => <div key={item.id} className="rounded-lg border border-border/80 bg-background px-4 py-4"><div className="flex items-center justify-between gap-3"><p className="font-medium text-foreground">{item.title}</p><span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{item.category}</span></div>{item.summary ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.summary}</p> : null}</div>)}</div></section> : null}
-        </div>
+      {/* Accesos rápidos compactos */}
+      <section className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <Button variant="outline" size="lg" className="justify-between" onClick={() => onNavigate("workReports")}>
+          <span className="flex items-center gap-2"><FileText className="h-4 w-4" />Parte</span>
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="lg" className="justify-between" onClick={() => onNavigate("chat")}>
+          <span className="flex items-center gap-2"><MessageSquareMore className="h-4 w-4" />Chat</span>
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="lg" className="justify-between" onClick={() => onNavigate("notes")}>
+          <span className="flex items-center gap-2"><NotebookPen className="h-4 w-4" />Mi espacio</span>
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="lg" className="justify-between" onClick={() => onNavigate("staff")}>
+          <span className="flex items-center gap-2"><CalendarRange className="h-4 w-4" />Calendario</span>
+          <ArrowRight className="h-4 w-4" />
+        </Button>
       </section>
     </div>
   );

@@ -195,8 +195,8 @@ const TaskHubView = () => {
     <div className="space-y-5 animate-fade-in">
       <PageHeader
         eyebrow="Tareas"
-        title="Trabajo claro y rápido"
-        description="Inspirado en herramientas modernas, pero simplificado para móvil y uso real diario."
+        title={isAdmin ? "Tareas del equipo" : "Mis tareas"}
+        description={isAdmin ? "Todas las tareas del equipo, asignaciones y prioridades." : "Solo las tareas asignadas a ti o creadas por ti."}
         actions={<Button className="h-11 rounded-2xl" onClick={openCreate}><Plus className="h-4 w-4" /> Nueva tarea</Button>}
       />
 

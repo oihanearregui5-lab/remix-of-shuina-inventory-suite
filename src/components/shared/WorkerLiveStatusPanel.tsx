@@ -7,6 +7,7 @@ interface WorkerLiveStatusPanelProps {
   title?: string;
   description?: string;
   compact?: boolean;
+  onSelectWorker?: (staffId: string) => void;
 }
 
 const badgeClasses: Record<WorkerLiveStatusItem["presence"], string> = {
@@ -27,6 +28,7 @@ const WorkerLiveStatusPanel = ({
   title = "Estado en tiempo real",
   description = "Quién está trabajando, quién sigue con la jornada abierta y quién está fuera.",
   compact = false,
+  onSelectWorker,
 }: WorkerLiveStatusPanelProps) => {
   return (
     <section className="panel-surface p-4 md:p-5">
@@ -54,7 +56,31 @@ const WorkerLiveStatusPanel = ({
           <div className="space-y-3">
             {items.map((item) => {
               const Icon = iconByPresence[item.presence];
-              return (
+              const isClickable = Boolean(onSelectWorker);
+              return isClickable ? (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onSelectWorker?.(item.id)}
+                  className="block w-full rounded-xl border border-border bg-background px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/40"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate font-semibold text-foreground">{item.name}</p>
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${badgeClasses[item.presence]}`}>
+                          {item.statusLabel}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-foreground">{item.detail}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{item.sinceLabel}</p>
+                    </div>
+                    <div className="rounded-lg bg-muted p-2 text-primary">
+                      <Icon className="h-4.5 w-4.5" />
+                    </div>
+                  </div>
+                </button>
+              ) : (
                 <article key={item.id} className="rounded-xl border border-border bg-background px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
