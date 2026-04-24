@@ -369,6 +369,101 @@ export type Database = {
           },
         ]
       }
+      fuel_cards: {
+        Row: {
+          alias: string
+          assigned_vehicle: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          masked_number: string | null
+          notes: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          alias: string
+          assigned_vehicle?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          masked_number?: string | null
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          alias?: string
+          assigned_vehicle?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          masked_number?: string | null
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fuel_records: {
+        Row: {
+          amount: number
+          card_id: string
+          created_at: string
+          created_by_user_id: string
+          extra_info: string | null
+          id: string
+          liters: number | null
+          observations: string | null
+          receipt_photo_name: string | null
+          receipt_photo_path: string | null
+          record_date: string
+          station: string
+          updated_at: string
+          vehicle: string | null
+        }
+        Insert: {
+          amount?: number
+          card_id: string
+          created_at?: string
+          created_by_user_id: string
+          extra_info?: string | null
+          id?: string
+          liters?: number | null
+          observations?: string | null
+          receipt_photo_name?: string | null
+          receipt_photo_path?: string | null
+          record_date?: string
+          station: string
+          updated_at?: string
+          vehicle?: string | null
+        }
+        Update: {
+          amount?: number
+          card_id?: string
+          created_at?: string
+          created_by_user_id?: string
+          extra_info?: string | null
+          id?: string
+          liters?: number | null
+          observations?: string | null
+          receipt_photo_name?: string | null
+          receipt_photo_path?: string | null
+          record_date?: string
+          station?: string
+          updated_at?: string
+          vehicle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_records_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       holidays: {
         Row: {
           color_hex: string

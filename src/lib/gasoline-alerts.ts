@@ -3,8 +3,8 @@ export interface GasolineLikeRecord {
   cardId: string;
   date: string;
   station: string;
-  amount: string;
-  liters: string;
+  amount: number | string;
+  liters: number | string | null;
   vehicle: string;
 }
 
@@ -17,7 +17,9 @@ export interface GasolineAlertItem {
   severity: "warning" | "danger";
 }
 
-export const parseFuelNumber = (value: string) => {
+export const parseFuelNumber = (value: number | string | null | undefined): number => {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   const normalized = value.replace(",", ".").trim();
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
