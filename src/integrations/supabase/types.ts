@@ -1220,9 +1220,17 @@ export type Database = {
         Returns: boolean
       }
       can_manage_vacation_journeys: { Args: never; Returns: boolean }
+      create_private_group: {
+        Args: { _description: string; _member_ids: string[]; _name: string }
+        Returns: string
+      }
       ensure_current_user_setup: {
         Args: { _full_name?: string }
         Returns: undefined
+      }
+      get_or_create_direct_channel: {
+        Args: { _other_user_id: string }
+        Returns: string
       }
       has_role: {
         Args: {
