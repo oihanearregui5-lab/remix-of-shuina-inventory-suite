@@ -365,10 +365,21 @@ const ChatHubView = () => {
       <ChatChannelDialog
         open={channelDialogOpen}
         loading={savingChannel}
-        mode={channelDialogMode}
+        mode="edit"
         initialValues={{ name: activeChannelDraft.name, description: activeChannelDraft.description }}
         onOpenChange={setChannelDialogOpen}
-        onSubmit={(values) => void saveChannel(values)}
+        onSubmit={(values) => void saveChannelEdit(values)}
+      />
+
+      <ChatComposerDialog
+        open={composerOpen}
+        loading={composerLoading}
+        isAdmin={isAdmin}
+        people={people}
+        onOpenChange={setComposerOpen}
+        onCreateChannel={(values) => void createPublicChannel(values)}
+        onCreateGroup={(values) => void createPrivateGroup(values)}
+        onCreateDirect={(recipientUserId) => void openDirectMessage(recipientUserId)}
       />
     </div>
   );
