@@ -345,6 +345,33 @@ export type Database = {
         }
         Relationships: []
       }
+      machine_attachments: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          machine_id: string
+          storage_path: string
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          machine_id: string
+          storage_path: string
+          uploaded_by_user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          machine_id?: string
+          storage_path?: string
+          uploaded_by_user_id?: string
+        }
+        Relationships: []
+      }
       machine_incidents: {
         Row: {
           assigned_staff_id: string | null
@@ -612,6 +639,7 @@ export type Database = {
         Row: {
           active: boolean
           color_tag: string | null
+          contract_type: string | null
           created_at: string
           email: string | null
           full_name: string
@@ -620,13 +648,17 @@ export type Database = {
           linked_user_id: string | null
           notes: string | null
           phone: string | null
+          position: string | null
           sort_order: number
           staff_kind: Database["public"]["Enums"]["staff_kind"]
+          start_date: string | null
           updated_at: string
+          weekly_hours: number | null
         }
         Insert: {
           active?: boolean
           color_tag?: string | null
+          contract_type?: string | null
           created_at?: string
           email?: string | null
           full_name: string
@@ -635,13 +667,17 @@ export type Database = {
           linked_user_id?: string | null
           notes?: string | null
           phone?: string | null
+          position?: string | null
           sort_order?: number
           staff_kind?: Database["public"]["Enums"]["staff_kind"]
+          start_date?: string | null
           updated_at?: string
+          weekly_hours?: number | null
         }
         Update: {
           active?: boolean
           color_tag?: string | null
+          contract_type?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
@@ -650,9 +686,12 @@ export type Database = {
           linked_user_id?: string | null
           notes?: string | null
           phone?: string | null
+          position?: string | null
           sort_order?: number
           staff_kind?: Database["public"]["Enums"]["staff_kind"]
+          start_date?: string | null
           updated_at?: string
+          weekly_hours?: number | null
         }
         Relationships: []
       }
@@ -810,6 +849,7 @@ export type Database = {
           priority: Database["public"]["Enums"]["task_priority"]
           related_machine_id: string | null
           reminder_at: string | null
+          scope: Database["public"]["Enums"]["task_scope"]
           start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
           title: string
@@ -828,6 +868,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["task_priority"]
           related_machine_id?: string | null
           reminder_at?: string | null
+          scope?: Database["public"]["Enums"]["task_scope"]
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title: string
@@ -846,6 +887,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["task_priority"]
           related_machine_id?: string | null
           reminder_at?: string | null
+          scope?: Database["public"]["Enums"]["task_scope"]
           start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
@@ -1292,6 +1334,7 @@ export type Database = {
         | "note"
       staff_kind: "worker" | "manager" | "admin_support"
       task_priority: "low" | "medium" | "high" | "urgent"
+      task_scope: "personal" | "general"
       task_status:
         | "planned"
         | "in_progress"
@@ -1477,6 +1520,7 @@ export const Constants = {
       ],
       staff_kind: ["worker", "manager", "admin_support"],
       task_priority: ["low", "medium", "high", "urgent"],
+      task_scope: ["personal", "general"],
       task_status: [
         "planned",
         "in_progress",

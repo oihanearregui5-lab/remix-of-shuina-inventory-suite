@@ -12,6 +12,8 @@ interface StaffOption {
   full_name: string;
 }
 
+export type TaskScope = "personal" | "general";
+
 interface TaskComposerValues {
   title: string;
   description: string;
@@ -19,6 +21,7 @@ interface TaskComposerValues {
   due_date: string;
   priority: TaskPriority;
   assigned_staff_id: string;
+  scope: TaskScope;
 }
 
 interface TaskComposerDialogProps {
@@ -39,6 +42,7 @@ const emptyValues: TaskComposerValues = {
   due_date: "",
   priority: "medium",
   assigned_staff_id: "unassigned",
+  scope: "personal",
 };
 
 const TaskComposerDialog = ({ open, editing, saving, isAdmin, staff, initialValues, onOpenChange, onSubmit }: TaskComposerDialogProps) => {
@@ -74,15 +78,28 @@ const TaskComposerDialog = ({ open, editing, saving, isAdmin, staff, initialValu
             </Select>
           </div>
           {isAdmin ? (
-            <Select value={form.assigned_staff_id} onValueChange={(value) => setForm((current) => ({ ...current, assigned_staff_id: value }))}>
-              <SelectTrigger className="h-12 rounded-2xl"><SelectValue placeholder="Asignar a" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Sin asignar</SelectItem>
-                {staff.map((person) => (
-                  <SelectItem key={person.id} value={person.id}>{person.full_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">¿A quién se asigna?</p>
+              <Select
+                value={form.scope === "general" ? "__general__" : form.assigned_staff_id}
+                onValueChange={(value) => {
+                  if (value === "__general__") {
+                    setForm((current) => ({ ...current, scope: "general", assigned_staff_id: "unassigned" }));
+                  } else {
+                    setForm((current) => ({ ...current, scope: "personal", assigned_staff_id: value }));
+                  }
+                }}
+              >
+                <SelectTrigger className="h-12 rounded-2xl"><SelectValue placeholder="Asignar a" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__general__">🟡 Todo el equipo (General)</SelectItem>
+                  <SelectItem value="unassigned">Sin asignar</SelectItem>
+                  {staff.map((person) => (
+                    <SelectItem key={person.id} value={person.id}>{person.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           ) : null}
         </div>
         <div className="flex gap-2 border-t border-border px-5 py-4">
