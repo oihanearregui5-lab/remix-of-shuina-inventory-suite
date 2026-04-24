@@ -233,7 +233,7 @@ const MachineFleetView = () => {
 
     return {
       ...machine,
-      visual: machine.photo_url || machineImageMap.get(machine.id) || null,
+      visual: resolveMachineVisual(machine),
       noteItems,
       serviceItems,
       incidentItems,
