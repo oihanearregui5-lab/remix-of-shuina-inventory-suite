@@ -22,6 +22,8 @@ interface AppShellProps<T extends string> {
   onMobileMenuOpenChange: (open: boolean) => void;
   currentSection: T;
   onSectionChange: (section: T) => void;
+  /** Prefetch opcional del chunk de la sección al hover/focus. */
+  onSectionPrefetch?: (section: T) => void;
   sections: AppShellSection<T>[];
   canViewAdmin: boolean;
   isAdmin: boolean;
