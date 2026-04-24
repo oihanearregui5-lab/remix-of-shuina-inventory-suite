@@ -42,7 +42,7 @@
     --radius: 0.75rem;
 
     --sidebar-background: 216 70% 18%;
-    --sidebar-foreground: 216 15% 85%;
+    --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 45 90% 53%;
     --sidebar-primary-foreground: 216 70% 15%;
     --sidebar-accent: 216 60% 25%;
@@ -103,3 +103,37 @@
     overflow: hidden;
   }
 }
+
+/* ========================================================
+ * MODO SIMPLE — accesibilidad para usuarios senior / móvil
+ * ========================================================
+ * Aumenta tipografía base, alturas mínimas de botones y
+ * espaciados táctiles. Se activa con la clase .ui-simple
+ * en el body desde el hook useUIMode.
+ */
+body.ui-simple {
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+body.ui-simple h1 { font-size: 1.75rem; }
+body.ui-simple h2 { font-size: 1.4rem; }
+body.ui-simple h3 { font-size: 1.2rem; }
+
+body.ui-simple .btn-simple-target,
+body.ui-simple button:not([data-density-exempt]):not([role="tab"]):not([role="checkbox"]):not([role="switch"]) {
+  min-height: 52px;
+  font-size: 1rem;
+}
+
+body.ui-simple input,
+body.ui-simple select,
+body.ui-simple textarea {
+  min-height: 48px;
+  font-size: 1rem;
+}
+
+body.ui-simple .panel-surface {
+  padding: 1.25rem;
+}
+
