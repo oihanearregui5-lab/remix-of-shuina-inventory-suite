@@ -1,4 +1,4 @@
-import { MessageSquareMore, Pencil, Plus, Trash2 } from "lucide-react";
+import { Hash, Lock, MessageCircle, MessageSquareMore, Pencil, Plus, Trash2, Users } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
