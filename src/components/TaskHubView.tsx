@@ -19,6 +19,7 @@ import { useSmartReminders } from "@/hooks/useSmartReminders";
 interface TaskItem extends TaskDialogItem {
   assigned_staff_id?: string | null;
   assigned_staff_name?: string | null;
+  scope?: "personal" | "general";
 }
 
 interface StaffOption {
@@ -64,6 +65,7 @@ const TaskHubView = () => {
     due_date: "",
     priority: "medium" as TaskPriority,
     assigned_staff_id: "unassigned",
+    scope: "personal" as "personal" | "general",
   });
 
   useEffect(() => {
@@ -75,7 +77,7 @@ const TaskHubView = () => {
     setLoading(true);
     const { data, error } = await db
       .from("tasks")
-      .select("id, title, description, start_date, due_date, category, priority, status, created_at, updated_at, completed_at, assigned_staff_id")
+      .select("id, title, description, start_date, due_date, category, priority, status, created_at, updated_at, completed_at, assigned_staff_id, scope")
       .order("updated_at", { ascending: false })
       .limit(100);
 
@@ -111,7 +113,7 @@ const TaskHubView = () => {
   }, [month]);
 
   const resetForm = () => {
-    setForm({ title: "", description: "", labels: "", due_date: "", priority: "medium", assigned_staff_id: "unassigned" });
+    setForm({ title: "", description: "", labels: "", due_date: "", priority: "medium", assigned_staff_id: "unassigned", scope: "personal" });
     setEditingId(null);
   };
 
@@ -128,6 +130,7 @@ const TaskHubView = () => {
       due_date: task.due_date || "",
       priority: task.priority,
       assigned_staff_id: task.assigned_staff_id || "unassigned",
+      scope: task.scope || "personal",
     });
     setEditingId(task.id);
     setComposerOpen(true);
@@ -137,6 +140,7 @@ const TaskHubView = () => {
     if (!user || !values.title.trim()) return;
     setSaving(true);
 
+    const isGeneral = isAdmin && values.scope === "general";
     const payload = {
       title: values.title.trim(),
       description: values.description.trim() || null,
@@ -144,7 +148,8 @@ const TaskHubView = () => {
       due_date: values.due_date || null,
       priority: values.priority,
       created_by_user_id: user.id,
-      assigned_staff_id: isAdmin && values.assigned_staff_id !== "unassigned" ? values.assigned_staff_id : null,
+      assigned_staff_id: !isGeneral && isAdmin && values.assigned_staff_id !== "unassigned" ? values.assigned_staff_id : null,
+      scope: isGeneral ? "general" : "personal",
     };
 
     const query = editingId ? db.from("tasks").update(payload).eq("id", editingId) : db.from("tasks").insert({ ...payload, status: "planned" });
