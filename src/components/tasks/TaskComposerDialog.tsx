@@ -12,6 +12,8 @@ interface StaffOption {
   full_name: string;
 }
 
+export type TaskScope = "personal" | "general";
+
 interface TaskComposerValues {
   title: string;
   description: string;
@@ -19,6 +21,7 @@ interface TaskComposerValues {
   due_date: string;
   priority: TaskPriority;
   assigned_staff_id: string;
+  scope: TaskScope;
 }
 
 interface TaskComposerDialogProps {
