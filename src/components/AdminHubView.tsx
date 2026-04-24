@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import ExcelVacationPlanner from "@/components/admin/ExcelVacationPlanner";
 import WorkerLiveStatusPanel from "@/components/shared/WorkerLiveStatusPanel";
 import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
+import WorkerProfileDialog from "@/components/staff/WorkerProfileDialog";
 
 interface AdminMetrics {
   openTasks: number;
@@ -34,6 +35,7 @@ const excelVacationLegend = ["ADRIAN", "AITOR", "ANDRIY", "FRAN", "HAMID", "JUAN
 const AdminHubView = () => {
   const { canViewAdmin } = useAuth();
   const { items: liveWorkers, loading: liveWorkersLoading, summary: liveSummary } = useWorkerLiveStatus();
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<AdminMetrics>({ openTasks: 0, openIncidents: 0, serviceItems: 0, activeClockings: 0, activeWorkReports: 0, pendingVacations: 0, channels: 0, messagesToday: 0 });
   const [highlights, setHighlights] = useState<DailyHighlight[]>([]);
   const [pendingRequests, setPendingRequests] = useState<VacationReviewItem[]>([]);
@@ -266,7 +268,8 @@ const AdminHubView = () => {
             </div>
           </section>
 
-          <WorkerLiveStatusPanel items={liveWorkers} loading={liveWorkersLoading} />
+          <WorkerLiveStatusPanel items={liveWorkers} loading={liveWorkersLoading} onSelectWorker={setSelectedWorkerId} />
+          <WorkerProfileDialog staffId={selectedWorkerId} open={Boolean(selectedWorkerId)} onOpenChange={(open) => !open && setSelectedWorkerId(null)} />
 
           <section className="panel-surface p-4">
             <div className="mb-4 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Noticias y cambios del día</p></div>

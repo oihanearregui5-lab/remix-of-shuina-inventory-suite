@@ -9,6 +9,7 @@ import { format, differenceInMinutes, startOfMonth, endOfMonth } from "date-fns"
 import { es } from "date-fns/locale";
 import WorkerLiveStatusPanel from "@/components/shared/WorkerLiveStatusPanel";
 import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
+import WorkerProfileDialog from "@/components/staff/WorkerProfileDialog";
 import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
 import { formatMinutes, summarizeEntriesForRange } from "@/lib/time-balance";
 
@@ -23,6 +24,7 @@ interface EntryWithProfile {
 const AdminFichajes = () => {
   const { isAdmin, canViewAdmin } = useAuth();
   const { items: liveWorkers, loading: liveWorkersLoading, summary: liveSummary } = useWorkerLiveStatus();
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [entries, setEntries] = useState<EntryWithProfile[]>([]);
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
@@ -184,9 +186,11 @@ const AdminFichajes = () => {
           items={liveWorkers}
           loading={liveWorkersLoading}
           title="Estado del equipo"
-          description="Vista viva del equipo según fichajes abiertos y partes activos."
+          description="Toca un trabajador para abrir su ficha en vivo."
           compact
+          onSelectWorker={setSelectedWorkerId}
         />
+        <WorkerProfileDialog staffId={selectedWorkerId} open={Boolean(selectedWorkerId)} onOpenChange={(open) => !open && setSelectedWorkerId(null)} />
       </div>
 
       <div className="mb-8 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
