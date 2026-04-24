@@ -40,18 +40,21 @@ export function useNotifications() {
   });
 
   // Realtime subscription
+  // Importante: usamos un nombre de canal único por montaje para evitar
+  // colisiones con instancias previas (StrictMode / HMR), que provocaban
+  // "cannot add postgres_changes callbacks after subscribe()".
   useEffect(() => {
     if (!user?.id) return;
-    const channel = supabase
-      .channel(`notifications:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-        },
-      )
-      .subscribe();
+    const channelName = `notifications:${user.id}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+      () => {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      },
+    );
+    channel.subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
