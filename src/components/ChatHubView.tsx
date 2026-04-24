@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
 import ChatChannelDialog from "@/components/chat/ChatChannelDialog";
+import ChatComposerDialog from "@/components/chat/ChatComposerDialog";
 import ChatChannelList from "@/components/chat/ChatChannelList";
 import ChatConversation from "@/components/chat/ChatConversation";
 import { Button } from "@/components/ui/button";
-import type { ChannelSummary, ChatChannelItem, ChatMessageItem } from "@/components/chat/chat-types";
+import type { ChannelSummary, ChatChannelItem, ChatMessageItem, ChatPersonOption } from "@/components/chat/chat-types";
 import { toast } from "sonner";
 import { normalizeChatQuery, validateChatDraft } from "@/lib/chat-utils";
 
@@ -26,7 +27,9 @@ const ChatHubView = () => {
   const [sending, setSending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
-  const [channelDialogMode, setChannelDialogMode] = useState<"create" | "edit">("create");
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerLoading, setComposerLoading] = useState(false);
+  const [people, setPeople] = useState<ChatPersonOption[]>([]);
   const [activeChannelDraft, setActiveChannelDraft] = useState<{ id: string | null; name: string; description: string }>({ id: null, name: "", description: "" });
   const [savingChannel, setSavingChannel] = useState(false);
   const [showConversationOnMobile, setShowConversationOnMobile] = useState(false);
@@ -175,32 +178,71 @@ const ChatHubView = () => {
     void fetchChannelSummaries();
   };
 
-  const openCreateChannel = () => {
-    setChannelDialogMode("create");
-    setActiveChannelDraft({ id: null, name: "", description: "" });
-    setChannelDialogOpen(true);
+  const fetchPeople = async () => {
+    if (!user) return;
+    const { data } = await db.from("profiles").select("user_id, full_name").neq("user_id", user.id).order("full_name");
+    setPeople((data ?? []) as ChatPersonOption[]);
+  };
+
+  const openComposer = () => {
+    void fetchPeople();
+    setComposerOpen(true);
   };
 
   const openEditChannel = (channel: ChatChannelItem) => {
-    setChannelDialogMode("edit");
     setActiveChannelDraft({ id: channel.id, name: channel.name, description: channel.description || "" });
     setChannelDialogOpen(true);
   };
 
-  const saveChannel = async (values: { name: string; description: string }) => {
-    if (!user || !isAdmin || !values.name.trim()) return;
+  const saveChannelEdit = async (values: { name: string; description: string }) => {
+    if (!user || !activeChannelDraft.id || !values.name.trim()) return;
     setSavingChannel(true);
     const slug = values.name.trim().toLowerCase().replace(/\s+/g, "-");
     const payload = { name: values.name.trim(), slug, description: values.description.trim() || null };
-    const query = channelDialogMode === "edit" && activeChannelDraft.id
-      ? db.from("chat_channels").update(payload).eq("id", activeChannelDraft.id)
-      : db.from("chat_channels").insert({ ...payload, created_by_user_id: user.id });
-    const { error } = await query;
+    const { error } = await db.from("chat_channels").update(payload).eq("id", activeChannelDraft.id);
     setSavingChannel(false);
-    if (error) return toast.error(channelDialogMode === "edit" ? "No se pudo editar el canal" : "No se pudo crear el canal");
-    toast.success(channelDialogMode === "edit" ? "Canal actualizado" : "Canal creado");
+    if (error) return toast.error("No se pudo editar el canal");
+    toast.success("Canal actualizado");
     setChannelDialogOpen(false);
     void fetchChannelsAndSummaries();
+  };
+
+  const createPublicChannel = async (values: { name: string; description: string }) => {
+    if (!user || !isAdmin || !values.name.trim()) return;
+    setComposerLoading(true);
+    const slug = values.name.trim().toLowerCase().replace(/\s+/g, "-");
+    const { error } = await db.from("chat_channels").insert({ name: values.name.trim(), slug, description: values.description.trim() || null, created_by_user_id: user.id, kind: "channel", visibility: "public" });
+    setComposerLoading(false);
+    if (error) return toast.error("No se pudo crear el canal");
+    toast.success("Canal creado");
+    setComposerOpen(false);
+    void fetchChannelsAndSummaries();
+  };
+
+  const createPrivateGroup = async (values: { name: string; description: string; memberIds: string[] }) => {
+    if (!user || !values.name.trim()) return;
+    setComposerLoading(true);
+    const { data, error } = await db.rpc("create_private_group", { _name: values.name.trim(), _description: values.description.trim() || null, _member_ids: values.memberIds });
+    setComposerLoading(false);
+    if (error) return toast.error("No se pudo crear el grupo");
+    toast.success("Grupo creado");
+    setComposerOpen(false);
+    await fetchChannelsAndSummaries();
+    if (typeof data === "string") setActiveChannelId(data);
+  };
+
+  const openDirectMessage = async (recipientUserId: string) => {
+    if (!user) return;
+    setComposerLoading(true);
+    const { data, error } = await db.rpc("get_or_create_direct_channel", { _other_user_id: recipientUserId });
+    setComposerLoading(false);
+    if (error) return toast.error("No se pudo abrir la conversación");
+    setComposerOpen(false);
+    await fetchChannelsAndSummaries();
+    if (typeof data === "string") {
+      setActiveChannelId(data);
+      setShowConversationOnMobile(true);
+    }
   };
 
   const deleteChannel = async (channel: ChatChannelItem) => {
@@ -285,7 +327,7 @@ const ChatHubView = () => {
             setActiveChannelId(channelId);
             setShowConversationOnMobile(true);
           }}
-          onCreate={openCreateChannel}
+          onCreate={openComposer}
           onEdit={openEditChannel}
           onDelete={(channel) => void deleteChannel(channel)}
         />
@@ -323,10 +365,21 @@ const ChatHubView = () => {
       <ChatChannelDialog
         open={channelDialogOpen}
         loading={savingChannel}
-        mode={channelDialogMode}
+        mode="edit"
         initialValues={{ name: activeChannelDraft.name, description: activeChannelDraft.description }}
         onOpenChange={setChannelDialogOpen}
-        onSubmit={(values) => void saveChannel(values)}
+        onSubmit={(values) => void saveChannelEdit(values)}
+      />
+
+      <ChatComposerDialog
+        open={composerOpen}
+        loading={composerLoading}
+        isAdmin={isAdmin}
+        people={people}
+        onOpenChange={setComposerOpen}
+        onCreateChannel={(values) => void createPublicChannel(values)}
+        onCreateGroup={(values) => void createPrivateGroup(values)}
+        onCreateDirect={(recipientUserId) => void openDirectMessage(recipientUserId)}
       />
     </div>
   );

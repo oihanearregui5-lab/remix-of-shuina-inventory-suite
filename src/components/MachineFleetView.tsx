@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, Download, Pencil, Plus, Search, TimerReset, Trash2, UserRound, Wrench } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Activity, AlertTriangle, Download, ImagePlus, Loader2, Pencil, Plus, Search, TimerReset, Trash2, UserRound, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,7 +85,11 @@ const MachineFleetView = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<MachineStatus | "all">("all");
-  const [form, setForm] = useState({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active" as MachineStatus, notes: "" });
+  const [form, setForm] = useState({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active" as MachineStatus, notes: "", photo_url: "" as string | null });
+  const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cardFileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<string, string>>({});
 
   useEffect(() => { if (user) void Promise.all([fetchMachines(), fetchNotes(), fetchServices(), fetchIncidents(), fetchWorkReports()]); }, [user]);
 
@@ -104,13 +108,71 @@ const MachineFleetView = () => {
 
   const saveMachine = async () => {
     if (!form.display_name.trim() || !form.asset_family.trim()) return;
-    const payload = { display_name: form.display_name.trim(), asset_family: form.asset_family.trim(), asset_code: form.asset_code.trim() || null, license_plate: form.license_plate.trim() || null, status: form.status, notes: form.notes.trim() || null };
+    const payload = { display_name: form.display_name.trim(), asset_family: form.asset_family.trim(), asset_code: form.asset_code.trim() || null, license_plate: form.license_plate.trim() || null, status: form.status, notes: form.notes.trim() || null, photo_url: form.photo_url || null };
     const { error } = editingId ? await db.from("machine_assets").update(payload).eq("id", editingId) : await db.from("machine_assets").insert(payload);
     if (error) return toast.error(editingId ? "No se pudo editar la máquina" : "No se pudo crear la máquina");
     toast.success(editingId ? "Máquina actualizada" : "Máquina creada");
     setEditingId(null);
-    setForm({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active", notes: "" });
+    setForm({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active", notes: "", photo_url: "" });
     void fetchMachines();
+  };
+
+  const resolveMachineVisual = (machine: MachineAssetItem) => {
+    if (machine.photo_url) return photoSignedUrls[machine.id] || null;
+    return machineImageMap.get(machine.id) || null;
+  };
+
+  useEffect(() => {
+    const pending = machines.filter((machine) => machine.photo_url && !photoSignedUrls[machine.id]);
+    if (pending.length === 0) return;
+    void (async () => {
+      const updates: Record<string, string> = {};
+      for (const machine of pending) {
+        if (!machine.photo_url) continue;
+        const path = machine.photo_url.startsWith("machine-photos/") ? machine.photo_url.replace("machine-photos/", "") : machine.photo_url;
+        const { data } = await db.storage.from("machine-photos").createSignedUrl(path, 60 * 60);
+        if (data?.signedUrl) updates[machine.id] = data.signedUrl;
+      }
+      if (Object.keys(updates).length > 0) setPhotoSignedUrls((current) => ({ ...current, ...updates }));
+    })();
+  }, [machines]);
+
+  const uploadPhoto = async (machineId: string | null, file: File) => {
+    if (!user) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecciona una imagen válida");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen no puede superar 5 MB");
+      return;
+    }
+    const targetId = machineId || "drafts";
+    setUploadingPhotoFor(targetId);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${targetId}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await db.storage.from("machine-photos").upload(path, file, { upsert: false, contentType: file.type });
+      if (uploadError) throw uploadError;
+      if (machineId) {
+        const { error: updateError } = await db.from("machine_assets").update({ photo_url: path }).eq("id", machineId);
+        if (updateError) throw updateError;
+        toast.success("Foto actualizada");
+        setPhotoSignedUrls((current) => {
+          const next = { ...current };
+          delete next[machineId];
+          return next;
+        });
+        void fetchMachines();
+      } else {
+        setForm((current) => ({ ...current, photo_url: path }));
+        toast.success("Foto cargada, recuerda guardar la máquina");
+      }
+    } catch (error) {
+      toast.error("No se pudo subir la foto");
+    } finally {
+      setUploadingPhotoFor(null);
+    }
   };
 
   const deleteMachine = async (machineId: string) => {
@@ -171,7 +233,7 @@ const MachineFleetView = () => {
 
     return {
       ...machine,
-      visual: machine.photo_url || machineImageMap.get(machine.id) || null,
+      visual: resolveMachineVisual(machine),
       noteItems,
       serviceItems,
       incidentItems,
@@ -332,9 +394,17 @@ const MachineFleetView = () => {
                 </SelectContent>
               </Select>
               <Textarea value={form.notes} onChange={(e) => setForm((current) => ({ ...current, notes: e.target.value }))} placeholder="Observaciones generales" className="min-h-24" />
+              <div className="space-y-2">
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadPhoto(editingId, file); event.target.value = ""; }} />
+                <Button type="button" variant="soft" className="w-full" onClick={() => fileInputRef.current?.click()} disabled={uploadingPhotoFor !== null}>
+                  {uploadingPhotoFor === (editingId || "drafts") ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                  {form.photo_url ? "Cambiar foto" : "Subir foto"}
+                </Button>
+                {form.photo_url && !editingId ? <p className="text-xs text-muted-foreground">Foto cargada. Se asociará al guardar.</p> : null}
+              </div>
               <div className="flex gap-2">
                 <Button className="flex-1" onClick={() => void saveMachine()}>Guardar</Button>
-                {editingId && <Button variant="outline" onClick={() => { setEditingId(null); setForm({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active", notes: "" }); }}>Cancelar</Button>}
+                {editingId && <Button variant="outline" onClick={() => { setEditingId(null); setForm({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active", notes: "", photo_url: "" }); }}>Cancelar</Button>}
               </div>
             </div>
           </aside>
@@ -412,7 +482,11 @@ const MachineFleetView = () => {
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={() => exportMachine(machine)}><Download className="h-4 w-4" /> Descargar</Button>
-                {isAdmin && <Button size="sm" variant="outline" onClick={() => { setEditingId(machine.id); setForm({ display_name: machine.display_name, asset_family: machine.asset_family, asset_code: machine.asset_code || "", license_plate: machine.license_plate || "", status: machine.status, notes: machine.notes || "" }); }}><Pencil className="h-4 w-4" /> Editar</Button>}
+                {isAdmin && <Button size="sm" variant="outline" onClick={() => { setEditingId(machine.id); setForm({ display_name: machine.display_name, asset_family: machine.asset_family, asset_code: machine.asset_code || "", license_plate: machine.license_plate || "", status: machine.status, notes: machine.notes || "", photo_url: machine.photo_url || "" }); }}><Pencil className="h-4 w-4" /> Editar</Button>}
+                {isAdmin && <Button size="sm" variant="outline" onClick={() => { const input = cardFileInputs.current[machine.id]; if (input) input.click(); }} disabled={uploadingPhotoFor === machine.id}>
+                  {uploadingPhotoFor === machine.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} Foto
+                </Button>}
+                <input ref={(el) => { cardFileInputs.current[machine.id] = el; }} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadPhoto(machine.id, file); event.target.value = ""; }} />
                 {isAdmin && <Button size="sm" variant="outline" onClick={() => void deleteMachine(machine.id)}><Trash2 className="h-4 w-4" /> Eliminar</Button>}
               </div>
             </article>
