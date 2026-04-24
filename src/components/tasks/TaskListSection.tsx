@@ -20,6 +20,7 @@ export interface TaskListItem {
   completed_at: string | null;
   assigned_staff_id?: string | null;
   assigned_staff_name?: string | null;
+  scope?: "personal" | "general";
 }
 
 interface TaskListSectionProps {
@@ -65,6 +66,7 @@ const TaskListSection = ({ title, subtitle, tasks, loading, error, isAdmin, onOp
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", task.status === "completed" ? "bg-success/15 text-foreground" : "bg-primary/10 text-primary")}>{statusLabel[task.status]}</span>
                         <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{priorityLabel[task.priority]}</span>
+                        {task.scope === "general" ? <span className="rounded-full bg-warning/15 px-2.5 py-1 text-[11px] font-semibold text-foreground">🟡 General</span> : null}
                         {task.due_date ? <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{format(new Date(task.due_date), "d MMM", { locale: es })}</span> : null}
                       </div>
                       <div>
