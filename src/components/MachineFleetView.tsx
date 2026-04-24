@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Activity, AlertTriangle, Download, ImagePlus, Loader2, Pencil, Plus, Search, TimerReset, Trash2, UserRound, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Download, ImagePlus, Images, Loader2, Pencil, Plus, Search, TimerReset, Trash2, UserRound, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
 import MachineDetailDialog, { type MachineDialogItem } from "@/components/machines/MachineDetailDialog";
+import MachineAttachmentsDialog from "@/components/machines/MachineAttachmentsDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -90,6 +91,7 @@ const MachineFleetView = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cardFileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<string, string>>({});
+  const [galleryMachine, setGalleryMachine] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => { if (user) void Promise.all([fetchMachines(), fetchNotes(), fetchServices(), fetchIncidents(), fetchWorkReports()]); }, [user]);
 
