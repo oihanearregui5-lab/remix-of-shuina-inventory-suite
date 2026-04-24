@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ChevronRight, Eye, LogOut, Menu, PanelLeftClose, RefreshCcw, Sparkles } from "lucide-react";
+import { ChevronRight, Eye, LogOut, Menu, PanelLeftClose, RefreshCcw, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUIMode } from "@/hooks/useUIMode";
 import NotificationsBell from "@/components/shared/NotificationsBell";
+import GlobalSearchDialog from "@/components/shared/GlobalSearchDialog";
 
 export interface AppShellSection<T extends string> {
   key: T;
@@ -55,6 +56,22 @@ const AppShell = <T extends string>({
     return unique.slice(0, 5);
   }, [currentSection, visibleSections]);
   const { isSimple, toggleMode } = useUIMode();
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const handleSearchNavigate = (section: string) => {
+    onSectionChange(section as T);
+  };
 
   const navigation = (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -202,6 +219,26 @@ const AppShell = <T extends string>({
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSearchOpen(true)}
+                  className="hidden h-9 items-center gap-2 px-3 text-xs text-muted-foreground md:inline-flex"
+                  aria-label="Buscar (Ctrl+K)"
+                >
+                  <Search className="h-3.5 w-3.5" />
+                  <span>Buscar…</span>
+                  <kbd className="ml-2 hidden rounded border border-border/70 bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground lg:inline">⌘K</kbd>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="md:hidden"
+                  aria-label="Buscar"
+                  onClick={() => setSearchOpen(true)}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
                 <NotificationsBell onNavigate={onNotificationNavigate} />
                 <Button variant="outline" size="icon" aria-label="Cerrar sesión" className="md:hidden" onClick={() => void onSignOut()}>
                   <LogOut className="h-4 w-4" />
