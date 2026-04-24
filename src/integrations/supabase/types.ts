@@ -261,6 +261,72 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_notes: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          customer: string
+          delivery_date: string
+          driver_name: string | null
+          driver_staff_id: string | null
+          id: string
+          note_number: string
+          observations: string | null
+          pdf_storage_path: string | null
+          route: string | null
+          status: Database["public"]["Enums"]["delivery_note_status"]
+          updated_at: string
+          weight_kg: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          customer: string
+          delivery_date?: string
+          driver_name?: string | null
+          driver_staff_id?: string | null
+          id?: string
+          note_number: string
+          observations?: string | null
+          pdf_storage_path?: string | null
+          route?: string | null
+          status?: Database["public"]["Enums"]["delivery_note_status"]
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          customer?: string
+          delivery_date?: string
+          driver_name?: string | null
+          driver_staff_id?: string | null
+          id?: string
+          note_number?: string
+          observations?: string | null
+          pdf_storage_path?: string | null
+          route?: string | null
+          status?: Database["public"]["Enums"]["delivery_note_status"]
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_notes_driver_staff_id_fkey"
+            columns: ["driver_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_driver_staff_id_fkey"
+            columns: ["driver_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       holidays: {
         Row: {
           color_hex: string
@@ -1299,6 +1365,7 @@ export type Database = {
         | "itv"
         | "maintenance"
         | "personal"
+      delivery_note_status: "pending" | "validated" | "incident" | "archived"
       holiday_type:
         | "festivo_nacional"
         | "cierre_fabrica"
@@ -1481,6 +1548,7 @@ export const Constants = {
         "maintenance",
         "personal",
       ],
+      delivery_note_status: ["pending", "validated", "incident", "archived"],
       holiday_type: [
         "festivo_nacional",
         "cierre_fabrica",
