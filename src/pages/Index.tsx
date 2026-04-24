@@ -42,6 +42,7 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "vacations", label: "Calendario", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
   { key: "albaranes", label: "Albaranes", description: "Módulo preparado para gestión documental.", icon: ReceiptText, workspace: "admin", adminOnly: true },
   { key: "reports", label: "Reportes", description: "Exporta fichajes, partes, toneladas y más.", icon: Download, workspace: "admin" },
+  { key: "audit", label: "Auditoría", description: "Historial de cambios sensibles.", icon: History, workspace: "admin", adminOnly: true },
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
 ];
 
