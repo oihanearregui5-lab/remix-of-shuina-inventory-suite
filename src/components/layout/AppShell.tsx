@@ -277,7 +277,10 @@ const AppShell = <T extends string>({
         </div>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/96 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-xl md:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/96 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-xl md:hidden"
+        aria-label="Navegación rápida móvil"
+      >
         <div
           className={cn(
             "grid gap-2",
@@ -297,12 +300,14 @@ const AppShell = <T extends string>({
                 key={section.key}
                 type="button"
                 onClick={() => onSectionChange(section.key)}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={section.label}
                 className={cn(
                   "flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center text-[11px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   isActive ? "bg-primary text-primary-foreground shadow-[var(--shadow-soft)]" : "bg-card text-muted-foreground",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" aria-hidden="true" />
                 <span className="truncate">{section.label}</span>
               </button>
             );
