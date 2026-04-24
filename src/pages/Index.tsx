@@ -15,8 +15,10 @@ const VacationsJourneysView = lazy(() => import("@/components/admin/VacationsJou
 const AdminAlbaranesView = lazy(() => import("@/components/admin/AdminAlbaranesView"));
 const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
+import WorkspaceSelector from "@/components/WorkspaceSelector";
 
 type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes";
+type WorkspaceMode = "worker" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
   { key: "dashboard", label: "Inicio", description: "Estado actual y accesos rápidos.", icon: LayoutDashboard, workspace: "worker", mobilePrimary: true },
@@ -36,16 +38,23 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
 ];
 
+const WORKSPACE_KEY = "transtubari-workspace-mode";
+
 const Index = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentSection, setCurrentSection] = useState<AppSection>("dashboard");
-  const [workspaceMode, setWorkspaceMode] = useState<"worker" | "admin">("worker");
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode | null>(() => {
+    if (typeof window === "undefined") return null;
+    const stored = window.sessionStorage.getItem(WORKSPACE_KEY);
+    return stored === "worker" || stored === "admin" ? (stored as WorkspaceMode) : null;
+  });
   const { canViewAdmin, isAdmin, profile, role, signOut } = useAuth();
 
+  // Si pierde permisos admin mientras estaba en admin, vuelve al selector
   useEffect(() => {
-    if (!canViewAdmin && workspaceMode === "admin") {
-      setWorkspaceMode("worker");
-      setCurrentSection("dashboard");
+    if (workspaceMode === "admin" && !canViewAdmin) {
+      setWorkspaceMode(null);
+      if (typeof window !== "undefined") window.sessionStorage.removeItem(WORKSPACE_KEY);
     }
   }, [canViewAdmin, workspaceMode]);
 
@@ -55,6 +64,7 @@ const Index = () => {
   };
 
   const visibleSections = useMemo(() => {
+    if (!workspaceMode) return [];
     const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "notes", "machines", "gasoline", "staff"];
     const adminSections: AppSection[] = role === "admin"
       ? ["admin", "fichajes", "workReports", "gasoline", "vacations", "albaranes", "staff"]
@@ -68,16 +78,37 @@ const Index = () => {
   }, [canViewAdmin, role, workspaceMode]);
 
   useEffect(() => {
+    if (!visibleSections.length) return;
     if (!visibleSections.some((section) => section.key === currentSection)) {
-      setCurrentSection(visibleSections[0]?.key ?? "fichajes");
+      setCurrentSection(visibleSections[0]?.key ?? "dashboard");
     }
   }, [currentSection, visibleSections]);
 
-  const handleWorkspaceModeChange = (mode: "worker" | "admin") => {
+  const handleSelectWorkspace = (mode: WorkspaceMode) => {
+    if (mode === "admin" && !canViewAdmin) return;
     setWorkspaceMode(mode);
+    if (typeof window !== "undefined") window.sessionStorage.setItem(WORKSPACE_KEY, mode);
     setCurrentSection(mode === "admin" ? (role === "admin" ? "admin" : "fichajes") : "dashboard");
     setMobileMenuOpen(false);
   };
+
+  const handleChangeWorkspace = () => {
+    setWorkspaceMode(null);
+    if (typeof window !== "undefined") window.sessionStorage.removeItem(WORKSPACE_KEY);
+    setMobileMenuOpen(false);
+  };
+
+  // Sin espacio elegido → muestra el selector
+  if (!workspaceMode) {
+    return (
+      <WorkspaceSelector
+        profileName={profile?.full_name}
+        canViewAdmin={canViewAdmin}
+        onSelect={handleSelectWorkspace}
+        onSignOut={signOut}
+      />
+    );
+  }
 
   const renderCurrentSection = () => {
     switch (currentSection) {
@@ -119,23 +150,10 @@ const Index = () => {
       canViewAdmin={canViewAdmin}
       isAdmin={isAdmin}
       workspaceMode={workspaceMode}
-      onWorkspaceModeChange={canViewAdmin ? handleWorkspaceModeChange : undefined}
       profileName={profile?.full_name}
       onSignOut={signOut}
+      onChangeWorkspace={handleChangeWorkspace}
     >
-      <section className="panel-surface px-4 py-3 md:hidden">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Espacio activo</p>
-            <p className="text-sm font-semibold text-foreground">{workspaceMode === "admin" ? "Administración" : "Trabajador"}</p>
-          </div>
-          <p className="text-right text-xs text-muted-foreground">
-            {workspaceMode === "admin"
-              ? "Control global, calendarios y revisión"
-              : "Tus fichajes, tareas y vacaciones"}
-          </p>
-        </div>
-      </section>
       <Suspense fallback={<section className="panel-surface px-5 py-8 text-sm text-muted-foreground">Cargando módulo…</section>}>
         {renderCurrentSection()}
       </Suspense>
