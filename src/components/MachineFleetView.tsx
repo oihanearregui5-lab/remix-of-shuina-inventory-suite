@@ -108,13 +108,71 @@ const MachineFleetView = () => {
 
   const saveMachine = async () => {
     if (!form.display_name.trim() || !form.asset_family.trim()) return;
-    const payload = { display_name: form.display_name.trim(), asset_family: form.asset_family.trim(), asset_code: form.asset_code.trim() || null, license_plate: form.license_plate.trim() || null, status: form.status, notes: form.notes.trim() || null };
+    const payload = { display_name: form.display_name.trim(), asset_family: form.asset_family.trim(), asset_code: form.asset_code.trim() || null, license_plate: form.license_plate.trim() || null, status: form.status, notes: form.notes.trim() || null, photo_url: form.photo_url || null };
     const { error } = editingId ? await db.from("machine_assets").update(payload).eq("id", editingId) : await db.from("machine_assets").insert(payload);
     if (error) return toast.error(editingId ? "No se pudo editar la máquina" : "No se pudo crear la máquina");
     toast.success(editingId ? "Máquina actualizada" : "Máquina creada");
     setEditingId(null);
-    setForm({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active", notes: "" });
+    setForm({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active", notes: "", photo_url: "" });
     void fetchMachines();
+  };
+
+  const resolveMachineVisual = (machine: MachineAssetItem) => {
+    if (machine.photo_url) return photoSignedUrls[machine.id] || null;
+    return machineImageMap.get(machine.id) || null;
+  };
+
+  useEffect(() => {
+    const pending = machines.filter((machine) => machine.photo_url && !photoSignedUrls[machine.id]);
+    if (pending.length === 0) return;
+    void (async () => {
+      const updates: Record<string, string> = {};
+      for (const machine of pending) {
+        if (!machine.photo_url) continue;
+        const path = machine.photo_url.startsWith("machine-photos/") ? machine.photo_url.replace("machine-photos/", "") : machine.photo_url;
+        const { data } = await db.storage.from("machine-photos").createSignedUrl(path, 60 * 60);
+        if (data?.signedUrl) updates[machine.id] = data.signedUrl;
+      }
+      if (Object.keys(updates).length > 0) setPhotoSignedUrls((current) => ({ ...current, ...updates }));
+    })();
+  }, [machines]);
+
+  const uploadPhoto = async (machineId: string | null, file: File) => {
+    if (!user) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecciona una imagen válida");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen no puede superar 5 MB");
+      return;
+    }
+    const targetId = machineId || "drafts";
+    setUploadingPhotoFor(targetId);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${targetId}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await db.storage.from("machine-photos").upload(path, file, { upsert: false, contentType: file.type });
+      if (uploadError) throw uploadError;
+      if (machineId) {
+        const { error: updateError } = await db.from("machine_assets").update({ photo_url: path }).eq("id", machineId);
+        if (updateError) throw updateError;
+        toast.success("Foto actualizada");
+        setPhotoSignedUrls((current) => {
+          const next = { ...current };
+          delete next[machineId];
+          return next;
+        });
+        void fetchMachines();
+      } else {
+        setForm((current) => ({ ...current, photo_url: path }));
+        toast.success("Foto cargada, recuerda guardar la máquina");
+      }
+    } catch (error) {
+      toast.error("No se pudo subir la foto");
+    } finally {
+      setUploadingPhotoFor(null);
+    }
   };
 
   const deleteMachine = async (machineId: string) => {
