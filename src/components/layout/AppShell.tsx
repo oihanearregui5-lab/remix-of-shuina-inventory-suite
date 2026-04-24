@@ -40,6 +40,7 @@ const AppShell = <T extends string>({
   onMobileMenuOpenChange,
   currentSection,
   onSectionChange,
+  onSectionPrefetch,
   sections,
   isAdmin: _isAdmin,
   workspaceMode,
