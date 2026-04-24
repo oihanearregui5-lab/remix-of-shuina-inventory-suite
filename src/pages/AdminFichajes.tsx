@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Download, Calendar, Clock } from "lucide-react";
+import { Users, Download, Calendar, Clock, Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
 import WorkerProfileDialog from "@/components/staff/WorkerProfileDialog";
 import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
 import { formatMinutes, summarizeEntriesForRange } from "@/lib/time-balance";
+import AdminTimeEntryDialog from "@/components/admin/AdminTimeEntryDialog";
 
 interface EntryWithProfile {
   id: string;
@@ -29,6 +30,8 @@ const AdminFichajes = () => {
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
+  const [entryDialogOpen, setEntryDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<EntryWithProfile | null>(null);
 
   useEffect(() => {
     if (canViewAdmin) fetchEntries();
@@ -115,9 +118,16 @@ const AdminFichajes = () => {
           <h1 className="text-2xl font-bold text-foreground">Panel Admin — Fichajes</h1>
           <p className="text-muted-foreground mt-1">Control de horas de todos los empleados {isAdmin ? "con permisos de gestión" : "en modo visualización"}</p>
         </div>
-        <Button onClick={exportCSV} variant="outline" className="self-start">
-          <Download className="w-4 h-4 mr-2" /> Exportar CSV
-        </Button>
+        <div className="flex gap-2 self-start">
+          {isAdmin && (
+            <Button onClick={() => { setEditingEntry(null); setEntryDialogOpen(true); }}>
+              <Plus className="w-4 h-4 mr-2" /> Nuevo fichaje
+            </Button>
+          )}
+          <Button onClick={exportCSV} variant="outline">
+            <Download className="w-4 h-4 mr-2" /> Exportar CSV
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -242,7 +252,12 @@ const AdminFichajes = () => {
             </div>
             <div className="space-y-2">
               {empEntries.map((e) => (
-                <div key={e.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between shadow-sm">
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => { if (isAdmin) { setEditingEntry(e); setEntryDialogOpen(true); } }}
+                  className={`w-full bg-card border border-border rounded-lg p-3 flex items-center justify-between shadow-sm text-left transition-colors ${isAdmin ? "hover:bg-muted/40 cursor-pointer" : "cursor-default"}`}
+                >
                   <div>
                     <p className="text-sm text-muted-foreground">
                       {format(new Date(e.clock_in), "EEEE d MMM", { locale: es })}
@@ -257,10 +272,13 @@ const AdminFichajes = () => {
                       </span>
                     </div>
                   </div>
-                  <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
-                    {formatDuration(e.clock_in, e.clock_out)}
-                  </span>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
+                      {formatDuration(e.clock_in, e.clock_out)}
+                    </span>
+                    {isAdmin && <Pencil className="w-3.5 h-3.5 text-muted-foreground" />}
+                  </div>
+                </button>
               ))}
             </div>
           </div>
@@ -270,6 +288,13 @@ const AdminFichajes = () => {
       {entries.length === 0 && !loading && (
         <p className="text-muted-foreground text-center py-8">No hay fichajes en el rango seleccionado</p>
       )}
+
+      <AdminTimeEntryDialog
+        open={entryDialogOpen}
+        onOpenChange={(open) => { setEntryDialogOpen(open); if (!open) setEditingEntry(null); }}
+        entry={editingEntry ? { id: editingEntry.id, user_id: editingEntry.user_id, clock_in: editingEntry.clock_in, clock_out: editingEntry.clock_out, notes: null } : null}
+        onSaved={() => void fetchEntries()}
+      />
     </div>
   );
 };

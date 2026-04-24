@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Activity, AlertTriangle, Download, ImagePlus, Loader2, Pencil, Plus, Search, TimerReset, Trash2, UserRound, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, Download, ImagePlus, Images, Loader2, Pencil, Plus, Search, TimerReset, Trash2, UserRound, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
 import MachineDetailDialog, { type MachineDialogItem } from "@/components/machines/MachineDetailDialog";
+import MachineAttachmentsDialog from "@/components/machines/MachineAttachmentsDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -90,6 +91,7 @@ const MachineFleetView = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cardFileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<string, string>>({});
+  const [galleryMachine, setGalleryMachine] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => { if (user) void Promise.all([fetchMachines(), fetchNotes(), fetchServices(), fetchIncidents(), fetchWorkReports()]); }, [user]);
 
@@ -481,10 +483,11 @@ const MachineFleetView = () => {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => setGalleryMachine({ id: machine.id, name: machine.display_name })}><Images className="h-4 w-4" /> Galería</Button>
                 <Button size="sm" variant="outline" onClick={() => exportMachine(machine)}><Download className="h-4 w-4" /> Descargar</Button>
                 {isAdmin && <Button size="sm" variant="outline" onClick={() => { setEditingId(machine.id); setForm({ display_name: machine.display_name, asset_family: machine.asset_family, asset_code: machine.asset_code || "", license_plate: machine.license_plate || "", status: machine.status, notes: machine.notes || "", photo_url: machine.photo_url || "" }); }}><Pencil className="h-4 w-4" /> Editar</Button>}
                 {isAdmin && <Button size="sm" variant="outline" onClick={() => { const input = cardFileInputs.current[machine.id]; if (input) input.click(); }} disabled={uploadingPhotoFor === machine.id}>
-                  {uploadingPhotoFor === machine.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} Foto
+                  {uploadingPhotoFor === machine.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} Portada
                 </Button>}
                 <input ref={(el) => { cardFileInputs.current[machine.id] = el; }} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadPhoto(machine.id, file); event.target.value = ""; }} />
                 {isAdmin && <Button size="sm" variant="outline" onClick={() => void deleteMachine(machine.id)}><Trash2 className="h-4 w-4" /> Eliminar</Button>}
@@ -496,6 +499,7 @@ const MachineFleetView = () => {
       </section>
 
       <MachineDetailDialog open={Boolean(selectedMachine)} machine={selectedMachine} onOpenChange={(open) => !open && setSelectedMachine(null)} />
+      <MachineAttachmentsDialog open={Boolean(galleryMachine)} machineId={galleryMachine?.id ?? null} machineName={galleryMachine?.name} onOpenChange={(open) => !open && setGalleryMachine(null)} />
     </div>
   );
 };
