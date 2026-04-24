@@ -1,26 +1,66 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, Download, History } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardView from "@/components/DashboardView";
 import Fichajes from "@/pages/Fichajes";
-const AdminFichajes = lazy(() => import("@/pages/AdminFichajes"));
-const TaskHubView = lazy(() => import("@/components/TaskHubView"));
-const MachineFleetView = lazy(() => import("@/components/MachineFleetView"));
-const AdminHubView = lazy(() => import("@/components/AdminHubView"));
-const StaffHubView = lazy(() => import("@/components/StaffHubView"));
-const ChatHubView = lazy(() => import("@/components/ChatHubView"));
-const GasolineHubView = lazy(() => import("@/components/GasolineHubView"));
-const WorkReportsHubView = lazy(() => import("@/components/WorkReportsHubView"));
-const VacationsJourneysView = lazy(() => import("@/components/admin/VacationsJourneysView"));
-const AdminAlbaranesView = lazy(() => import("@/components/admin/AdminAlbaranesView"));
-const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
-const TonnageTripsView = lazy(() => import("@/components/TonnageTripsView"));
-const AdminTonnageView = lazy(() => import("@/components/admin/AdminTonnageView"));
-const ReportsView = lazy(() => import("@/components/admin/ReportsView"));
-const AuditLogsView = lazy(() => import("@/components/admin/AuditLogsView"));
-const UnifiedCalendarView = lazy(() => import("@/components/UnifiedCalendarView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
+import SectionFallback from "@/components/shared/SectionFallback";
+
+// Loaders separados para poder hacer prefetch al hover/focus
+const loadAdminFichajes = () => import("@/pages/AdminFichajes");
+const loadTaskHub = () => import("@/components/TaskHubView");
+const loadMachineFleet = () => import("@/components/MachineFleetView");
+const loadAdminHub = () => import("@/components/AdminHubView");
+const loadStaffHub = () => import("@/components/StaffHubView");
+const loadChatHub = () => import("@/components/ChatHubView");
+const loadGasolineHub = () => import("@/components/GasolineHubView");
+const loadWorkReportsHub = () => import("@/components/WorkReportsHubView");
+const loadVacationsJourneys = () => import("@/components/admin/VacationsJourneysView");
+const loadAdminAlbaranes = () => import("@/components/admin/AdminAlbaranesView");
+const loadPersonalNotes = () => import("@/components/PersonalNotesView");
+const loadTonnageTrips = () => import("@/components/TonnageTripsView");
+const loadAdminTonnage = () => import("@/components/admin/AdminTonnageView");
+const loadReports = () => import("@/components/admin/ReportsView");
+const loadAuditLogs = () => import("@/components/admin/AuditLogsView");
+const loadUnifiedCalendar = () => import("@/components/UnifiedCalendarView");
+
+const AdminFichajes = lazy(loadAdminFichajes);
+const TaskHubView = lazy(loadTaskHub);
+const MachineFleetView = lazy(loadMachineFleet);
+const AdminHubView = lazy(loadAdminHub);
+const StaffHubView = lazy(loadStaffHub);
+const ChatHubView = lazy(loadChatHub);
+const GasolineHubView = lazy(loadGasolineHub);
+const WorkReportsHubView = lazy(loadWorkReportsHub);
+const VacationsJourneysView = lazy(loadVacationsJourneys);
+const AdminAlbaranesView = lazy(loadAdminAlbaranes);
+const PersonalNotesView = lazy(loadPersonalNotes);
+const TonnageTripsView = lazy(loadTonnageTrips);
+const AdminTonnageView = lazy(loadAdminTonnage);
+const ReportsView = lazy(loadReports);
+const AuditLogsView = lazy(loadAuditLogs);
+const UnifiedCalendarView = lazy(loadUnifiedCalendar);
+
+// Mapa sección → loader. Se invoca al hacer hover/focus en un item de
+// navegación para precargar el chunk antes de que el usuario navegue.
+const sectionPrefetchers: Partial<Record<string, () => Promise<unknown>>> = {
+  fichajes: loadAdminFichajes,
+  tasks: loadTaskHub,
+  machines: loadMachineFleet,
+  admin: loadAdminHub,
+  staff: loadStaffHub,
+  chat: loadChatHub,
+  gasoline: loadGasolineHub,
+  workReports: loadWorkReportsHub,
+  vacations: loadVacationsJourneys,
+  albaranes: loadAdminAlbaranes,
+  notes: loadPersonalNotes,
+  tonnage: loadTonnageTrips,
+  reports: loadReports,
+  audit: loadAuditLogs,
+  unifiedCalendar: loadUnifiedCalendar,
+};
 
 type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "reports" | "audit" | "unifiedCalendar";
 type WorkspaceMode = "worker" | "admin";
