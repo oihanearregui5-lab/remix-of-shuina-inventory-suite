@@ -44,6 +44,8 @@ const AdminHubView = () => {
   const [responseDrafts, setResponseDrafts] = useState<Record<string, string>>({});
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [calendarDays, setCalendarDays] = useState<CompanyCalendarDay[]>([]);
+  const [highlightDialogOpen, setHighlightDialogOpen] = useState(false);
+  const [editingHighlight, setEditingHighlight] = useState<HighlightRecord | null>(null);
 
   useEffect(() => {
     if (!canViewAdmin) return;
