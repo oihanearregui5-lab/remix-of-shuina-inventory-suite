@@ -14,6 +14,8 @@ const WorkReportsHubView = lazy(() => import("@/components/WorkReportsHubView"))
 const VacationsJourneysView = lazy(() => import("@/components/admin/VacationsJourneysView"));
 const AdminAlbaranesView = lazy(() => import("@/components/admin/AdminAlbaranesView"));
 const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
+const TonnageTripsView = lazy(() => import("@/components/TonnageTripsView"));
+const AdminTonnageView = lazy(() => import("@/components/admin/AdminTonnageView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
 
