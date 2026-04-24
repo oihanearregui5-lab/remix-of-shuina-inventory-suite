@@ -230,6 +230,7 @@ const Index = () => {
       onMobileMenuOpenChange={setMobileMenuOpen}
       currentSection={currentSection}
       onSectionChange={handleSectionChange}
+      onSectionPrefetch={handleSectionPrefetch}
       sections={visibleSections}
       canViewAdmin={canViewAdmin}
       isAdmin={isAdmin}
@@ -239,7 +240,7 @@ const Index = () => {
       onChangeWorkspace={handleChangeWorkspace}
       onNotificationNavigate={handleNotificationNavigate}
     >
-      <Suspense fallback={<section className="panel-surface px-5 py-8 text-sm text-muted-foreground">Cargando módulo…</section>}>
+      <Suspense fallback={<SectionFallback />}>
         {renderCurrentSection()}
       </Suspense>
     </AppShell>
