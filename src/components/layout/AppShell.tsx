@@ -85,7 +85,7 @@ const AppShell = <T extends string>({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
         <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/70">Navegación</div>
-        <nav className="space-y-1.5">
+        <nav className="space-y-1.5" aria-label="Secciones">
           {visibleSections.map((section) => {
             const isActive = section.key === currentSection;
             const Icon = section.icon;
@@ -95,6 +95,7 @@ const AppShell = <T extends string>({
                 key={section.key}
                 type="button"
                 onClick={() => onSectionChange(section.key)}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "group flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
                   isActive
@@ -103,6 +104,7 @@ const AppShell = <T extends string>({
                 )}
               >
                 <span
+                  aria-hidden="true"
                   className={cn(
                     "mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-lg border border-transparent transition-colors",
                     isActive ? "bg-sidebar-primary text-sidebar-primary-foreground" : "bg-sidebar-accent/80 text-sidebar-foreground",
@@ -125,6 +127,7 @@ const AppShell = <T extends string>({
         <button
           type="button"
           onClick={toggleMode}
+          aria-pressed={isSimple}
           className="flex w-full items-center justify-between gap-3 rounded-lg bg-sidebar-accent/55 px-3 py-2.5 text-sidebar-foreground transition-colors hover:bg-sidebar-accent/75"
           title={isSimple ? "Cambiar a vista completa" : "Cambiar a vista sencilla"}
         >
