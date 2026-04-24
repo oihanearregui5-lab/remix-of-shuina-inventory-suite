@@ -17,10 +17,11 @@ const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
 const TonnageTripsView = lazy(() => import("@/components/TonnageTripsView"));
 const AdminTonnageView = lazy(() => import("@/components/admin/AdminTonnageView"));
 const ReportsView = lazy(() => import("@/components/admin/ReportsView"));
+const AuditLogsView = lazy(() => import("@/components/admin/AuditLogsView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "reports";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "reports" | "audit";
 type WorkspaceMode = "worker" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
