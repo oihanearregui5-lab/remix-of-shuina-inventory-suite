@@ -24,14 +24,12 @@ const ChatChannelList = ({ activeChannelId, channels, summaries, isAdmin, loadin
       <div className="border-b border-border px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-foreground">Canales</p>
-            <p className="text-xs text-muted-foreground">Conversaciones rápidas y directas.</p>
+            <p className="text-sm font-semibold text-foreground">Conversaciones</p>
+            <p className="text-xs text-muted-foreground">Canales, grupos y mensajes directos.</p>
           </div>
-          {isAdmin ? (
-            <Button size="icon" variant="surface" className="h-11 w-11 rounded-2xl" onClick={onCreate} aria-label="Crear canal">
-              <Plus className="h-4 w-4" />
-            </Button>
-          ) : null}
+          <Button size="icon" variant="surface" className="h-11 w-11 rounded-2xl" onClick={onCreate} aria-label="Nueva conversación">
+            <Plus className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
