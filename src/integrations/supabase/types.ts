@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          actor_name: string | null
+          actor_user_id: string | null
+          changed_fields: string[] | null
+          created_at: string
+          entity_id: string | null
+          entity_table: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          summary: string | null
+        }
+        Insert: {
+          action: string
+          actor_name?: string | null
+          actor_user_id?: string | null
+          changed_fields?: string[] | null
+          created_at?: string
+          entity_id?: string | null
+          entity_table: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          summary?: string | null
+        }
+        Update: {
+          action?: string
+          actor_name?: string | null
+          actor_user_id?: string | null
+          changed_fields?: string[] | null
+          created_at?: string
+          entity_id?: string | null
+          entity_table?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          summary?: string | null
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           all_day: boolean

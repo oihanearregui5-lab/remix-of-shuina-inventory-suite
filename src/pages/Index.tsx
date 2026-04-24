@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, Download } from "lucide-react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, Download, History } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardView from "@/components/DashboardView";
 import Fichajes from "@/pages/Fichajes";
@@ -17,10 +17,11 @@ const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
 const TonnageTripsView = lazy(() => import("@/components/TonnageTripsView"));
 const AdminTonnageView = lazy(() => import("@/components/admin/AdminTonnageView"));
 const ReportsView = lazy(() => import("@/components/admin/ReportsView"));
+const AuditLogsView = lazy(() => import("@/components/admin/AuditLogsView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "reports";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "reports" | "audit";
 type WorkspaceMode = "worker" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
@@ -41,6 +42,7 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "vacations", label: "Calendario", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
   { key: "albaranes", label: "Albaranes", description: "Módulo preparado para gestión documental.", icon: ReceiptText, workspace: "admin", adminOnly: true },
   { key: "reports", label: "Reportes", description: "Exporta fichajes, partes, toneladas y más.", icon: Download, workspace: "admin" },
+  { key: "audit", label: "Auditoría", description: "Historial de cambios sensibles.", icon: History, workspace: "admin", adminOnly: true },
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
 ];
 
@@ -73,7 +75,7 @@ const Index = () => {
     if (!workspaceMode) return [];
     const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "notes", "machines", "gasoline", "tonnage", "staff"];
     const adminSections: AppSection[] = role === "admin"
-      ? ["admin", "fichajes", "workReports", "gasoline", "tonnage", "vacations", "albaranes", "reports", "staff"]
+      ? ["admin", "fichajes", "workReports", "gasoline", "tonnage", "vacations", "albaranes", "reports", "audit", "staff"]
       : ["fichajes", "workReports", "gasoline", "tonnage", "vacations", "reports", "staff"];
     const allowed = workspaceMode === "admin" && canViewAdmin ? adminSections : workerSections;
     return sections.filter((section) => {
@@ -144,6 +146,8 @@ const Index = () => {
         return <VacationsJourneysView />;
       case "reports":
         return <ReportsView />;
+      case "audit":
+        return <AuditLogsView />;
       case "fichajes":
       default:
         return workspaceMode === "admin" && canViewAdmin ? <AdminFichajes /> : <Fichajes />;
