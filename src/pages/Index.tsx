@@ -36,6 +36,7 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "fichajes", label: "Fichajes", description: "Control y revisión de entradas y salidas.", icon: Clock, workspace: "admin", mobilePrimary: true },
   { key: "workReports", label: "Partes", description: "Seguimiento y corrección de partes.", icon: FileText, workspace: "admin", mobilePrimary: true },
   { key: "gasoline", label: "Gasolina", description: "Tarjetas, gastos y exportación.", icon: Fuel, workspace: "admin", mobilePrimary: true },
+  { key: "tonnage", label: "Toneladas", description: "Tabla mensual de viajes y kilos por camión.", icon: Scale, workspace: "admin", mobilePrimary: true },
   { key: "vacations", label: "Calendario", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
   { key: "albaranes", label: "Albaranes", description: "Módulo preparado para gestión documental.", icon: ReceiptText, workspace: "admin", adminOnly: true },
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
