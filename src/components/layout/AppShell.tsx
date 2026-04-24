@@ -306,6 +306,8 @@ const AppShell = <T extends string>({
                 key={section.key}
                 type="button"
                 onClick={() => onSectionChange(section.key)}
+                onTouchStart={() => onSectionPrefetch?.(section.key)}
+                onFocus={() => onSectionPrefetch?.(section.key)}
                 aria-current={isActive ? "page" : undefined}
                 aria-label={section.label}
                 className={cn(
