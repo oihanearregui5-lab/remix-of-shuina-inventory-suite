@@ -28,7 +28,7 @@ interface AdminMetrics {
   channels: number;
   messagesToday: number;
 }
-interface DailyHighlight { id: string; title: string; summary: string | null; category: string }
+interface DailyHighlight { id: string; title: string; summary: string | null; category: string; highlight_date: string }
 interface VacationReviewItem { id: string; request_type: string; start_date: string; end_date: string; reason: string | null; requester_user_id: string; requester_name?: string | null }
 interface CompanyCalendarDay { id: string; calendar_date: string; title: string; day_type: string; color_tag: string | null; notes: string | null }
 
