@@ -132,6 +132,8 @@ const Index = () => {
         return <ChatHubView />;
       case "notes":
         return <PersonalNotesView />;
+      case "tonnage":
+        return workspaceMode === "admin" && canViewAdmin ? <AdminTonnageView /> : <TonnageTripsView />;
       case "albaranes":
         return <AdminAlbaranesView />;
       case "admin":
