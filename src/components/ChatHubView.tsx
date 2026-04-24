@@ -327,7 +327,7 @@ const ChatHubView = () => {
             setActiveChannelId(channelId);
             setShowConversationOnMobile(true);
           }}
-          onCreate={openCreateChannel}
+          onCreate={openComposer}
           onEdit={openEditChannel}
           onDelete={(channel) => void deleteChannel(channel)}
         />
