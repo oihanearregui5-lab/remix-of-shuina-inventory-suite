@@ -182,10 +182,18 @@ const AppShell = <T extends string>({
         />
       )}
       <div className="flex min-h-screen w-full">
-        <aside className="hidden md:flex md:h-screen md:w-[320px] md:flex-col md:border-r md:border-sidebar-border/60 md:bg-sidebar md:sticky md:top-0">
+        <aside
+          className="hidden md:flex md:h-screen md:w-[320px] md:flex-col md:border-r md:border-sidebar-border/60 md:bg-sidebar md:sticky md:top-0"
+          aria-label="Navegación principal"
+        >
           {navigation}
         </aside>
         <div
+          id="mobile-navigation"
+          role="dialog"
+          aria-modal={mobileMenuOpen}
+          aria-label="Navegación móvil"
+          aria-hidden={!mobileMenuOpen}
           className={cn(
             "fixed inset-y-0 left-0 z-50 flex h-screen w-[88vw] max-w-[340px] -translate-x-full flex-col border-r border-sidebar-border/60 bg-sidebar transition-transform duration-300 md:hidden",
             mobileMenuOpen && "translate-x-0",
@@ -197,10 +205,18 @@ const AppShell = <T extends string>({
           <header className="sticky top-0 z-30 border-b border-border/70 bg-background/92 backdrop-blur-xl">
             <div className="flex min-h-[68px] items-center justify-between gap-3 px-4 md:min-h-[72px] md:px-8">
               <div className="flex min-w-0 items-center gap-3">
-                <Button variant="outline" size="icon" className="md:hidden" onClick={() => onMobileMenuOpenChange(true)} aria-label="Abrir navegación">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="md:hidden"
+                  onClick={() => onMobileMenuOpenChange(true)}
+                  aria-label="Abrir navegación"
+                  aria-controls="mobile-navigation"
+                  aria-expanded={mobileMenuOpen}
+                >
                   <Menu className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="hidden md:inline-flex" aria-label="Panel activo">
+                <Button variant="outline" size="icon" className="hidden md:inline-flex" aria-label="Panel activo" aria-hidden="true" tabIndex={-1}>
                   <PanelLeftClose className="h-4 w-4" />
                 </Button>
                 <div className="min-w-0 space-y-1">
@@ -246,7 +262,13 @@ const AppShell = <T extends string>({
               </div>
             </div>
           </header>
-          <main className="app-safe-bottom flex-1 px-4 pt-4 md:px-8 md:py-8">
+          <main
+            id="main-content"
+            tabIndex={-1}
+            role="main"
+            aria-label={activeSection?.label ?? "Contenido principal"}
+            className="app-safe-bottom flex-1 px-4 pt-4 md:px-8 md:py-8 focus:outline-none"
+          >
             <div className="mx-auto flex w-full max-w-[1540px] flex-col gap-4 md:gap-8">{children}</div>
           </main>
         </div>
