@@ -202,9 +202,7 @@ const AppShell = <T extends string>({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" aria-label="Notificaciones" className="hidden md:inline-flex">
-                  <Bell className="h-4 w-4" />
-                </Button>
+                <NotificationsBell onNavigate={onNotificationNavigate} />
                 <Button variant="outline" size="icon" aria-label="Cerrar sesión" className="md:hidden" onClick={() => void onSignOut()}>
                   <LogOut className="h-4 w-4" />
                 </Button>
