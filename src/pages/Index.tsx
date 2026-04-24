@@ -109,10 +109,18 @@ const Index = () => {
     }
   }, [canViewAdmin, workspaceMode]);
 
-  const handleSectionChange = (section: AppSection) => {
+  const handleSectionChange = useCallback((section: AppSection) => {
     setCurrentSection(section);
     setMobileMenuOpen(false);
-  };
+  }, []);
+
+  const handleSectionPrefetch = useCallback((section: AppSection) => {
+    const loader = sectionPrefetchers[section];
+    if (loader) {
+      // Disparamos la carga sin bloquear; ignoramos errores (red caída).
+      void loader().catch(() => {});
+    }
+  }, []);
 
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
