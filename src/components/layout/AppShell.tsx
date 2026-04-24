@@ -28,6 +28,7 @@ interface AppShellProps<T extends string> {
   profileName?: string | null;
   onSignOut: () => void | Promise<void>;
   onChangeWorkspace?: () => void;
+  onNotificationNavigate?: (link: string) => void;
   children: React.ReactNode;
 }
 
