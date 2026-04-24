@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Download, Calendar, Clock } from "lucide-react";
+import { Users, Download, Calendar, Clock, Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
 import WorkerProfileDialog from "@/components/staff/WorkerProfileDialog";
 import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
 import { formatMinutes, summarizeEntriesForRange } from "@/lib/time-balance";
+import AdminTimeEntryDialog from "@/components/admin/AdminTimeEntryDialog";
 
 interface EntryWithProfile {
   id: string;
@@ -29,6 +30,8 @@ const AdminFichajes = () => {
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
+  const [entryDialogOpen, setEntryDialogOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<EntryWithProfile | null>(null);
 
   useEffect(() => {
     if (canViewAdmin) fetchEntries();
