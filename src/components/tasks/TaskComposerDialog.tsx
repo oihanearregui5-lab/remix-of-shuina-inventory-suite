@@ -42,6 +42,7 @@ const emptyValues: TaskComposerValues = {
   due_date: "",
   priority: "medium",
   assigned_staff_id: "unassigned",
+  scope: "personal",
 };
 
 const TaskComposerDialog = ({ open, editing, saving, isAdmin, staff, initialValues, onOpenChange, onSubmit }: TaskComposerDialogProps) => {
