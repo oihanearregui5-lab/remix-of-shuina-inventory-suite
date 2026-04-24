@@ -43,6 +43,7 @@ const AppShell = <T extends string>({
   profileName,
   onSignOut,
   onChangeWorkspace,
+  onNotificationNavigate,
   children,
 }: AppShellProps<T>) => {
   const visibleSections = useMemo(() => sections, [sections]);
