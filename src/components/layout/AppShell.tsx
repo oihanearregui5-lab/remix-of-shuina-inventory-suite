@@ -22,6 +22,8 @@ interface AppShellProps<T extends string> {
   onMobileMenuOpenChange: (open: boolean) => void;
   currentSection: T;
   onSectionChange: (section: T) => void;
+  /** Prefetch opcional del chunk de la sección al hover/focus. */
+  onSectionPrefetch?: (section: T) => void;
   sections: AppShellSection<T>[];
   canViewAdmin: boolean;
   isAdmin: boolean;
@@ -38,6 +40,7 @@ const AppShell = <T extends string>({
   onMobileMenuOpenChange,
   currentSection,
   onSectionChange,
+  onSectionPrefetch,
   sections,
   isAdmin: _isAdmin,
   workspaceMode,
@@ -95,6 +98,9 @@ const AppShell = <T extends string>({
                 key={section.key}
                 type="button"
                 onClick={() => onSectionChange(section.key)}
+                onMouseEnter={() => onSectionPrefetch?.(section.key)}
+                onFocus={() => onSectionPrefetch?.(section.key)}
+                onTouchStart={() => onSectionPrefetch?.(section.key)}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "group flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
@@ -300,6 +306,8 @@ const AppShell = <T extends string>({
                 key={section.key}
                 type="button"
                 onClick={() => onSectionChange(section.key)}
+                onTouchStart={() => onSectionPrefetch?.(section.key)}
+                onFocus={() => onSectionPrefetch?.(section.key)}
                 aria-current={isActive ? "page" : undefined}
                 aria-label={section.label}
                 className={cn(
