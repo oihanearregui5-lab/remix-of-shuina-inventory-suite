@@ -47,7 +47,13 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 60_000,
       refetchOnWindowFocus: false,
-      retry: 1,
+      // Reintenta solo errores transitorios (red, 5xx, AbortError) hasta 2 veces.
+      // Errores de RLS, validación o registro inexistente no se reintentan.
+      retry: shouldRetryError,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    },
+    mutations: {
+      retry: false,
     },
   },
 });
