@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Bell, ChevronRight, Eye, LogOut, Menu, PanelLeftClose, RefreshCcw, Sparkles } from "lucide-react";
+import { ChevronRight, Eye, LogOut, Menu, PanelLeftClose, RefreshCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUIMode } from "@/hooks/useUIMode";
+import NotificationsBell from "@/components/shared/NotificationsBell";
 
 export interface AppShellSection<T extends string> {
   key: T;
@@ -27,6 +28,7 @@ interface AppShellProps<T extends string> {
   profileName?: string | null;
   onSignOut: () => void | Promise<void>;
   onChangeWorkspace?: () => void;
+  onNotificationNavigate?: (link: string) => void;
   children: React.ReactNode;
 }
 
@@ -41,6 +43,7 @@ const AppShell = <T extends string>({
   profileName,
   onSignOut,
   onChangeWorkspace,
+  onNotificationNavigate,
   children,
 }: AppShellProps<T>) => {
   const visibleSections = useMemo(() => sections, [sections]);
@@ -199,9 +202,7 @@ const AppShell = <T extends string>({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" aria-label="Notificaciones" className="hidden md:inline-flex">
-                  <Bell className="h-4 w-4" />
-                </Button>
+                <NotificationsBell onNavigate={onNotificationNavigate} />
                 <Button variant="outline" size="icon" aria-label="Cerrar sesión" className="md:hidden" onClick={() => void onSignOut()}>
                   <LogOut className="h-4 w-4" />
                 </Button>
