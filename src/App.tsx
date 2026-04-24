@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { UIModeProvider } from "@/hooks/useUIMode";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
+import PWABanner from "@/components/shared/PWABanner";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -79,6 +80,7 @@ const App = () => {
             <TooltipProvider>
               <Sonner />
               <BrowserRouter>
+                <PWABanner />
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
                   <Route

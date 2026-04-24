@@ -33,6 +33,8 @@ export default defineConfig(({ mode }) => ({
         icons: [{ src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" }],
       },
       workbox: {
+        navigateFallbackDenylist: [/^\/auth/, /^\/~oauth/, /^\/api\//],
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/,
@@ -57,6 +59,30 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: "transtubari-images",
               expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
+            urlPattern: ({ url, request }) =>
+              url.hostname.endsWith(".supabase.co") &&
+              url.pathname.startsWith("/rest/v1/") &&
+              request.method === "GET",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "supabase-rest-cache",
+              networkTimeoutSeconds: 6,
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 12 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: ({ url }) =>
+              url.hostname.endsWith(".supabase.co") &&
+              url.pathname.startsWith("/storage/v1/object/"),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "supabase-storage-cache",
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],
