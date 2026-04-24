@@ -6,6 +6,12 @@
     <meta name="theme-color" content="#17355F" />
     <meta name="color-scheme" content="light" />
 
+    <!-- Cabeceras de seguridad (refuerzo cliente; las definitivas se aplican
+         a nivel de servidor / hosting). -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Permissions-Policy" content="camera=(self), microphone=(), geolocation=(self), interest-cohort=()" />
+
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
