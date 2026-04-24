@@ -146,6 +146,23 @@ const Index = () => {
     }
   };
 
+  const handleNotificationNavigate = (link: string) => {
+    const map: Record<string, AppSection> = {
+      tasks: "tasks",
+      chat: "chat",
+      staff: workspaceMode === "admin" && canViewAdmin ? "vacations" : "staff",
+      machines: workspaceMode === "admin" && canViewAdmin ? "admin" : "machines",
+      workReports: "workReports",
+      gasoline: "gasoline",
+      tonnage: "tonnage",
+      albaranes: "albaranes",
+    };
+    const target = map[link];
+    if (target && visibleSections.some((s) => s.key === target)) {
+      handleSectionChange(target);
+    }
+  };
+
   return (
     <AppShell
       mobileMenuOpen={mobileMenuOpen}
@@ -159,6 +176,7 @@ const Index = () => {
       profileName={profile?.full_name}
       onSignOut={signOut}
       onChangeWorkspace={handleChangeWorkspace}
+      onNotificationNavigate={handleNotificationNavigate}
     >
       <Suspense fallback={<section className="panel-surface px-5 py-8 text-sm text-muted-foreground">Cargando módulo…</section>}>
         {renderCurrentSection()}
