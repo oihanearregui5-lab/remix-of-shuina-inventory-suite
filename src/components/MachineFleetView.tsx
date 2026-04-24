@@ -85,7 +85,11 @@ const MachineFleetView = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<MachineStatus | "all">("all");
-  const [form, setForm] = useState({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active" as MachineStatus, notes: "" });
+  const [form, setForm] = useState({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active" as MachineStatus, notes: "", photo_url: "" as string | null });
+  const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cardFileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<string, string>>({});
 
   useEffect(() => { if (user) void Promise.all([fetchMachines(), fetchNotes(), fetchServices(), fetchIncidents(), fetchWorkReports()]); }, [user]);
 
