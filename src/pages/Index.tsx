@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen } from "lucide-react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardView from "@/components/DashboardView";
 import Fichajes from "@/pages/Fichajes";
