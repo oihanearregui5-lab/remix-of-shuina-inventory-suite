@@ -18,10 +18,11 @@ const TonnageTripsView = lazy(() => import("@/components/TonnageTripsView"));
 const AdminTonnageView = lazy(() => import("@/components/admin/AdminTonnageView"));
 const ReportsView = lazy(() => import("@/components/admin/ReportsView"));
 const AuditLogsView = lazy(() => import("@/components/admin/AuditLogsView"));
+const UnifiedCalendarView = lazy(() => import("@/components/UnifiedCalendarView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "reports" | "audit";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "reports" | "audit" | "unifiedCalendar";
 type WorkspaceMode = "worker" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
@@ -33,13 +34,15 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "machines", label: "Máquinas", description: "Flota, incidencias y mantenimiento.", icon: Truck, workspace: "worker" },
   { key: "gasoline", label: "Gasolina", description: "Tarjetas y movimientos de repostaje.", icon: Fuel, workspace: "worker", mobilePrimary: true },
   { key: "tonnage", label: "Toneladas", description: "Registra los viajes de hoy en pocos segundos.", icon: Scale, workspace: "worker", mobilePrimary: true },
-  { key: "staff", label: "Calendario", description: "Vacaciones, turnos y solicitudes.", icon: CalendarRange, workspace: "worker" },
+  { key: "staff", label: "Equipo", description: "Vacaciones, turnos y solicitudes.", icon: CalendarRange, workspace: "worker" },
+  { key: "unifiedCalendar", label: "Agenda", description: "Tareas, vacaciones, ITV y festivos en un calendario.", icon: CalendarRange, workspace: "worker" },
   { key: "admin", label: "Dashboard", description: "Resumen global y control operativo.", icon: ShieldCheck, workspace: "admin", adminOnly: true, mobilePrimary: true },
   { key: "fichajes", label: "Fichajes", description: "Control y revisión de entradas y salidas.", icon: Clock, workspace: "admin", mobilePrimary: true },
   { key: "workReports", label: "Partes", description: "Seguimiento y corrección de partes.", icon: FileText, workspace: "admin", mobilePrimary: true },
   { key: "gasoline", label: "Gasolina", description: "Tarjetas, gastos y exportación.", icon: Fuel, workspace: "admin", mobilePrimary: true },
   { key: "tonnage", label: "Toneladas", description: "Tabla mensual de viajes y kilos por camión.", icon: Scale, workspace: "admin", mobilePrimary: true },
-  { key: "vacations", label: "Calendario", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
+  { key: "vacations", label: "Vacaciones", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
+  { key: "unifiedCalendar", label: "Agenda", description: "Calendario unificado de toda la operativa.", icon: CalendarRange, workspace: "admin" },
   { key: "albaranes", label: "Albaranes", description: "Módulo preparado para gestión documental.", icon: ReceiptText, workspace: "admin", adminOnly: true },
   { key: "reports", label: "Reportes", description: "Exporta fichajes, partes, toneladas y más.", icon: Download, workspace: "admin" },
   { key: "audit", label: "Auditoría", description: "Historial de cambios sensibles.", icon: History, workspace: "admin", adminOnly: true },
@@ -73,10 +76,10 @@ const Index = () => {
 
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
-    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "notes", "machines", "gasoline", "tonnage", "staff"];
+    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "notes", "machines", "gasoline", "tonnage", "staff", "unifiedCalendar"];
     const adminSections: AppSection[] = role === "admin"
-      ? ["admin", "fichajes", "workReports", "gasoline", "tonnage", "vacations", "albaranes", "reports", "audit", "staff"]
-      : ["fichajes", "workReports", "gasoline", "tonnage", "vacations", "reports", "staff"];
+      ? ["admin", "fichajes", "workReports", "gasoline", "tonnage", "vacations", "unifiedCalendar", "albaranes", "reports", "audit", "staff"]
+      : ["fichajes", "workReports", "gasoline", "tonnage", "vacations", "unifiedCalendar", "reports", "staff"];
     const allowed = workspaceMode === "admin" && canViewAdmin ? adminSections : workerSections;
     return sections.filter((section) => {
       const sectionWorkspace = section.workspace ?? "worker";
@@ -144,6 +147,8 @@ const Index = () => {
         return <AdminHubView />;
       case "vacations":
         return <VacationsJourneysView />;
+      case "unifiedCalendar":
+        return <UnifiedCalendarView />;
       case "reports":
         return <ReportsView />;
       case "audit":
