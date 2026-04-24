@@ -60,7 +60,7 @@ const AdminHubView = () => {
       supabase.from("machine_incidents").select("id", { count: "exact", head: true }).neq("status", "resolved"),
       supabase.from("machine_service_records").select("id", { count: "exact", head: true }).neq("status", "completed"),
       supabase.from("time_entries").select("id", { count: "exact", head: true }).is("clock_out", null),
-      supabase.from("daily_highlights").select("id, title, summary, category").order("highlight_date", { ascending: false }).limit(4),
+      supabase.from("daily_highlights").select("id, title, summary, category, highlight_date").order("highlight_date", { ascending: false }).limit(6),
       supabase.from("vacation_requests").select("id, request_type, start_date, end_date, reason, requester_user_id").eq("status", "pending").order("created_at", { ascending: true }).limit(8),
       supabase.from("work_reports").select("id", { count: "exact", head: true }).is("ended_at", null),
       supabase.from("chat_channels").select("id", { count: "exact", head: true }),
