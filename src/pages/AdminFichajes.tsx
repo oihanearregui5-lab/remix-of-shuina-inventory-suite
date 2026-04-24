@@ -118,9 +118,16 @@ const AdminFichajes = () => {
           <h1 className="text-2xl font-bold text-foreground">Panel Admin — Fichajes</h1>
           <p className="text-muted-foreground mt-1">Control de horas de todos los empleados {isAdmin ? "con permisos de gestión" : "en modo visualización"}</p>
         </div>
-        <Button onClick={exportCSV} variant="outline" className="self-start">
-          <Download className="w-4 h-4 mr-2" /> Exportar CSV
-        </Button>
+        <div className="flex gap-2 self-start">
+          {isAdmin && (
+            <Button onClick={() => { setEditingEntry(null); setEntryDialogOpen(true); }}>
+              <Plus className="w-4 h-4 mr-2" /> Nuevo fichaje
+            </Button>
+          )}
+          <Button onClick={exportCSV} variant="outline">
+            <Download className="w-4 h-4 mr-2" /> Exportar CSV
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
