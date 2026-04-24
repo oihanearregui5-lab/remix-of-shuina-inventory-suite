@@ -98,6 +98,9 @@ const AppShell = <T extends string>({
                 key={section.key}
                 type="button"
                 onClick={() => onSectionChange(section.key)}
+                onMouseEnter={() => onSectionPrefetch?.(section.key)}
+                onFocus={() => onSectionPrefetch?.(section.key)}
+                onTouchStart={() => onSectionPrefetch?.(section.key)}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "group flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
