@@ -592,6 +592,8 @@ const ChatHubView = () => {
 
         <div className={showConversationOnMobile ? "block" : "hidden md:block"}>
           <ChatConversation
+            pendingFile={pendingFile}
+            onPendingFileChange={setPendingFile}
             channel={activeChannel}
             currentUserId={user?.id}
             currentUserName={profile?.full_name}
