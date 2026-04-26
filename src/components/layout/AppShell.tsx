@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ChevronRight, Eye, LogOut, Menu, PanelLeftClose, RefreshCcw, Search, Sparkles } from "lucide-react";
+import { Eye, LogOut, Menu, RefreshCcw, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useUIMode } from "@/hooks/useUIMode";
