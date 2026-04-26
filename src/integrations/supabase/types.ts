@@ -305,66 +305,53 @@ export type Database = {
       }
       delivery_notes: {
         Row: {
+          amount: number | null
+          company: string
           created_at: string
-          created_by_user_id: string
-          customer: string
+          created_by_user_id: string | null
           delivery_date: string
-          driver_name: string | null
-          driver_staff_id: string | null
+          expense_target: string
           id: string
-          note_number: string
-          observations: string | null
-          pdf_storage_path: string | null
-          route: string | null
-          status: Database["public"]["Enums"]["delivery_note_status"]
+          machine_asset_id: string | null
+          notes: string | null
+          order_number: string
+          photo_path: string | null
           updated_at: string
-          weight_kg: number | null
         }
         Insert: {
+          amount?: number | null
+          company: string
           created_at?: string
-          created_by_user_id: string
-          customer: string
+          created_by_user_id?: string | null
           delivery_date?: string
-          driver_name?: string | null
-          driver_staff_id?: string | null
+          expense_target: string
           id?: string
-          note_number: string
-          observations?: string | null
-          pdf_storage_path?: string | null
-          route?: string | null
-          status?: Database["public"]["Enums"]["delivery_note_status"]
+          machine_asset_id?: string | null
+          notes?: string | null
+          order_number: string
+          photo_path?: string | null
           updated_at?: string
-          weight_kg?: number | null
         }
         Update: {
+          amount?: number | null
+          company?: string
           created_at?: string
-          created_by_user_id?: string
-          customer?: string
+          created_by_user_id?: string | null
           delivery_date?: string
-          driver_name?: string | null
-          driver_staff_id?: string | null
+          expense_target?: string
           id?: string
-          note_number?: string
-          observations?: string | null
-          pdf_storage_path?: string | null
-          route?: string | null
-          status?: Database["public"]["Enums"]["delivery_note_status"]
+          machine_asset_id?: string | null
+          notes?: string | null
+          order_number?: string
+          photo_path?: string | null
           updated_at?: string
-          weight_kg?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "delivery_notes_driver_staff_id_fkey"
-            columns: ["driver_staff_id"]
+            foreignKeyName: "delivery_notes_machine_asset_id_fkey"
+            columns: ["machine_asset_id"]
             isOneToOne: false
-            referencedRelation: "staff_directory"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "delivery_notes_driver_staff_id_fkey"
-            columns: ["driver_staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff_directory_public"
+            referencedRelation: "machine_assets"
             referencedColumns: ["id"]
           },
         ]
@@ -1626,6 +1613,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_chat_channel_member: {
+        Args: { p_channel_id: string; p_user_id: string }
         Returns: boolean
       }
       sync_current_user_staff_link: {
