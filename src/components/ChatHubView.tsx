@@ -276,8 +276,34 @@ const ChatHubView = () => {
     }
 
     const loadedMessages = (data ?? []) as ChatMessageItem[];
-    setMessages(loadedMessages);
     void fetchAuthorNames(loadedMessages.map((item) => item.author_user_id));
+
+    // Cargar adjuntos y firmar URLs
+    const messageIds = loadedMessages.map((m) => m.id);
+    if (messageIds.length > 0) {
+      const { data: attRows } = await db
+        .from("chat_message_attachments")
+        .select("id, message_id, storage_path, mime_type")
+        .in("message_id", messageIds);
+      const attachmentsByMsg = new Map<string, Array<{ id: string; message_id: string; storage_path: string; mime_type: string | null; signed_url?: string | null }>>();
+      const allAtts = (attRows ?? []) as Array<{ id: string; message_id: string; storage_path: string; mime_type: string | null }>;
+      // Firmar todas las URLs en paralelo
+      const signed = await Promise.all(
+        allAtts.map(async (a) => {
+          const { data: s } = await supabase.storage.from("chat-attachments").createSignedUrl(a.storage_path, 60 * 60);
+          return { ...a, signed_url: s?.signedUrl ?? null };
+        }),
+      );
+      for (const a of signed) {
+        const arr = attachmentsByMsg.get(a.message_id) ?? [];
+        arr.push(a);
+        attachmentsByMsg.set(a.message_id, arr);
+      }
+      loadedMessages.forEach((m) => {
+        m.attachments = attachmentsByMsg.get(m.id) ?? [];
+      });
+    }
+    setMessages(loadedMessages);
 
     if (markAsSeen && loadedMessages.length > 0) {
       const latestMessageAt = loadedMessages[loadedMessages.length - 1].created_at;

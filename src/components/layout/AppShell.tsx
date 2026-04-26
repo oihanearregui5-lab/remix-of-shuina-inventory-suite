@@ -150,12 +150,20 @@ const AppShell = <T extends string>({
 
         {/* Usuario + cerrar sesión */}
         <div className="flex items-center justify-between gap-3 rounded-lg bg-sidebar-accent/55 px-3 py-3">
-          <div className="min-w-0">
+          <button
+            type="button"
+            onClick={() => {
+              const accountSection = visibleSections.find((s) => s.key === ("account" as T));
+              if (accountSection) onSectionChange(accountSection.key);
+            }}
+            className="min-w-0 flex-1 text-left transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring rounded"
+            title="Editar mi cuenta"
+          >
             <p className="truncate text-sm font-medium text-sidebar-foreground">{profileName ?? "Usuario"}</p>
             <p className="truncate text-xs text-sidebar-foreground/70">
               {workspaceMode === "admin" ? "Administración" : "Trabajador"}
             </p>
-          </div>
+          </button>
           <Button
             variant="ghost"
             size="icon"
