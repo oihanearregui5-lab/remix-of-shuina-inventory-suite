@@ -3,12 +3,11 @@ import { Filter, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
-import ChatChannelDialog from "@/components/chat/ChatChannelDialog";
-import ChatComposerDialog from "@/components/chat/ChatComposerDialog";
+import ChatChannelDialog, { type ChatChannelDialogMode, type ChatChannelDialogSubmitValues } from "@/components/chat/ChatChannelDialog";
 import ChatChannelList from "@/components/chat/ChatChannelList";
 import ChatConversation from "@/components/chat/ChatConversation";
 import { Button } from "@/components/ui/button";
-import type { ChannelSummary, ChatChannelItem, ChatMessageItem, ChatPersonOption } from "@/components/chat/chat-types";
+import type { ChannelSummary, ChatChannelItem, ChatMessageItem, StaffMemberOption } from "@/components/chat/chat-types";
 import { toast } from "sonner";
 import { normalizeChatQuery, validateChatDraft } from "@/lib/chat-utils";
 
@@ -26,11 +25,11 @@ const ChatHubView = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [staff, setStaff] = useState<StaffMemberOption[]>([]);
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [composerLoading, setComposerLoading] = useState(false);
-  const [people, setPeople] = useState<ChatPersonOption[]>([]);
-  const [activeChannelDraft, setActiveChannelDraft] = useState<{ id: string | null; name: string; description: string }>({ id: null, name: "", description: "" });
+  const [channelDialogMode, setChannelDialogMode] = useState<ChatChannelDialogMode>("create-group");
+  const [channelDialogInitial, setChannelDialogInitial] = useState<{ name: string; description: string; memberUserIds: string[] }>({ name: "", description: "", memberUserIds: [] });
+  const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
   const [savingChannel, setSavingChannel] = useState(false);
   const [showConversationOnMobile, setShowConversationOnMobile] = useState(false);
   const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>({});
@@ -50,6 +49,7 @@ const ChatHubView = () => {
       }
     }
     void fetchChannelsAndSummaries();
+    void fetchStaff();
   }, [user]);
 
   useEffect(() => {
@@ -134,9 +134,36 @@ const ChatHubView = () => {
     setChannelSummaries(summaries);
   };
 
+  const fetchStaff = async () => {
+    const { data } = await db
+      .from("staff_directory")
+      .select("id, full_name, linked_user_id")
+      .eq("active", true)
+      .not("linked_user_id", "is", null)
+      .order("full_name");
+    setStaff((data ?? []) as StaffMemberOption[]);
+  };
+
+  const decorateChannel = (channel: ChatChannelItem): ChatChannelItem => {
+    if (channel.kind !== "direct" || !channel.direct_message_key || !user) return channel;
+    // direct_message_key: "<userA>:<userB>"
+    const [userA, userB] = channel.direct_message_key.split(":");
+    const otherUserId = userA === user.id ? userB : userA;
+    const otherStaff = staff.find((person) => person.linked_user_id === otherUserId);
+    const otherName = otherStaff?.full_name || authorNames[otherUserId] || channel.name;
+    return {
+      ...channel,
+      displayName: otherName,
+      displayInitial: otherName.charAt(0).toUpperCase(),
+    };
+  };
+
   const fetchChannelsAndSummaries = async () => {
     setLoadingChannels(true);
-    const { data, error } = await db.from("chat_channels").select("id, slug, name, description, created_at").order("name");
+    const { data, error } = await db
+      .from("chat_channels")
+      .select("id, slug, name, description, kind, visibility, direct_message_key, created_at")
+      .order("created_at", { ascending: false });
     if (error) {
       setLoadingChannels(false);
       return toast.error("No se pudieron cargar los canales");
@@ -178,70 +205,115 @@ const ChatHubView = () => {
     void fetchChannelSummaries();
   };
 
-  const fetchPeople = async () => {
-    if (!user) return;
-    const { data } = await db.from("profiles").select("user_id, full_name").neq("user_id", user.id).order("full_name");
-    setPeople((data ?? []) as ChatPersonOption[]);
-  };
-
-  const openComposer = () => {
-    void fetchPeople();
-    setComposerOpen(true);
-  };
-
-  const openEditChannel = (channel: ChatChannelItem) => {
-    setActiveChannelDraft({ id: channel.id, name: channel.name, description: channel.description || "" });
+  const openCreateGroup = async () => {
+    if (staff.length === 0) await fetchStaff();
+    setChannelDialogMode("create-group");
+    setEditingChannelId(null);
+    setChannelDialogInitial({ name: "", description: "", memberUserIds: [] });
     setChannelDialogOpen(true);
   };
 
-  const saveChannelEdit = async (values: { name: string; description: string }) => {
-    if (!user || !activeChannelDraft.id || !values.name.trim()) return;
-    setSavingChannel(true);
-    const slug = values.name.trim().toLowerCase().replace(/\s+/g, "-");
-    const payload = { name: values.name.trim(), slug, description: values.description.trim() || null };
-    const { error } = await db.from("chat_channels").update(payload).eq("id", activeChannelDraft.id);
-    setSavingChannel(false);
-    if (error) return toast.error("No se pudo editar el canal");
-    toast.success("Canal actualizado");
-    setChannelDialogOpen(false);
-    void fetchChannelsAndSummaries();
+  const openCreateDirect = async () => {
+    if (staff.length === 0) await fetchStaff();
+    setChannelDialogMode("create-direct");
+    setEditingChannelId(null);
+    setChannelDialogInitial({ name: "", description: "", memberUserIds: [] });
+    setChannelDialogOpen(true);
   };
 
-  const createPublicChannel = async (values: { name: string; description: string }) => {
-    if (!user || !isAdmin || !values.name.trim()) return;
-    setComposerLoading(true);
-    const slug = values.name.trim().toLowerCase().replace(/\s+/g, "-");
-    const { error } = await db.from("chat_channels").insert({ name: values.name.trim(), slug, description: values.description.trim() || null, created_by_user_id: user.id, kind: "channel", visibility: "public" });
-    setComposerLoading(false);
-    if (error) return toast.error("No se pudo crear el canal");
-    toast.success("Canal creado");
-    setComposerOpen(false);
-    void fetchChannelsAndSummaries();
+  const openEditChannel = async (channel: ChatChannelItem) => {
+    if (staff.length === 0) await fetchStaff();
+    // Cargar miembros actuales
+    const { data } = await db.from("chat_channel_members").select("user_id").eq("channel_id", channel.id);
+    const memberUserIds = ((data ?? []) as Array<{ user_id: string }>).map((m) => m.user_id).filter((id) => id !== user?.id);
+    setChannelDialogMode("edit");
+    setEditingChannelId(channel.id);
+    setChannelDialogInitial({
+      name: channel.name,
+      description: channel.description || "",
+      memberUserIds,
+    });
+    setChannelDialogOpen(true);
   };
 
-  const createPrivateGroup = async (values: { name: string; description: string; memberIds: string[] }) => {
-    if (!user || !values.name.trim()) return;
-    setComposerLoading(true);
-    const { data, error } = await db.rpc("create_private_group", { _name: values.name.trim(), _description: values.description.trim() || null, _member_ids: values.memberIds });
-    setComposerLoading(false);
-    if (error) return toast.error("No se pudo crear el grupo");
-    toast.success("Grupo creado");
-    setComposerOpen(false);
-    await fetchChannelsAndSummaries();
-    if (typeof data === "string") setActiveChannelId(data);
-  };
-
-  const openDirectMessage = async (recipientUserId: string) => {
+  const handleChannelDialogSubmit = async (values: ChatChannelDialogSubmitValues) => {
     if (!user) return;
-    setComposerLoading(true);
-    const { data, error } = await db.rpc("get_or_create_direct_channel", { _other_user_id: recipientUserId });
-    setComposerLoading(false);
-    if (error) return toast.error("No se pudo abrir la conversación");
-    setComposerOpen(false);
-    await fetchChannelsAndSummaries();
-    if (typeof data === "string") {
-      setActiveChannelId(data);
-      setShowConversationOnMobile(true);
+    setSavingChannel(true);
+    try {
+      if (values.mode === "create-direct") {
+        const recipientUserId = values.memberUserIds[0];
+        if (!recipientUserId) return;
+        const { data, error } = await db.rpc("get_or_create_direct_channel", { _other_user_id: recipientUserId });
+        if (error) {
+          toast.error("No se pudo abrir la conversación");
+          return;
+        }
+        setChannelDialogOpen(false);
+        await fetchChannelsAndSummaries();
+        if (typeof data === "string") {
+          setActiveChannelId(data);
+          setShowConversationOnMobile(true);
+        }
+        return;
+      }
+
+      if (values.mode === "create-group") {
+        if (!values.name.trim()) return;
+        const { data, error } = await db.rpc("create_private_group", {
+          _name: values.name.trim(),
+          _description: values.description.trim() || null,
+          _member_ids: values.memberUserIds,
+        });
+        if (error) {
+          toast.error("No se pudo crear el grupo");
+          return;
+        }
+        toast.success("Grupo creado");
+        setChannelDialogOpen(false);
+        await fetchChannelsAndSummaries();
+        if (typeof data === "string") setActiveChannelId(data);
+        return;
+      }
+
+      // edit
+      if (!editingChannelId || !values.name.trim()) return;
+      const slug = values.name.trim().toLowerCase().replace(/\s+/g, "-");
+      const { error } = await db
+        .from("chat_channels")
+        .update({ name: values.name.trim(), slug, description: values.description.trim() || null })
+        .eq("id", editingChannelId);
+      if (error) {
+        toast.error("No se pudo editar el canal");
+        return;
+      }
+      // Sincronizar miembros (solo para grupos)
+      const channel = channels.find((item) => item.id === editingChannelId);
+      if (channel && channel.kind === "group") {
+        const { data: existing } = await db
+          .from("chat_channel_members")
+          .select("user_id")
+          .eq("channel_id", editingChannelId);
+        const existingIds = new Set(((existing ?? []) as Array<{ user_id: string }>).map((m) => m.user_id));
+        const desiredIds = new Set([user.id, ...values.memberUserIds]);
+        const toAdd = [...desiredIds].filter((id) => !existingIds.has(id));
+        const toRemove = [...existingIds].filter((id) => !desiredIds.has(id) && id !== user.id);
+        for (const userId of toAdd) {
+          await db.from("chat_channel_members").insert({
+            channel_id: editingChannelId,
+            user_id: userId,
+            created_by_user_id: user.id,
+            membership_role: "member",
+          });
+        }
+        if (toRemove.length > 0) {
+          await db.from("chat_channel_members").delete().eq("channel_id", editingChannelId).in("user_id", toRemove);
+        }
+      }
+      toast.success("Canal actualizado");
+      setChannelDialogOpen(false);
+      void fetchChannelsAndSummaries();
+    } finally {
+      setSavingChannel(false);
     }
   };
 
@@ -284,17 +356,18 @@ const ChatHubView = () => {
     void fetchMessages(activeChannelId, true);
   };
 
-  const activeChannel = useMemo(() => channels.find((channel) => channel.id === activeChannelId) ?? null, [channels, activeChannelId]);
+  const decoratedChannels = useMemo(() => channels.map(decorateChannel), [channels, staff, user, authorNames]);
+  const activeChannel = useMemo(() => decoratedChannels.find((channel) => channel.id === activeChannelId) ?? null, [decoratedChannels, activeChannelId]);
   const filteredChannels = useMemo(() => {
     const query = normalizeChatQuery(channelQuery);
-    return channels.filter((channel) => {
+    return decoratedChannels.filter((channel) => {
       const summary = channelSummaries[channel.id];
-      const searchable = [channel.name, channel.description ?? "", channel.slug, summary?.lastMessage ?? ""].join(" ").toLowerCase();
+      const searchable = [channel.name, channel.displayName ?? "", channel.description ?? "", channel.slug, summary?.lastMessage ?? ""].join(" ").toLowerCase();
       const matchesQuery = !query || searchable.includes(query);
       const matchesUnread = !unreadOnly || (summary?.unreadCount ?? 0) > 0;
       return matchesQuery && matchesUnread;
     });
-  }, [channelQuery, channelSummaries, channels, unreadOnly]);
+  }, [channelQuery, channelSummaries, decoratedChannels, unreadOnly]);
   const unreadChannels = useMemo(() => Object.values(channelSummaries).filter((summary) => summary.unreadCount > 0).length, [channelSummaries]);
   const activeChannelSummary = activeChannel ? channelSummaries[activeChannel.id] : null;
 
@@ -304,7 +377,7 @@ const ChatHubView = () => {
       <section className="grid gap-3 md:grid-cols-3">
         <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Canales</p><p className="mt-2 text-lg font-semibold text-foreground">{channels.length}</p></div>
         <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Sin leer</p><p className="mt-2 text-lg font-semibold text-foreground">{unreadChannels}</p></div>
-        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Canal activo</p><p className="mt-2 text-lg font-semibold text-foreground">{activeChannel?.name ?? "Ninguno"}</p><p className="mt-1 text-sm text-muted-foreground">{activeChannelSummary?.lastMessageAt ? `Último movimiento ${new Date(activeChannelSummary.lastMessageAt).toLocaleString("es-ES")}` : "Sin mensajes recientes"}</p></div>
+        <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Canal activo</p><p className="mt-2 text-lg font-semibold text-foreground">{activeChannel?.displayName ?? activeChannel?.name ?? "Ninguno"}</p><p className="mt-1 text-sm text-muted-foreground">{activeChannelSummary?.lastMessageAt ? `Último movimiento ${new Date(activeChannelSummary.lastMessageAt).toLocaleString("es-ES")}` : "Sin mensajes recientes"}</p></div>
       </section>
       <section className="panel-surface p-4">
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
@@ -327,8 +400,9 @@ const ChatHubView = () => {
             setActiveChannelId(channelId);
             setShowConversationOnMobile(true);
           }}
-          onCreate={openComposer}
-          onEdit={openEditChannel}
+          onCreateGroup={() => void openCreateGroup()}
+          onCreateDirect={() => void openCreateDirect()}
+          onEdit={(channel) => void openEditChannel(channel)}
           onDelete={(channel) => void deleteChannel(channel)}
         />
 
@@ -365,21 +439,12 @@ const ChatHubView = () => {
       <ChatChannelDialog
         open={channelDialogOpen}
         loading={savingChannel}
-        mode="edit"
-        initialValues={{ name: activeChannelDraft.name, description: activeChannelDraft.description }}
+        mode={channelDialogMode}
+        initialValues={channelDialogInitial}
+        staff={staff}
+        currentUserId={user?.id ?? null}
         onOpenChange={setChannelDialogOpen}
-        onSubmit={(values) => void saveChannelEdit(values)}
-      />
-
-      <ChatComposerDialog
-        open={composerOpen}
-        loading={composerLoading}
-        isAdmin={isAdmin}
-        people={people}
-        onOpenChange={setComposerOpen}
-        onCreateChannel={(values) => void createPublicChannel(values)}
-        onCreateGroup={(values) => void createPrivateGroup(values)}
-        onCreateDirect={(recipientUserId) => void openDirectMessage(recipientUserId)}
+        onSubmit={(values) => void handleChannelDialogSubmit(values)}
       />
     </div>
   );
