@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Clock3, Download, Hammer, PauseCircle, PencilLine, PlayCircle, TimerReset } from "lucide-react";
+import { AlertTriangle, Camera, Clock3, Download, Hammer, PauseCircle, PencilLine, PlayCircle, TimerReset } from "lucide-react";
 import { differenceInSeconds, formatDistanceStrict } from "date-fns";
 import { es } from "date-fns/locale";
 import { z } from "zod";
@@ -17,6 +17,7 @@ import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
 import { useUIMode } from "@/hooks/useUIMode";
 import { buildWorkReportsCsv, EXPECTED_DAILY_HOURS, formatWorkHours, getDurationState, getWorkReportDurationHours } from "@/lib/work-reports";
+import WorkReportPhotos from "@/components/work-reports/WorkReportPhotos";
 
 type WorkReport = {
   id: string;
@@ -383,6 +384,18 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
             <div className="space-y-2"><Label htmlFor="active-description">Descripción de tarea</Label><Textarea id="active-description" value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></div>
             <div className="space-y-2 hide-on-simple"><Label htmlFor="active-observations">Observaciones</Label><Textarea id="active-observations" value={draft.observations} onChange={(event) => setDraft((current) => ({ ...current, observations: event.target.value }))} /></div>
 
+            {/* Fotos del parte */}
+            <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+              <div className="flex items-center gap-2">
+                <Camera className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-semibold">Fotos del trabajo</Label>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Adjunta fotos del trabajo, averías, materiales, etc. Se guardan vinculadas a este parte.
+              </p>
+              <WorkReportPhotos reportId={activeReport.id} canEdit />
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <Button size="lg" className="min-h-12 min-w-[220px]" onClick={() => void finishReport()}><PauseCircle className="h-4 w-4" /> Finalizar parte</Button>
               <Button variant="outline" size="lg" onClick={() => setDraft((current) => ({ ...current, endedAt: toLocalInputValue(new Date()) }))}><TimerReset className="h-4 w-4" /> Ajustar fin a ahora</Button>
@@ -445,12 +458,19 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
                         <div className="space-y-2"><Label>Hora inicio</Label><Input type="datetime-local" value={draft.startedAt} onChange={(event) => setDraft((current) => ({ ...current, startedAt: event.target.value }))} /></div>
                         <div className="space-y-2"><Label>Hora fin</Label><Input type="datetime-local" value={draft.endedAt} onChange={(event) => setDraft((current) => ({ ...current, endedAt: event.target.value }))} /></div>
                         <div className="space-y-2 md:col-span-2"><Label>Observaciones</Label><Textarea value={draft.observations} onChange={(event) => setDraft((current) => ({ ...current, observations: event.target.value }))} /></div>
+                        <div className="space-y-2 md:col-span-2 rounded-xl border border-border bg-muted/20 p-3">
+                          <div className="flex items-center gap-2">
+                            <Camera className="h-4 w-4 text-primary" />
+                            <Label className="text-sm font-semibold">Fotos del trabajo</Label>
+                          </div>
+                          <WorkReportPhotos reportId={report.id} canEdit />
+                        </div>
                       </div>
                     ) : (
                       <div className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
                         <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Inicio</span><p className="mt-1 font-semibold text-foreground">{new Date(report.started_at).toLocaleString("es-ES")}</p></div>
                         <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Fin</span><p className="mt-1 font-semibold text-foreground">{report.ended_at ? new Date(report.ended_at).toLocaleString("es-ES") : "—"}</p></div>
-                        <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Duración</span><p className="mt-1 font-semibold text-foreground">{duration}</p></div>
+                        <div className="rounded-xl bg-muted/45 px-3 py-2 flex items-center justify-between gap-2"><span className="text-muted-foreground">Duración</span><span className="flex items-center gap-2"><span className="font-semibold text-foreground">{duration}</span><WorkReportPhotos reportId={report.id} compact canEdit={false} /></span></div>
                       </div>
                     )}
                   </article>

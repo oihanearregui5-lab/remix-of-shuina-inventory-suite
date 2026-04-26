@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BriefcaseBusiness, CalendarRange, Clock3, ClipboardList, UserSquare2 } from "lucide-react";
+import { BriefcaseBusiness, CalendarRange, Clock3, ClipboardList, LayoutGrid, UserSquare2 } from "lucide-react";
 import { differenceInMinutes } from "date-fns";
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
@@ -19,6 +19,7 @@ import {
 import VacationClockingsSection from "./vacations/VacationClockingsSection";
 import VacationGeneralCalendarSection from "./vacations/VacationGeneralCalendarSection";
 import JourneysSection from "./vacations/JourneysSection";
+import JourneysGrid from "./vacations/JourneysGrid";
 import VacationGridSection from "./vacations/VacationGridSection";
 import WorkerProfilesSection from "./vacations/WorkerProfilesSection";
 import type { FichajeRow } from "./vacations/vacation-types";
@@ -27,7 +28,8 @@ const sections = [
   { key: "clockings", label: "Fichajes", icon: Clock3 },
   { key: "general", label: "Calendario general", icon: CalendarRange },
   { key: "vacations", label: "Vacaciones", icon: BriefcaseBusiness },
-  { key: "excel", label: "Jornadas", icon: ClipboardList },
+  { key: "excel", label: "Jornadas (planilla)", icon: ClipboardList },
+  { key: "grid", label: "Jornadas (rejilla)", icon: LayoutGrid },
   { key: "workers", label: "Ficha por trabajador", icon: UserSquare2 },
 ] as const;
 
@@ -143,6 +145,7 @@ const VacationsJourneysView = () => {
       {activeSection === "general" ? <VacationGeneralCalendarSection holidays={holidays} onSaveHoliday={saveHoliday} onDeleteHoliday={deleteHoliday} /> : null}
       {activeSection === "vacations" ? <VacationGridSection workers={workers} holidays={holidays} vacationSlots={vacationSlots} onSaveVacationSlot={saveVacationSlot} onDeleteVacationSlot={deleteVacationSlot} onUpdateWorker={updateWorker} /> : null}
       {activeSection === "excel" ? <JourneysSection workers={workers} holidays={holidays} vacationSlots={vacationSlots} summaries={summaries} onOpenWorkerProfile={(workerId) => { setSelectedWorkerId(workerId); setActiveSection("workers"); }} /> : null}
+      {activeSection === "grid" ? <JourneysGrid /> : null}
       {activeSection === "workers" ? <WorkerProfilesSection workers={workers} summaries={summaries} vacationSlots={vacationSlots} holidays={holidays} selectedWorkerId={selectedWorkerId} onSelectedWorkerChange={setSelectedWorkerId} /> : null}
     </div>
   );
