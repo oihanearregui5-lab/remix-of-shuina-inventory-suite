@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, FileText, Download, AlertTriangle, CheckCircle2, Clock3, Archive, Search } from "lucide-react";
+import { Plus, FileText, ImageIcon, Search, Building2, Wrench, Truck, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,20 +9,35 @@ import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import DeliveryNoteDialog, { type DeliveryNoteRow, type DeliveryNoteStatus } from "@/components/admin/DeliveryNoteDialog";
+import DeliveryNoteDialog, {
+  type DeliveryNoteRow,
+  type DeliveryNoteCompany,
+  type DeliveryNoteExpenseTarget,
+  COMPANY_OPTIONS,
+  EXPENSE_TARGET_OPTIONS,
+} from "@/components/admin/DeliveryNoteDialog";
 
-const statusMeta: Record<DeliveryNoteStatus, { label: string; tone: string }> = {
-  pending: { label: "Pendiente", tone: "bg-warning/15 text-foreground" },
-  validated: { label: "Validado", tone: "bg-success/15 text-success" },
-  incident: { label: "Incidencia", tone: "bg-destructive/10 text-destructive" },
-  archived: { label: "Archivado", tone: "bg-muted text-muted-foreground" },
+const companyLabel = (value: DeliveryNoteCompany) =>
+  COMPANY_OPTIONS.find((c) => c.value === value)?.label ?? value;
+
+const expenseLabel = (value: DeliveryNoteExpenseTarget) =>
+  EXPENSE_TARGET_OPTIONS.find((c) => c.value === value)?.label ?? value;
+
+const expenseIcon: Record<DeliveryNoteExpenseTarget, typeof Truck> = {
+  maquina: Truck,
+  taller: Wrench,
+  otros: MoreHorizontal,
 };
+
+const formatCurrency = (value: number | null) =>
+  value === null ? "—" : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(value);
 
 const AdminAlbaranesView = () => {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<DeliveryNoteRow | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"all" | DeliveryNoteStatus>("all");
+  const [companyFilter, setCompanyFilter] = useState<"all" | DeliveryNoteCompany>("all");
+  const [targetFilter, setTargetFilter] = useState<"all" | DeliveryNoteExpenseTarget>("all");
   const [search, setSearch] = useState("");
 
   const { data: notes = [], isLoading } = useQuery({
@@ -38,30 +53,48 @@ const AdminAlbaranesView = () => {
     },
   });
 
+  const { data: machines = [] } = useQuery({
+    queryKey: ["delivery-note-machines-index"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("machine_assets").select("id, display_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const machineNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    machines.forEach((m) => map.set(m.id, m.display_name));
+    return map;
+  }, [machines]);
+
   const kpis = useMemo(() => {
-    const counters = { pending: 0, incident: 0, validated: 0, archived: 0 };
-    notes.forEach((n) => { counters[n.status] += 1; });
+    const total = notes.reduce((sum, n) => sum + (n.amount ?? 0), 0);
+    const byTarget = { maquina: 0, taller: 0, otros: 0 } as Record<DeliveryNoteExpenseTarget, number>;
+    notes.forEach((n) => { byTarget[n.expense_target] += n.amount ?? 0; });
     return [
-      { label: "Pendientes", value: counters.pending, icon: Clock3 },
-      { label: "Incidencias", value: counters.incident, icon: AlertTriangle },
-      { label: "Validados", value: counters.validated, icon: CheckCircle2 },
-      { label: "Archivados", value: counters.archived, icon: Archive },
+      { label: "Albaranes", value: notes.length.toString(), icon: FileText },
+      { label: "Total importe", value: formatCurrency(total), icon: Building2 },
+      { label: "Gasto en máquinas", value: formatCurrency(byTarget.maquina), icon: Truck },
+      { label: "Gasto en taller", value: formatCurrency(byTarget.taller), icon: Wrench },
     ];
   }, [notes]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return notes.filter((n) => {
-      if (statusFilter !== "all" && n.status !== statusFilter) return false;
+      if (companyFilter !== "all" && n.company !== companyFilter) return false;
+      if (targetFilter !== "all" && n.expense_target !== targetFilter) return false;
       if (!term) return true;
+      const machineName = n.machine_asset_id ? machineNameById.get(n.machine_asset_id) ?? "" : "";
       return (
-        n.note_number.toLowerCase().includes(term) ||
-        n.customer.toLowerCase().includes(term) ||
-        (n.route ?? "").toLowerCase().includes(term) ||
-        (n.driver_name ?? "").toLowerCase().includes(term)
+        n.order_number.toLowerCase().includes(term) ||
+        companyLabel(n.company).toLowerCase().includes(term) ||
+        machineName.toLowerCase().includes(term) ||
+        (n.notes ?? "").toLowerCase().includes(term)
       );
     });
-  }, [notes, statusFilter, search]);
+  }, [notes, companyFilter, targetFilter, search, machineNameById]);
 
   const handleOpenNew = () => {
     setEditingNote(null);
@@ -73,21 +106,21 @@ const AdminAlbaranesView = () => {
     setDialogOpen(true);
   };
 
-  const handleDownload = async (note: DeliveryNoteRow) => {
-    if (!note.pdf_storage_path) {
-      toast({ title: "Sin PDF", description: "Este albarán no tiene archivo adjunto.", variant: "destructive" });
+  const handleViewPhoto = async (note: DeliveryNoteRow) => {
+    if (!note.photo_path) {
+      toast({ title: "Sin foto", description: "Este albarán no tiene foto adjunta.", variant: "destructive" });
       return;
     }
     try {
       const { data, error } = await supabase.storage
         .from("delivery-notes")
-        .createSignedUrl(note.pdf_storage_path, 60);
+        .createSignedUrl(note.photo_path, 60);
       if (error || !data?.signedUrl) throw error ?? new Error("No URL");
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       console.error(error);
       toast({
-        title: "No se pudo descargar",
+        title: "No se pudo abrir",
         description: error instanceof Error ? error.message : "Error desconocido",
         variant: "destructive",
       });
@@ -99,7 +132,7 @@ const AdminAlbaranesView = () => {
       <PageHeader
         eyebrow="Administración"
         title="Albaranes"
-        description="Registra, revisa y archiva los albaranes de entrega con su PDF asociado."
+        description="Registra cada albarán con número de pedido, empresa, destino del gasto y foto del documento."
         actions={
           <Button onClick={handleOpenNew}>
             <Plus className="mr-2 h-4 w-4" /> Nuevo albarán
@@ -133,20 +166,30 @@ const AdminAlbaranesView = () => {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nº, cliente, ruta o chófer…"
+              placeholder="Buscar por nº, empresa, máquina o notas…"
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-            <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los estados</SelectItem>
-              <SelectItem value="pending">Pendientes</SelectItem>
-              <SelectItem value="validated">Validados</SelectItem>
-              <SelectItem value="incident">Incidencias</SelectItem>
-              <SelectItem value="archived">Archivados</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap gap-2">
+            <Select value={companyFilter} onValueChange={(v) => setCompanyFilter(v as typeof companyFilter)}>
+              <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las empresas</SelectItem>
+                {COMPANY_OPTIONS.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={targetFilter} onValueChange={(v) => setTargetFilter(v as typeof targetFilter)}>
+              <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los destinos</SelectItem>
+                {EXPENSE_TARGET_OPTIONS.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="mt-4 space-y-2">
@@ -159,7 +202,8 @@ const AdminAlbaranesView = () => {
             </div>
           )}
           {filtered.map((note) => {
-            const meta = statusMeta[note.status];
+            const Icon = expenseIcon[note.expense_target];
+            const machineName = note.machine_asset_id ? machineNameById.get(note.machine_asset_id) : null;
             return (
               <button
                 key={note.id}
@@ -170,34 +214,38 @@ const AdminAlbaranesView = () => {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-foreground">{note.note_number}</p>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${meta.tone}`}>
-                        {meta.label}
+                      <p className="font-semibold text-foreground">{note.order_number}</p>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-foreground">
+                        <Icon className="h-3 w-3" /> {expenseLabel(note.expense_target)}
+                      </span>
+                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
+                        {companyLabel(note.company)}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-foreground">{note.customer}</p>
-                    {note.route && <p className="text-xs text-muted-foreground">{note.route}</p>}
+                    {machineName && (
+                      <p className="mt-1 text-sm text-foreground">{machineName}</p>
+                    )}
+                    {note.notes && (
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{note.notes}</p>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-1 text-right">
+                    <p className="text-sm font-semibold text-foreground">{formatCurrency(note.amount)}</p>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(note.delivery_date), "d MMM yyyy", { locale: es })}
                     </p>
-                    {note.weight_kg !== null && (
-                      <p className="text-xs text-muted-foreground">{note.weight_kg} kg</p>
-                    )}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>{note.driver_name ?? "Sin chófer"}</span>
-                  {note.pdf_storage_path && (
+                <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground">
+                  {note.photo_path && (
                     <span
                       role="button"
                       tabIndex={0}
-                      onClick={(e) => { e.stopPropagation(); handleDownload(note); }}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); handleDownload(note); } }}
+                      onClick={(e) => { e.stopPropagation(); handleViewPhoto(note); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); handleViewPhoto(note); } }}
                       className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-primary hover:bg-primary/20"
                     >
-                      <Download className="h-3.5 w-3.5" /> PDF
+                      <ImageIcon className="h-3.5 w-3.5" /> Ver foto
                     </span>
                   )}
                 </div>
