@@ -186,9 +186,29 @@ const StaffHubView = () => {
                   <SelectItem value="medical">Baja / revisión</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="grid grid-cols-2 gap-3">
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Desde</label>
+                    <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Hasta</label>
+                    <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                  </div>
+                </div>
+                {startDate && (
+                  <button
+                    type="button"
+                    onClick={() => setEndDate(startDate)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Solo este día
+                  </button>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  💡 Pulsa un día en el calendario y se autocompletará el formulario.
+                </p>
               </div>
               <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo u observaciones" className="min-h-24 hide-on-simple" />
               <Button onClick={() => void submitRequest()} disabled={saving || !startDate || !endDate}><Send className="h-4 w-4" /> Enviar solicitud</Button>
@@ -238,7 +258,33 @@ const StaffHubView = () => {
           <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Calendario laboral</p></div>
           <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
             <div className="rounded-xl border border-border bg-background p-3">
-              <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} month={calendarMonth} onMonthChange={setCalendarMonth} locale={es} modifiers={{ holiday: holidayDates, vacation: requestDatesByType.vacations, leave: requestDatesByType.leaves, pending: requestDatesByType.pending }} modifiersClassNames={{ holiday: "bg-destructive/15 text-destructive font-semibold", vacation: "bg-success/20 text-success font-semibold", leave: "bg-primary text-primary-foreground font-semibold", pending: "ring-1 ring-warning text-foreground" }} className="w-full" />
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  if (date) {
+                    const iso = format(date, "yyyy-MM-dd");
+                    // Si no hay rango previo o el nuevo día queda fuera del rango actual, abrimos un único día.
+                    // Si ya hay startDate y la nueva fecha es posterior, la usamos como endDate.
+                    if (!startDate) {
+                      setStartDate(iso);
+                      setEndDate(iso);
+                    } else if (!endDate || iso < startDate) {
+                      setStartDate(iso);
+                      setEndDate(iso);
+                    } else if (iso >= startDate) {
+                      setEndDate(iso);
+                    }
+                  }
+                }}
+                month={calendarMonth}
+                onMonthChange={setCalendarMonth}
+                locale={es}
+                modifiers={{ holiday: holidayDates, vacation: requestDatesByType.vacations, leave: requestDatesByType.leaves, pending: requestDatesByType.pending }}
+                modifiersClassNames={{ holiday: "bg-destructive/15 text-destructive font-semibold", vacation: "bg-success/20 text-success font-semibold", leave: "bg-primary text-primary-foreground font-semibold", pending: "ring-1 ring-warning text-foreground" }}
+                className="w-full"
+              />
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <span className="rounded-full bg-destructive/15 px-2.5 py-1 text-destructive">Festivo</span>
                 <span className="rounded-full bg-success/20 px-2.5 py-1 text-success">Vacaciones</span>

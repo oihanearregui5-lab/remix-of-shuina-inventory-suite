@@ -159,10 +159,10 @@ const AdminAlbaranesView = () => {
   };
 
   useEffect(() => {
-    if (!user || !canViewAdmin) return;
+    if (!user) return;
     void fetchNotes();
     void fetchMachines();
-  }, [user, canViewAdmin]);
+  }, [user]);
 
   // ============ FORM ============
   const openCreate = () => {
@@ -333,25 +333,21 @@ const AdminAlbaranesView = () => {
     toast.success("CSV exportado");
   };
 
-  if (!canViewAdmin) {
-    return (
-      <div className="animate-fade-in py-16 text-center">
-        <p className="text-muted-foreground">No tienes permisos de administrador</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4 animate-fade-in">
       <PageHeader
-        eyebrow="Administración"
+        eyebrow={canViewAdmin ? "Administración" : "Compras"}
         title="Albaranes"
-        description="Registro documental de pedidos por proveedor, destino y máquina."
+        description={canViewAdmin
+          ? "Registro documental de pedidos por proveedor, destino y máquina."
+          : "Sube las facturas y albaranes de las compras que hagas para la empresa."}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportCSV}>
-              <Download className="h-4 w-4" /> Exportar
-            </Button>
+            {canViewAdmin && (
+              <Button variant="outline" onClick={exportCSV}>
+                <Download className="h-4 w-4" /> Exportar
+              </Button>
+            )}
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4" /> Nuevo albarán
             </Button>
@@ -359,7 +355,8 @@ const AdminAlbaranesView = () => {
         }
       />
 
-      {/* KPIs */}
+      {/* KPIs solo para admin */}
+      {canViewAdmin && (
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="panel-surface p-4">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Albaranes</p>
@@ -378,6 +375,7 @@ const AdminAlbaranesView = () => {
           <p className="mt-1 text-2xl font-bold">{kpis.totalAmount.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
         </div>
       </section>
+      )}
 
       {/* Filtros */}
       <section className="panel-surface p-3">
