@@ -128,7 +128,7 @@ const Index = () => {
       case "workReports":
         return <WorkReportsHubView isAdminView={workspaceMode === "admin" && canViewAdmin} />;
       case "machines":
-        return <MachineFleetView />;
+        return <MachineHub />;
       case "staff":
         return <StaffHubView />;
       case "chat":
@@ -141,8 +141,6 @@ const Index = () => {
         return <AdminAlbaranesView />;
       case "account":
         return <AccountSettingsView />;
-      case "consumables":
-        return <ConsumablesView />;
       case "admin":
         return <AdminHubView />;
       case "vacations":
