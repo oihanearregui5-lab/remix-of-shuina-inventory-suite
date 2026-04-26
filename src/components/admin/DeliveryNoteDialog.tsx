@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Trash2, Upload, FileText } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Loader2, Trash2, Upload, ImageIcon } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,21 +11,31 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export type DeliveryNoteStatus = "pending" | "validated" | "incident" | "archived";
+export type DeliveryNoteCompany =
+  | "nacohi"
+  | "irigaray"
+  | "hermua"
+  | "hergoy"
+  | "cst"
+  | "finanzauto"
+  | "blumaq"
+  | "dicona"
+  | "sadar"
+  | "otros";
+
+export type DeliveryNoteExpenseTarget = "maquina" | "taller" | "otros";
 
 export interface DeliveryNoteRow {
   id: string;
-  note_number: string;
-  customer: string;
-  route: string | null;
-  driver_staff_id: string | null;
-  driver_name: string | null;
+  order_number: string;
+  company: DeliveryNoteCompany;
+  expense_target: DeliveryNoteExpenseTarget;
+  machine_asset_id: string | null;
+  amount: number | null;
   delivery_date: string;
-  weight_kg: number | null;
-  status: DeliveryNoteStatus;
-  observations: string | null;
-  pdf_storage_path: string | null;
-  created_by_user_id: string;
+  notes: string | null;
+  photo_path: string | null;
+  created_by_user_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -36,11 +46,23 @@ interface DeliveryNoteDialogProps {
   note: DeliveryNoteRow | null;
 }
 
-const statusOptions: { value: DeliveryNoteStatus; label: string }[] = [
-  { value: "pending", label: "Pendiente" },
-  { value: "validated", label: "Validado" },
-  { value: "incident", label: "Incidencia" },
-  { value: "archived", label: "Archivado" },
+export const COMPANY_OPTIONS: { value: DeliveryNoteCompany; label: string }[] = [
+  { value: "nacohi", label: "Nacohi" },
+  { value: "irigaray", label: "Irigaray" },
+  { value: "hermua", label: "Hermua" },
+  { value: "hergoy", label: "Hergoy" },
+  { value: "cst", label: "CST" },
+  { value: "finanzauto", label: "Finanzauto" },
+  { value: "blumaq", label: "Blumaq" },
+  { value: "dicona", label: "Dicona" },
+  { value: "sadar", label: "Sadar" },
+  { value: "otros", label: "Otros" },
+];
+
+export const EXPENSE_TARGET_OPTIONS: { value: DeliveryNoteExpenseTarget; label: string }[] = [
+  { value: "maquina", label: "Máquina" },
+  { value: "taller", label: "Taller" },
+  { value: "otros", label: "Otros" },
 ];
 
 const sanitizeFileName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -51,27 +73,24 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
   const queryClient = useQueryClient();
   const isEditing = Boolean(note);
 
-  const [noteNumber, setNoteNumber] = useState("");
-  const [customer, setCustomer] = useState("");
-  const [route, setRoute] = useState("");
-  const [driverStaffId, setDriverStaffId] = useState<string>("none");
-  const [driverName, setDriverName] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
+  const [company, setCompany] = useState<DeliveryNoteCompany>("nacohi");
+  const [expenseTarget, setExpenseTarget] = useState<DeliveryNoteExpenseTarget>("taller");
+  const [machineAssetId, setMachineAssetId] = useState<string>("none");
+  const [amount, setAmount] = useState("");
   const [deliveryDate, setDeliveryDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [weightKg, setWeightKg] = useState("");
-  const [status, setStatus] = useState<DeliveryNoteStatus>("pending");
-  const [observations, setObservations] = useState("");
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [existingPdfPath, setExistingPdfPath] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { data: drivers = [] } = useQuery({
-    queryKey: ["delivery-note-drivers"],
+  const { data: machines = [] } = useQuery({
+    queryKey: ["delivery-note-machines"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("staff_directory")
-        .select("id, full_name")
-        .eq("active", true)
-        .order("full_name");
+        .from("machine_assets")
+        .select("id, display_name")
+        .order("display_name");
       if (error) throw error;
       return data ?? [];
     },
@@ -81,76 +100,65 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
   useEffect(() => {
     if (!open) return;
     if (note) {
-      setNoteNumber(note.note_number);
-      setCustomer(note.customer);
-      setRoute(note.route ?? "");
-      setDriverStaffId(note.driver_staff_id ?? "none");
-      setDriverName(note.driver_name ?? "");
+      setOrderNumber(note.order_number);
+      setCompany(note.company);
+      setExpenseTarget(note.expense_target);
+      setMachineAssetId(note.machine_asset_id ?? "none");
+      setAmount(note.amount?.toString() ?? "");
       setDeliveryDate(note.delivery_date);
-      setWeightKg(note.weight_kg?.toString() ?? "");
-      setStatus(note.status);
-      setObservations(note.observations ?? "");
-      setExistingPdfPath(note.pdf_storage_path);
+      setNotes(note.notes ?? "");
+      setExistingPhotoPath(note.photo_path);
     } else {
-      setNoteNumber("");
-      setCustomer("");
-      setRoute("");
-      setDriverStaffId("none");
-      setDriverName("");
+      setOrderNumber("");
+      setCompany("nacohi");
+      setExpenseTarget("taller");
+      setMachineAssetId("none");
+      setAmount("");
       setDeliveryDate(new Date().toISOString().slice(0, 10));
-      setWeightKg("");
-      setStatus("pending");
-      setObservations("");
-      setExistingPdfPath(null);
+      setNotes("");
+      setExistingPhotoPath(null);
     }
-    setPdfFile(null);
+    setPhotoFile(null);
   }, [note, open]);
-
-  const driverDisplayName = useMemo(() => {
-    if (driverStaffId !== "none") {
-      const found = drivers.find((d) => d.id === driverStaffId);
-      if (found) return found.full_name;
-    }
-    return driverName.trim() || null;
-  }, [driverStaffId, driverName, drivers]);
 
   const handleSubmit = async () => {
     if (!user) return;
-    if (!noteNumber.trim() || !customer.trim()) {
-      toast({ title: "Faltan datos", description: "Indica número de albarán y cliente.", variant: "destructive" });
+    if (!orderNumber.trim()) {
+      toast({ title: "Faltan datos", description: "Indica el número de pedido.", variant: "destructive" });
+      return;
+    }
+    if (expenseTarget === "maquina" && machineAssetId === "none") {
+      toast({ title: "Selecciona la máquina", description: "Si el gasto es para una máquina, indica cuál.", variant: "destructive" });
       return;
     }
 
     setSubmitting(true);
     try {
-      let pdfPath = existingPdfPath;
+      let photoPath = existingPhotoPath;
 
-      if (pdfFile) {
-        const safeName = sanitizeFileName(pdfFile.name);
+      if (photoFile) {
+        const safeName = sanitizeFileName(photoFile.name);
         const path = `${user.id}/${Date.now()}-${safeName}`;
         const { error: uploadError } = await supabase.storage
           .from("delivery-notes")
-          .upload(path, pdfFile, { contentType: pdfFile.type || "application/pdf" });
+          .upload(path, photoFile, { contentType: photoFile.type || "image/jpeg" });
         if (uploadError) throw uploadError;
 
-        // Borra el anterior si existía
-        if (existingPdfPath) {
-          await supabase.storage.from("delivery-notes").remove([existingPdfPath]);
+        if (existingPhotoPath) {
+          await supabase.storage.from("delivery-notes").remove([existingPhotoPath]);
         }
-        pdfPath = path;
+        photoPath = path;
       }
 
       const payload = {
-        note_number: noteNumber.trim(),
-        customer: customer.trim(),
-        route: route.trim() || null,
-        driver_staff_id: driverStaffId !== "none" ? driverStaffId : null,
-        driver_name: driverDisplayName,
+        order_number: orderNumber.trim(),
+        company,
+        expense_target: expenseTarget,
+        machine_asset_id: expenseTarget === "maquina" && machineAssetId !== "none" ? machineAssetId : null,
+        amount: amount ? Number(amount) : null,
         delivery_date: deliveryDate,
-        weight_kg: weightKg ? Number(weightKg) : null,
-        status,
-        observations: observations.trim() || null,
-        pdf_storage_path: pdfPath,
+        notes: notes.trim() || null,
+        photo_path: photoPath,
       };
 
       if (isEditing && note) {
@@ -181,11 +189,11 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
 
   const handleDelete = async () => {
     if (!note) return;
-    if (!confirm("¿Eliminar este albarán y su PDF asociado?")) return;
+    if (!confirm("¿Eliminar este albarán y su foto asociada?")) return;
     setSubmitting(true);
     try {
-      if (note.pdf_storage_path) {
-        await supabase.storage.from("delivery-notes").remove([note.pdf_storage_path]);
+      if (note.photo_path) {
+        await supabase.storage.from("delivery-notes").remove([note.photo_path]);
       }
       const { error } = await supabase.from("delivery_notes").delete().eq("id", note.id);
       if (error) throw error;
@@ -214,80 +222,77 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
         <div className="grid gap-4 py-2">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="note_number">Nº albarán *</Label>
-              <Input id="note_number" value={noteNumber} onChange={(e) => setNoteNumber(e.target.value)} placeholder="ALB-2025-001" />
+              <Label htmlFor="order_number">Nº de pedido *</Label>
+              <Input id="order_number" value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} placeholder="P-2026-001" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="delivery_date">Fecha de entrega</Label>
+              <Label htmlFor="delivery_date">Fecha del albarán</Label>
               <Input id="delivery_date" type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="customer">Cliente *</Label>
-              <Input id="customer" value={customer} onChange={(e) => setCustomer(e.target.value)} placeholder="Tubacex" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="route">Ruta</Label>
-              <Input id="route" value={route} onChange={(e) => setRoute(e.target.value)} placeholder="Bilbao → Miranda" />
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Chófer (plantilla)</Label>
-              <Select value={driverStaffId} onValueChange={setDriverStaffId}>
-                <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin asignar</SelectItem>
-                  {drivers.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="driver_name">Chófer (texto libre)</Label>
-              <Input id="driver_name" value={driverName} onChange={(e) => setDriverName(e.target.value)} placeholder="Si no está en plantilla" disabled={driverStaffId !== "none"} />
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="weight">Kilos</Label>
-              <Input id="weight" type="number" step="0.01" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="0" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Estado</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as DeliveryNoteStatus)}>
+              <Label>Empresa</Label>
+              <Select value={company} onValueChange={(v) => setCompany(v as DeliveryNoteCompany)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {statusOptions.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  {COMPANY_OPTIONS.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Destino del gasto</Label>
+              <Select value={expenseTarget} onValueChange={(v) => setExpenseTarget(v as DeliveryNoteExpenseTarget)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {EXPENSE_TARGET_OPTIONS.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
+          {expenseTarget === "maquina" && (
+            <div className="space-y-1.5">
+              <Label>Máquina relacionada *</Label>
+              <Select value={machineAssetId} onValueChange={setMachineAssetId}>
+                <SelectTrigger><SelectValue placeholder="Selecciona una máquina" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin asignar</SelectItem>
+                  {machines.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            <Label htmlFor="observations">Observaciones</Label>
-            <Textarea id="observations" value={observations} onChange={(e) => setObservations(e.target.value)} rows={3} placeholder="Incidencias, referencias, notas internas…" />
+            <Label htmlFor="amount">Importe (€)</Label>
+            <Input id="amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="pdf">PDF del albarán</Label>
+            <Label htmlFor="notes">Notas</Label>
+            <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Detalles del gasto, referencias, observaciones…" />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="photo">Foto del albarán</Label>
             <div className="flex flex-col gap-2">
-              {existingPdfPath && !pdfFile && (
+              {existingPhotoPath && !photoFile && (
                 <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <span className="flex-1 truncate">{existingPdfPath.split("/").pop()}</span>
+                  <ImageIcon className="h-4 w-4 text-primary" />
+                  <span className="flex-1 truncate">{existingPhotoPath.split("/").pop()}</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setExistingPdfPath(null)}
+                    onClick={() => setExistingPhotoPath(null)}
                   >
                     Quitar
                   </Button>
@@ -295,14 +300,15 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
               )}
               <div className="flex items-center gap-2">
                 <Input
-                  id="pdf"
+                  id="photo"
                   type="file"
-                  accept="application/pdf"
-                  onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
                 />
                 <Upload className="h-4 w-4 text-muted-foreground" />
               </div>
-              {pdfFile && <p className="text-xs text-muted-foreground">Nuevo: {pdfFile.name}</p>}
+              {photoFile && <p className="text-xs text-muted-foreground">Nueva: {photoFile.name}</p>}
             </div>
           </div>
         </div>
