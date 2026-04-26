@@ -339,10 +339,10 @@ const WorkerProfileDialog = ({ staffId, open, onOpenChange }: WorkerProfileDialo
                   </div>
                 </div>
 
-                {staff.personal_notes && (
+                {staff.notes && (
                   <div className="rounded-xl border border-border bg-background p-4">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Notas administrativas</p>
-                    <p className="text-sm text-foreground whitespace-pre-wrap">{staff.personal_notes}</p>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{staff.notes}</p>
                   </div>
                 )}
 
