@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Download, Calendar, Clock, Plus, Pencil } from "lucide-react";
+import { Users, Download, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -12,7 +12,8 @@ import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
 import WorkerProfileDialog from "@/components/staff/WorkerProfileDialog";
 import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
 import { formatMinutes, summarizeEntriesForRange } from "@/lib/time-balance";
-import AdminTimeEntryDialog from "@/components/admin/AdminTimeEntryDialog";
+import FichajeStatusCard from "@/components/fichajes/FichajeStatusCard";
+import { useClockEntry } from "@/hooks/useClockEntry";
 
 interface EntryWithProfile {
   id: string;
@@ -25,13 +26,37 @@ interface EntryWithProfile {
 const AdminFichajes = () => {
   const { isAdmin, canViewAdmin } = useAuth();
   const { items: liveWorkers, loading: liveWorkersLoading, summary: liveSummary } = useWorkerLiveStatus();
+  const { activeEntry: adminActiveEntry, entries: adminEntries, loading: adminClockLoading, toggleClock: adminToggleClock } = useClockEntry();
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [entries, setEntries] = useState<EntryWithProfile[]>([]);
+  const [staffColors, setStaffColors] = useState<Map<string, { color: string; staffId: string }>>(new Map());
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
-  const [entryDialogOpen, setEntryDialogOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<EntryWithProfile | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Carga el mapa userId -> { color, staffId } una sola vez
+  useEffect(() => {
+    const loadStaffColors = async () => {
+      const { data } = await (supabase as any)
+        .from("staff_directory")
+        .select("id, color_tag, linked_user_id")
+        .not("linked_user_id", "is", null);
+      const map = new Map<string, { color: string; staffId: string }>();
+      (data ?? []).forEach((row: any) => {
+        if (row.linked_user_id) {
+          map.set(row.linked_user_id, { color: row.color_tag || "#4F5A7A", staffId: row.id });
+        }
+      });
+      setStaffColors(map);
+    };
+    if (canViewAdmin) void loadStaffColors();
+  }, [canViewAdmin]);
 
   useEffect(() => {
     if (canViewAdmin) fetchEntries();
@@ -113,22 +138,48 @@ const AdminFichajes = () => {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Panel Admin — Fichajes</h1>
           <p className="text-muted-foreground mt-1">Control de horas de todos los empleados {isAdmin ? "con permisos de gestión" : "en modo visualización"}</p>
         </div>
-        <div className="flex gap-2 self-start">
-          {isAdmin && (
-            <Button onClick={() => { setEditingEntry(null); setEntryDialogOpen(true); }}>
-              <Plus className="w-4 h-4 mr-2" /> Nuevo fichaje
-            </Button>
-          )}
-          <Button onClick={exportCSV} variant="outline">
-            <Download className="w-4 h-4 mr-2" /> Exportar CSV
-          </Button>
-        </div>
+        <Button onClick={exportCSV} variant="outline" className="self-start">
+          <Download className="w-4 h-4 mr-2" /> Exportar CSV
+        </Button>
       </div>
+
+      {/* Fichaje propio del administrador */}
+      <section className="mb-6 panel-surface p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Tu fichaje</p>
+        {(() => {
+          const todayAdminEntries = adminEntries.filter((e) => new Date(e.clock_in).toDateString() === new Date().toDateString());
+          const workedToday = todayAdminEntries.reduce(
+            (acc, e) => acc + Math.max(0, differenceInMinutes(e.clock_out ? new Date(e.clock_out) : new Date(), new Date(e.clock_in))),
+            0,
+          );
+          const workedLabel = `${Math.floor(workedToday / 60)}h ${workedToday % 60}m`;
+          const sessionLabel = adminActiveEntry
+            ? (() => {
+                const mins = differenceInMinutes(new Date(), new Date(adminActiveEntry.clock_in));
+                return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+              })()
+            : "Sin jornada activa";
+          const lastMovement = adminEntries[0]
+            ? `${adminEntries[0].clock_out ? "Salida" : "Entrada"} ${format(new Date(adminEntries[0].clock_out ?? adminEntries[0].clock_in), "HH:mm")}`
+            : "Sin registros";
+          return (
+            <FichajeStatusCard
+              active={!!adminActiveEntry}
+              loading={adminClockLoading}
+              currentTime={currentTime}
+              workedTodayLabel={workedLabel}
+              currentSessionLabel={sessionLabel}
+              lastMovementLabel={lastMovement}
+              onPrimaryAction={() => void adminToggleClock()}
+            />
+          );
+        })()}
+      </section>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
@@ -218,12 +269,26 @@ const AdminFichajes = () => {
           <div className="mt-4 space-y-3">
             {Object.entries(byEmployee).map(([userId, { name, entries: empEntries }]) => {
               const personSummary = summarizeEntriesForRange(empEntries, new Date(`${dateFrom}T00:00:00`), new Date(`${dateTo}T23:59:59`));
+              const staffInfo = staffColors.get(userId);
+              const color = staffInfo?.color || "#4F5A7A";
               return (
-                <div key={userId} className="rounded-xl border border-border bg-background px-4 py-3">
+                <div
+                  key={userId}
+                  onDoubleClick={() => staffInfo && setSelectedWorkerId(staffInfo.staffId)}
+                  title={staffInfo ? "Doble clic para ver ficha completa" : undefined}
+                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-background px-4 py-3 pl-5 transition-colors hover:bg-muted/30"
+                  style={{ borderLeft: `4px solid ${color}` }}
+                >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-foreground">{name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">Trabajadas {formatMinutes(personSummary.workedMinutes)} · Extra {formatMinutes(personSummary.overtimeMinutes)} · Faltantes {formatMinutes(personSummary.missingMinutes)}</p>
+                    <div className="flex items-start gap-3">
+                      <span
+                        className="mt-1.5 h-2.5 w-2.5 flex-none rounded-full"
+                        style={{ backgroundColor: color }}
+                      />
+                      <div>
+                        <p className="font-semibold text-foreground">{name}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Trabajadas {formatMinutes(personSummary.workedMinutes)} · Extra {formatMinutes(personSummary.overtimeMinutes)} · Faltantes {formatMinutes(personSummary.missingMinutes)}</p>
+                      </div>
                     </div>
                     <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
                       {formatMinutes(personSummary.balanceMinutes)}
@@ -242,22 +307,27 @@ const AdminFichajes = () => {
           (sum, e) => sum + (e.clock_out ? differenceInMinutes(new Date(e.clock_out), new Date(e.clock_in)) : 0),
           0
         );
+        const staffInfo = staffColors.get(userId);
+        const color = staffInfo?.color || "#4F5A7A";
         return (
           <div key={userId} className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-foreground">{name}</h3>
-              <span className="text-sm text-primary font-medium">
+            <div
+              className="mb-3 flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 cursor-pointer hover:bg-muted/30"
+              style={{ borderLeft: `4px solid ${color}` }}
+              onDoubleClick={() => staffInfo && setSelectedWorkerId(staffInfo.staffId)}
+              title={staffInfo ? "Doble clic para ver ficha completa" : undefined}
+            >
+              <div className="flex items-center gap-3">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+                <h3 className="font-semibold text-foreground">{name}</h3>
+              </div>
+              <span className="text-sm font-medium text-primary">
                 {Math.floor(totalMins / 60)}h {totalMins % 60}m total
               </span>
             </div>
             <div className="space-y-2">
               {empEntries.map((e) => (
-                <button
-                  key={e.id}
-                  type="button"
-                  onClick={() => { if (isAdmin) { setEditingEntry(e); setEntryDialogOpen(true); } }}
-                  className={`w-full bg-card border border-border rounded-lg p-3 flex items-center justify-between shadow-sm text-left transition-colors ${isAdmin ? "hover:bg-muted/40 cursor-pointer" : "cursor-default"}`}
-                >
+                <div key={e.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between shadow-sm">
                   <div>
                     <p className="text-sm text-muted-foreground">
                       {format(new Date(e.clock_in), "EEEE d MMM", { locale: es })}
@@ -272,13 +342,10 @@ const AdminFichajes = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
-                      {formatDuration(e.clock_in, e.clock_out)}
-                    </span>
-                    {isAdmin && <Pencil className="w-3.5 h-3.5 text-muted-foreground" />}
-                  </div>
-                </button>
+                  <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
+                    {formatDuration(e.clock_in, e.clock_out)}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
@@ -288,13 +355,6 @@ const AdminFichajes = () => {
       {entries.length === 0 && !loading && (
         <p className="text-muted-foreground text-center py-8">No hay fichajes en el rango seleccionado</p>
       )}
-
-      <AdminTimeEntryDialog
-        open={entryDialogOpen}
-        onOpenChange={(open) => { setEntryDialogOpen(open); if (!open) setEditingEntry(null); }}
-        entry={editingEntry ? { id: editingEntry.id, user_id: editingEntry.user_id, clock_in: editingEntry.clock_in, clock_out: editingEntry.clock_out, notes: null } : null}
-        onSaved={() => void fetchEntries()}
-      />
     </div>
   );
 };
