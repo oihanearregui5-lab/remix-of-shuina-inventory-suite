@@ -52,6 +52,33 @@ const TonnageMyTrips = () => {
     [todayTrips, user],
   );
 
+  // Cargar nombres de conductores (perfiles) para los viajes de hoy
+  const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    const ids = Array.from(new Set(todayTrips.map((t) => t.created_by_user_id).filter(Boolean))) as string[];
+    if (ids.length === 0) {
+      setDriverNames(new Map());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids);
+      if (cancelled) return;
+      const map = new Map<string, string>();
+      ((data ?? []) as Array<{ user_id: string; full_name: string }>).forEach((p) => {
+        map.set(p.user_id, p.full_name || "Sin nombre");
+      });
+      setDriverNames(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [todayTrips]);
+
+
   const todayTotalKg = todayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
   const myTotalKg = myTodayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
 
