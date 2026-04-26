@@ -1,0 +1,321 @@
+import { useEffect, useMemo, useState } from "react";
+import { Filter, RefreshCw } from "lucide-react";
+import { addMonths, format, getDaysInMonth, startOfMonth, subMonths } from "date-fns";
+import { es } from "date-fns/locale";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  computeMaterialQuantities,
+  computeZoneSummaries,
+  formatKg,
+  formatTons,
+  useTonnage,
+} from "@/hooks/useTonnage";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+
+const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const ALL_VALUE = "__all__";
+
+const TonnageDashboard = () => {
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
+  const { trucks, zones, trips, loading, reload } = useTonnage(currentMonth);
+
+  // Filtros del dashboard
+  const [filterDay, setFilterDay] = useState<string>(ALL_VALUE);
+  const [filterDriverId, setFilterDriverId] = useState<string>(ALL_VALUE);
+  const [filterTruckId, setFilterTruckId] = useState<string>(ALL_VALUE);
+
+  // Mapa userId → nombre, lo cargo desde profiles
+  const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    const loadDrivers = async () => {
+      const ids = Array.from(new Set(trips.map((t) => t.created_by_user_id).filter(Boolean) as string[]));
+      if (ids.length === 0) return;
+      const { data } = await (supabase as any).from("profiles").select("user_id, full_name").in("user_id", ids);
+      const m = new Map<string, string>();
+      ((data ?? []) as Array<{ user_id: string; full_name: string }>).forEach((row) => {
+        m.set(row.user_id, row.full_name || "Sin nombre");
+      });
+      setDriverNames(m);
+    };
+    void loadDrivers();
+  }, [trips]);
+
+  // Aplicación de filtros sobre los viajes ya cargados del mes
+  const filteredTrips = useMemo(() => {
+    return trips.filter((t) => {
+      if (filterDay !== ALL_VALUE) {
+        const day = new Date(t.trip_date).getDate();
+        if (day !== parseInt(filterDay, 10)) return false;
+      }
+      if (filterDriverId !== ALL_VALUE && t.created_by_user_id !== filterDriverId) return false;
+      if (filterTruckId !== ALL_VALUE && t.truck_id !== filterTruckId) return false;
+      return true;
+    });
+  }, [trips, filterDay, filterDriverId, filterTruckId]);
+
+  const totalTrips = filteredTrips.length;
+  const totalKg = filteredTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
+
+  // Materiales (cantidades agregadas)
+  const materials = useMemo(() => computeMaterialQuantities(filteredTrips), [filteredTrips]);
+
+  // Zonas (carga)
+  const loadZoneSummaries = useMemo(
+    () => computeZoneSummaries(filteredTrips, zones, "load_zone_id").filter((z) => z.tripCount > 0).sort((a, b) => b.tripCount - a.tripCount),
+    [filteredTrips, zones],
+  );
+
+  // Viajes por día (gráfico)
+  const daysInMonth = getDaysInMonth(currentMonth);
+  const tripsPerDay = useMemo(() => {
+    const counts = new Map<number, number>();
+    filteredTrips.forEach((t) => {
+      const d = new Date(t.trip_date).getDate();
+      counts.set(d, (counts.get(d) || 0) + 1);
+    });
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      return { day: String(day), viajes: counts.get(day) || 0 };
+    });
+  }, [filteredTrips, daysInMonth]);
+
+  const dailyAvg = useMemo(() => {
+    const daysWithTrips = tripsPerDay.filter((d) => d.viajes > 0).length;
+    if (daysWithTrips === 0) return 0;
+    return Math.round(totalTrips / daysWithTrips);
+  }, [tripsPerDay, totalTrips]);
+
+  // Viajes por conductor (gráfico de barras)
+  const driverChart = useMemo(() => {
+    const counts = new Map<string, number>();
+    filteredTrips.forEach((t) => {
+      if (!t.created_by_user_id) return;
+      counts.set(t.created_by_user_id, (counts.get(t.created_by_user_id) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([id, count]) => ({ name: (driverNames.get(id) || "Sin nombre").toUpperCase(), viajes: count }))
+      .sort((a, b) => b.viajes - a.viajes);
+  }, [filteredTrips, driverNames]);
+
+  const monthIdx = currentMonth.getMonth();
+  const year = currentMonth.getFullYear();
+
+  return (
+    <div className="space-y-4">
+      {/* FILTROS */}
+      <section className="panel-surface p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Filter className="h-3.5 w-3.5" /> Filtros
+          </div>
+
+          <Select value={String(monthIdx)} onValueChange={(v) => setCurrentMonth(new Date(year, parseInt(v, 10), 1))}>
+            <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MONTHS.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={String(year)} onValueChange={(v) => setCurrentMonth(new Date(parseInt(v, 10), monthIdx, 1))}>
+            <SelectTrigger className="w-24 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[2024, 2025, 2026, 2027].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterDay} onValueChange={setFilterDay}>
+            <SelectTrigger className="w-28 h-9"><SelectValue placeholder="Día" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_VALUE}>Todos los días</SelectItem>
+              {Array.from({ length: daysInMonth }, (_, i) => (
+                <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterDriverId} onValueChange={setFilterDriverId}>
+            <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Trabajador" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_VALUE}>Todos los trabajadores</SelectItem>
+              {Array.from(driverNames.entries()).map(([id, name]) => (
+                <SelectItem key={id} value={id}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterTruckId} onValueChange={setFilterTruckId}>
+            <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Camión" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_VALUE}>Todos los camiones</SelectItem>
+              {trucks.map((t) => <SelectItem key={t.id} value={t.id}>#{t.truck_number} {t.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => { setFilterDay(ALL_VALUE); setFilterDriverId(ALL_VALUE); setFilterTruckId(ALL_VALUE); }}
+            className="text-destructive border-destructive/40 hover:bg-destructive/5 ml-auto"
+          >
+            Borrar filtros
+          </Button>
+          <Button type="button" variant="ghost" size="icon" className="h-9 w-9" onClick={() => void reload()} title="Actualizar">
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+          </Button>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_1fr]">
+        {/* KPI grande estilo Power BI */}
+        <div className="panel-surface flex flex-col items-center justify-center p-6">
+          <div className="flex h-32 w-32 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
+            <div className="text-center">
+              <div className="text-4xl font-bold leading-none">{totalTrips}</div>
+              <div className="mt-1 text-xs font-medium uppercase tracking-wide opacity-90">Viajes</div>
+            </div>
+          </div>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            {format(currentMonth, "MMMM yyyy", { locale: es })}
+          </p>
+          <p className="mt-1 text-center text-sm font-semibold text-foreground">{formatTons(totalKg)} t totales</p>
+        </div>
+
+        {/* Gráfico viajes diarios con línea de promedio */}
+        <div className="panel-surface p-4">
+          <header className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-semibold italic text-foreground">Viajes diarios</p>
+            <span className="text-xs text-muted-foreground">
+              Promedio: <span className="font-semibold text-foreground">{dailyAvg}</span>
+            </span>
+          </header>
+          <ResponsiveContainer width="100%" height={200}>
+            <ComposedChart data={tripsPerDay} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis dataKey="day" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", fontSize: 12 }}
+                labelFormatter={(label) => `Día ${label}`}
+              />
+              <ReferenceLine y={dailyAvg} stroke="hsl(var(--primary))" strokeDasharray="4 4" />
+              <Bar dataKey="viajes" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      {/* Materiales y zonas */}
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="panel-surface p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Materiales (unidades)</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-2xl bg-primary/10 p-3">
+              <p className="text-xs uppercase tracking-wide text-primary">Tortas</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{materials.tortas || "--"}</p>
+            </div>
+            <div className="rounded-2xl bg-warning/15 p-3">
+              <p className="text-xs uppercase tracking-wide text-foreground/80">Arenas A</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{materials.arenas_a || "--"}</p>
+            </div>
+            <div className="rounded-2xl bg-warning/25 p-3">
+              <p className="text-xs uppercase tracking-wide text-foreground/80">Arenas B</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{materials.arenas_b || "--"}</p>
+            </div>
+            <div className="rounded-2xl bg-success/15 p-3">
+              <p className="text-xs uppercase tracking-wide text-success">Sulfatos</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{materials.sulfatos || "--"}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="panel-surface p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Zonas de carga</p>
+          {loadZoneSummaries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin viajes con zona registrada todavía.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {loadZoneSummaries.map((z) => (
+                <li key={z.zoneId} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-1.5">
+                  <span className="text-sm font-medium text-foreground">{z.label}</span>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{z.tripCount}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      {/* Tabla cronológica + Viajes por conductor */}
+      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="panel-surface overflow-hidden p-0">
+          <header className="flex items-center justify-between border-b border-border px-4 py-3">
+            <p className="text-sm font-semibold text-foreground">Listado de viajes</p>
+            <span className="text-xs text-muted-foreground">{filteredTrips.length} viajes</span>
+          </header>
+          <div className="max-h-96 overflow-y-auto">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-muted/50">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold">Fecha</th>
+                  <th className="px-3 py-2 text-left font-semibold">Hora</th>
+                  <th className="px-3 py-2 text-right font-semibold">Peso</th>
+                  <th className="px-3 py-2 text-left font-semibold">Trabajador</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredTrips.length === 0 ? (
+                  <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Sin viajes con estos filtros</td></tr>
+                ) : filteredTrips.map((t) => {
+                  const driverName = (t.created_by_user_id ? driverNames.get(t.created_by_user_id) : null) || "—";
+                  return (
+                    <tr key={t.id}>
+                      <td className="px-3 py-1.5">{format(new Date(t.trip_date), "dd/MM/yy")}</td>
+                      <td className="px-3 py-1.5">{t.trip_time ? t.trip_time.slice(0, 5) : "—"}</td>
+                      <td className="px-3 py-1.5 text-right font-medium">{formatKg(Number(t.weight_kg))}</td>
+                      <td className="px-3 py-1.5 uppercase">{driverName}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="panel-surface p-4">
+          <p className="mb-2 text-sm font-semibold italic text-foreground">Viajes por conductor</p>
+          {driverChart.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Sin datos de conductores</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={driverChart} margin={{ top: 30, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", fontSize: 12 }} />
+                <Bar dataKey="viajes" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} label={{ position: "top", fontSize: 11, fill: "hsl(var(--foreground))" }} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default TonnageDashboard;
