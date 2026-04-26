@@ -294,8 +294,8 @@ const TonnageMonthlyTable = () => {
         <Button variant="ghost" size="icon" onClick={() => setCurrentMonth((d) => addMonths(d, 1))} className="h-9 w-9">
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <Button variant="outline" onClick={exportCSV} className="ml-auto">
-          <Download className="h-4 w-4" /> Exportar CSV
+        <Button variant="outline" onClick={exportExcel} className="ml-auto">
+          <Download className="h-4 w-4" /> Exportar Excel
         </Button>
       </section>
 
