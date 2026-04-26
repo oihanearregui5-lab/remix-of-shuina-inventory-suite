@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Clock, MapPin, Minus, Package, Plus, Scale, Truck, PlusCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Clock, MapPin, Minus, Package, Plus, Scale, Truck, PlusCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useUIMode } from "@/hooks/useUIMode";
 import { useTonnage, formatKg, type TonnageMaterial } from "@/hooks/useTonnage";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+interface DriverOption {
+  user_id: string;
+  full_name: string;
+}
 
 const NEW_TRUCK_VALUE = "__create_new_truck__";
 
@@ -81,11 +87,14 @@ const QtyStepper = ({ label, value, color, onChange }: QtyStepperProps) => {
 
 const TonnageRegisterTrip = () => {
   const { isSimple } = useUIMode();
+  const { user } = useAuth();
   const today = useMemo(() => new Date(), []);
   const { trucks, zones, addTrip, reload } = useTonnage(today);
   const db = supabase as any;
 
   const [truckId, setTruckId] = useState<string>("");
+  const [driverUserId, setDriverUserId] = useState<string>("");
+  const [drivers, setDrivers] = useState<DriverOption[]>([]);
   const [newTruckOpen, setNewTruckOpen] = useState(false);
   const [newTruckForm, setNewTruckForm] = useState<{ truck_number: string; label: string; material: TonnageMaterial }>({
     truck_number: "",
@@ -93,6 +102,28 @@ const TonnageRegisterTrip = () => {
     material: "arenas",
   });
   const [creatingTruck, setCreatingTruck] = useState(false);
+
+  // Cargar lista de conductores (todos los perfiles)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await db
+        .from("profiles")
+        .select("user_id, full_name")
+        .order("full_name", { ascending: true });
+      if (cancelled) return;
+      const list = ((data ?? []) as DriverOption[]).filter((d) => (d.full_name || "").trim().length > 0);
+      setDrivers(list);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [db]);
+
+  // Por defecto, conductor = usuario actual
+  useEffect(() => {
+    if (user?.id && !driverUserId) setDriverUserId(user.id);
+  }, [user?.id, driverUserId]);
 
   const handleTruckChange = (value: string) => {
     if (value === NEW_TRUCK_VALUE) {
@@ -198,6 +229,7 @@ const TonnageRegisterTrip = () => {
       qty_sulfatos: qtySulfatos,
       load_zone_id: loadZoneId || null,
       unload_zone_id: unloadZoneId || null,
+      driver_user_id: driverUserId || null,
     });
     setSaving(false);
     if (ok) reset();
@@ -285,6 +317,29 @@ const TonnageRegisterTrip = () => {
             </span>
           </p>
         )}
+      </section>
+
+      {/* Conductor */}
+      <section className="panel-surface p-4">
+        <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
+          <User className="h-4 w-4 text-primary" /> Conductor
+        </Label>
+        <Select value={driverUserId} onValueChange={setDriverUserId}>
+          <SelectTrigger className="h-12 text-base">
+            <SelectValue placeholder="¿Quién conduce?" />
+          </SelectTrigger>
+          <SelectContent>
+            {drivers.map((d) => (
+              <SelectItem key={d.user_id} value={d.user_id}>
+                {d.full_name}
+                {d.user_id === user?.id ? " (tú)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          Por defecto eres tú. Cámbialo si registras un viaje de un compañero.
+        </p>
       </section>
 
       {/* Peso + hora */}

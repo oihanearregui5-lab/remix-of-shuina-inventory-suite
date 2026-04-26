@@ -49,6 +49,7 @@ export interface TonnageTrip {
   material_snapshot: TonnageMaterial;
   notes: string | null;
   created_by_user_id: string | null;
+  driver_user_id: string | null;
   created_at: string;
 }
 
@@ -64,6 +65,7 @@ export interface TonnageTripInput {
   load_zone_id?: string | null;
   unload_zone_id?: string | null;
   notes?: string | null;
+  driver_user_id?: string | null;
 }
 
 // ============================================================
@@ -113,7 +115,7 @@ export const useTonnage = (monthDate: Date) => {
     const { data, error } = await db
       .from("tonnage_trips")
       .select(
-        "id, truck_id, trip_date, trip_time, weight_kg, qty_tortas, qty_arenas_a, qty_arenas_b, qty_sulfatos, load_zone_id, unload_zone_id, material_snapshot, notes, created_by_user_id, created_at",
+        "id, truck_id, trip_date, trip_time, weight_kg, qty_tortas, qty_arenas_a, qty_arenas_b, qty_sulfatos, load_zone_id, unload_zone_id, material_snapshot, notes, created_by_user_id, driver_user_id, created_at",
       )
       .gte("trip_date", monthStart)
       .lte("trip_date", monthEnd)
@@ -166,6 +168,7 @@ export const useTonnage = (monthDate: Date) => {
         unload_zone_id: input.unload_zone_id || null,
         notes: input.notes?.trim() || null,
         created_by_user_id: user.id,
+        driver_user_id: input.driver_user_id ?? user.id,
       });
       if (error) {
         toast.error("No se pudo guardar el viaje");
@@ -192,6 +195,7 @@ export const useTonnage = (monthDate: Date) => {
       if (changes.load_zone_id !== undefined) payload.load_zone_id = changes.load_zone_id || null;
       if (changes.unload_zone_id !== undefined) payload.unload_zone_id = changes.unload_zone_id || null;
       if (changes.notes !== undefined) payload.notes = changes.notes?.trim() || null;
+      if (changes.driver_user_id !== undefined) payload.driver_user_id = changes.driver_user_id;
 
       const { error } = await db.from("tonnage_trips").update(payload).eq("id", tripId);
       if (error) {

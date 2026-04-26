@@ -48,14 +48,20 @@ const TonnageMyTrips = () => {
   );
 
   const myTodayTrips = useMemo(
-    () => todayTrips.filter((t) => t.created_by_user_id === user?.id),
+    () => todayTrips.filter((t) => (t.driver_user_id ?? t.created_by_user_id) === user?.id),
     [todayTrips, user],
   );
 
   // Cargar nombres de conductores (perfiles) para los viajes de hoy
   const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
   useEffect(() => {
-    const ids = Array.from(new Set(todayTrips.map((t) => t.created_by_user_id).filter(Boolean))) as string[];
+    const ids = Array.from(
+      new Set(
+        todayTrips
+          .flatMap((t) => [t.driver_user_id, t.created_by_user_id])
+          .filter(Boolean) as string[],
+      ),
+    );
     if (ids.length === 0) {
       setDriverNames(new Map());
       return;
@@ -174,7 +180,8 @@ const TonnageMyTrips = () => {
           <ul className="divide-y divide-border">
             {todayTrips.map((trip) => {
               const truck = trucks.find((t) => t.id === trip.truck_id);
-              const isMine = trip.created_by_user_id === user?.id;
+              const driverId = trip.driver_user_id ?? trip.created_by_user_id;
+              const isMine = driverId === user?.id;
               const loadLabel = trip.load_zone_id ? zoneById.get(trip.load_zone_id) : null;
               const unloadLabel = trip.unload_zone_id ? zoneById.get(trip.unload_zone_id) : null;
               const matChips: Array<{ label: string; qty: number; tone: string }> = [];
@@ -197,10 +204,10 @@ const TonnageMyTrips = () => {
                         {isMine && <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">· tú</span>}
                       </div>
                       {(() => {
-                        const driverName = trip.created_by_user_id
+                        const driverName = driverId
                           ? isMine
                             ? "Tú"
-                            : driverNames.get(trip.created_by_user_id) || "Conductor"
+                            : driverNames.get(driverId) || "Conductor"
                           : null;
                         return driverName ? (
                           <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-foreground">
