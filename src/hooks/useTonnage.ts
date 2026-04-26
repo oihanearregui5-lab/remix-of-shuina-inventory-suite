@@ -168,6 +168,7 @@ export const useTonnage = (monthDate: Date) => {
         unload_zone_id: input.unload_zone_id || null,
         notes: input.notes?.trim() || null,
         created_by_user_id: user.id,
+        driver_user_id: input.driver_user_id ?? user.id,
       });
       if (error) {
         toast.error("No se pudo guardar el viaje");
