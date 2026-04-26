@@ -1193,11 +1193,17 @@ export type Database = {
           created_at: string
           created_by_user_id: string | null
           id: string
+          load_zone_id: string | null
           material_snapshot: string | null
           notes: string | null
+          qty_arenas_a: number | null
+          qty_arenas_b: number | null
+          qty_sulfatos: number | null
+          qty_tortas: number | null
           trip_date: string
           trip_time: string | null
           truck_id: string
+          unload_zone_id: string | null
           updated_at: string
           weight_kg: number
         }
@@ -1205,11 +1211,17 @@ export type Database = {
           created_at?: string
           created_by_user_id?: string | null
           id?: string
+          load_zone_id?: string | null
           material_snapshot?: string | null
           notes?: string | null
+          qty_arenas_a?: number | null
+          qty_arenas_b?: number | null
+          qty_sulfatos?: number | null
+          qty_tortas?: number | null
           trip_date: string
           trip_time?: string | null
           truck_id: string
+          unload_zone_id?: string | null
           updated_at?: string
           weight_kg: number
         }
@@ -1217,20 +1229,40 @@ export type Database = {
           created_at?: string
           created_by_user_id?: string | null
           id?: string
+          load_zone_id?: string | null
           material_snapshot?: string | null
           notes?: string | null
+          qty_arenas_a?: number | null
+          qty_arenas_b?: number | null
+          qty_sulfatos?: number | null
+          qty_tortas?: number | null
           trip_date?: string
           trip_time?: string | null
           truck_id?: string
+          unload_zone_id?: string | null
           updated_at?: string
           weight_kg?: number
         }
         Relationships: [
           {
+            foreignKeyName: "tonnage_trips_load_zone_id_fkey"
+            columns: ["load_zone_id"]
+            isOneToOne: false
+            referencedRelation: "tonnage_zones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tonnage_trips_truck_id_fkey"
             columns: ["truck_id"]
             isOneToOne: false
             referencedRelation: "tonnage_trucks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tonnage_trips_unload_zone_id_fkey"
+            columns: ["unload_zone_id"]
+            isOneToOne: false
+            referencedRelation: "tonnage_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -1281,6 +1313,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tonnage_zones: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          zone_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          zone_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          zone_type?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
