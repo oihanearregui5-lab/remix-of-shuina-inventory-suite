@@ -6,10 +6,13 @@ export interface ChatChannelItem {
   slug: string;
   name: string;
   description: string | null;
-  kind: ChatChannelKind;
-  visibility: ChatChannelVisibility;
+  kind?: ChatChannelKind;
+  visibility?: ChatChannelVisibility;
   direct_message_key?: string | null;
   created_at?: string;
+  // Metadatos derivados para la UI (resolvidos en runtime)
+  displayName?: string; // en directos = nombre del otro usuario
+  displayInitial?: string;
 }
 
 export interface ChatMessageItem {
@@ -29,7 +32,15 @@ export interface ChannelSummary {
   unreadCount: number;
 }
 
-export interface ChatPersonOption {
+export interface ChannelMember {
+  id: string;
+  channel_id: string;
   user_id: string;
+  membership_role: "admin" | "member";
+}
+
+export interface StaffMemberOption {
+  id: string;
   full_name: string;
+  linked_user_id: string | null;
 }
