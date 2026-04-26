@@ -66,7 +66,6 @@ export const useWorkerLiveStatus = () => {
         .from("staff_directory")
         .select("id, full_name, linked_user_id, sort_order")
         .eq("active", true)
-        .not("linked_user_id", "is", null)
         .order("sort_order", { ascending: true });
 
       if (!active) return;
@@ -126,7 +125,20 @@ export const useWorkerLiveStatus = () => {
 
     return staff
       .map((person) => {
-        const userId = person.linked_user_id as string;
+        const userId = person.linked_user_id;
+
+        // Trabajador sin cuenta enlazada: aparece como fuera, pero visible
+        if (!userId) {
+          return {
+            id: person.id,
+            name: person.full_name,
+            presence: "off" as const,
+            statusLabel: "Fuera",
+            detail: "Sin cuenta enlazada",
+            sinceLabel: "",
+          };
+        }
+
         const openEntry = openEntryByUser.get(userId) ?? null;
         const openReport = latestOpenReportByUser.get(userId) ?? null;
         const latestEntry = latestEntryByUser.get(userId) ?? null;
@@ -136,9 +148,9 @@ export const useWorkerLiveStatus = () => {
             id: person.id,
             name: person.full_name,
             presence: "working" as const,
-            statusLabel: "Trabajando",
+            statusLabel: "ACTIVO",
             detail: openReport.description || "Parte en curso",
-            sinceLabel: `Desde hace ${formatDistanceToNowStrict(new Date(openEntry.clock_in), { locale: es })}`,
+            sinceLabel: `Desde las ${new Date(openEntry.clock_in).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`,
           };
         }
 
@@ -146,10 +158,10 @@ export const useWorkerLiveStatus = () => {
           return {
             id: person.id,
             name: person.full_name,
-            presence: "paused" as const,
-            statusLabel: "En pausa",
-            detail: "Jornada abierta sin parte activo",
-            sinceLabel: `Desde hace ${formatDistanceToNowStrict(new Date(openEntry.clock_in), { locale: es })}`,
+            presence: "working" as const,
+            statusLabel: "ACTIVO",
+            detail: "Jornada abierta",
+            sinceLabel: `Desde las ${new Date(openEntry.clock_in).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`,
           };
         }
 
