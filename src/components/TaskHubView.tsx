@@ -300,7 +300,7 @@ const TaskHubView = () => {
             <section className="panel-surface p-4">
               <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Calendario del mes</p></div>
               <div className="rounded-3xl border border-border bg-background p-3">
-                <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} month={month} onMonthChange={setMonth} modifiers={{ hasTask: taskDates }} modifiersClassNames={{ hasTask: "bg-primary/15 text-foreground font-semibold" }} className="w-full" />
+                <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} month={month} onMonthChange={setMonth} locale={es} modifiers={{ hasTask: taskDates }} modifiersClassNames={{ hasTask: "bg-primary/15 text-foreground font-semibold" }} className="w-full" />
               </div>
               <div className="mt-3 space-y-2">
                 {selectedDate && <p className="text-sm font-medium text-foreground">{format(selectedDate, "EEEE d MMMM", { locale: es })}</p>}

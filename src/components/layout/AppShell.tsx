@@ -244,6 +244,19 @@ const AppShell = <T extends string>({
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {onChangeWorkspace ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onChangeWorkspace}
+                    className="hidden md:inline-flex h-9 items-center gap-2 px-3 text-xs font-semibold"
+                    title={`Estás en ${workspaceMode === "admin" ? "Administración" : "Trabajador"} — pulsa para cambiar`}
+                    aria-label="Cambiar espacio de trabajo"
+                  >
+                    <RefreshCcw className="h-3.5 w-3.5" />
+                    <span>{workspaceMode === "admin" ? "Admin" : "Trabajador"}</span>
+                  </Button>
+                ) : null}
                 <Button
                   variant="outline"
                   size="sm"
