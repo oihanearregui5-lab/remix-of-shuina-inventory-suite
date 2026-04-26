@@ -215,17 +215,7 @@ const AppShell = <T extends string>({
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="hidden md:inline-flex" aria-label="Panel activo" aria-hidden="true" tabIndex={-1}>
-                  <PanelLeftClose className="h-4 w-4" />
-                </Button>
                 <div className="min-w-0 space-y-1">
-                  <div className="hidden flex-wrap items-center gap-1 text-xs text-muted-foreground md:flex">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-border/70 bg-card">
-                      <img src="/favicon.svg" alt="Abeja Transtubari" className="h-3.5 w-3.5 object-contain" />
-                    </span>
-                    <ChevronRight className="h-3.5 w-3.5" />
-                    <span>{activeSection?.label}</span>
-                  </div>
                   <div className="min-w-0">
                     <p className="truncate text-base font-semibold text-foreground md:text-lg">{activeSection?.label}</p>
                     <p className="truncate text-xs text-muted-foreground md:hidden">{activeSection?.description}</p>
