@@ -369,3 +369,24 @@ export const computeDriverSummaries = (
 export const formatKg = (kg: number) => kg.toLocaleString("es-ES", { maximumFractionDigits: 0 });
 export const formatTons = (kg: number) =>
   (kg / 1000).toLocaleString("es-ES", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// ============================================================
+// COMPAT v1 — para que AdminTonnageView siga funcionando hasta su refactor
+// ============================================================
+export interface MaterialSummary {
+  material: TonnageMaterial;
+  tripCount: number;
+  totalKg: number;
+}
+
+export const computeMaterialSummaries = (trips: TonnageTrip[]): MaterialSummary[] => {
+  const mats: TonnageMaterial[] = ["arenas", "tortas", "sulfatos"];
+  return mats.map((material) => {
+    const mTrips = trips.filter((t) => t.material_snapshot === material);
+    return {
+      material,
+      tripCount: mTrips.length,
+      totalKg: mTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0),
+    };
+  });
+};
