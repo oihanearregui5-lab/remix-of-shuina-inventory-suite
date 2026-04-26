@@ -1,14 +1,18 @@
 import { useMemo, useState } from "react";
-import { Clock, MapPin, Minus, Package, Plus, Scale, Truck } from "lucide-react";
+import { Clock, MapPin, Minus, Package, Plus, Scale, Truck, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 import { useUIMode } from "@/hooks/useUIMode";
 import { useTonnage, formatKg, type TonnageMaterial } from "@/hooks/useTonnage";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+const NEW_TRUCK_VALUE = "__create_new_truck__";
 
 const materialLabel: Record<TonnageMaterial, string> = {
   arenas: "Arenas",
@@ -78,9 +82,54 @@ const QtyStepper = ({ label, value, color, onChange }: QtyStepperProps) => {
 const TonnageRegisterTrip = () => {
   const { isSimple } = useUIMode();
   const today = useMemo(() => new Date(), []);
-  const { trucks, zones, addTrip } = useTonnage(today);
+  const { trucks, zones, addTrip, reload } = useTonnage(today);
+  const db = supabase as any;
 
   const [truckId, setTruckId] = useState<string>("");
+  const [newTruckOpen, setNewTruckOpen] = useState(false);
+  const [newTruckForm, setNewTruckForm] = useState<{ truck_number: string; label: string; material: TonnageMaterial }>({
+    truck_number: "",
+    label: "",
+    material: "arenas",
+  });
+  const [creatingTruck, setCreatingTruck] = useState(false);
+
+  const handleTruckChange = (value: string) => {
+    if (value === NEW_TRUCK_VALUE) {
+      setNewTruckOpen(true);
+      return;
+    }
+    setTruckId(value);
+  };
+
+  const createNewTruck = async () => {
+    const num = parseInt(newTruckForm.truck_number, 10);
+    if (!newTruckForm.label.trim() || isNaN(num)) {
+      toast.error("Indica número y nombre del camión");
+      return;
+    }
+    setCreatingTruck(true);
+    const { data, error } = await db
+      .from("tonnage_trucks")
+      .insert({
+        truck_number: num,
+        label: newTruckForm.label.trim(),
+        material: newTruckForm.material,
+        sort_order: num,
+      })
+      .select("id")
+      .single();
+    setCreatingTruck(false);
+    if (error || !data) {
+      toast.error("No se pudo crear el camión");
+      return;
+    }
+    toast.success("Camión creado");
+    await reload();
+    setTruckId(data.id);
+    setNewTruckOpen(false);
+    setNewTruckForm({ truck_number: "", label: "", material: "arenas" });
+  };
   const [weightKg, setWeightKg] = useState<string>("");
   const [tripTime, setTripTime] = useState<string>(() => format(new Date(), "HH:mm"));
 
@@ -161,7 +210,7 @@ const TonnageRegisterTrip = () => {
         <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
           <Truck className="h-4 w-4 text-primary" /> Camión
         </Label>
-        <Select value={truckId} onValueChange={setTruckId}>
+        <Select value={truckId} onValueChange={handleTruckChange}>
           <SelectTrigger className="h-12 text-base">
             <SelectValue placeholder="Elige el camión" />
           </SelectTrigger>
@@ -180,13 +229,54 @@ const TonnageRegisterTrip = () => {
                 </div>
               ) : null,
             )}
-            {trucks.length === 0 && (
-              <div className="p-3 text-sm text-muted-foreground">
-                No hay camiones. Pide al administrador que los cree.
-              </div>
-            )}
+            <div className="my-1 border-t border-border" />
+            <SelectItem value={NEW_TRUCK_VALUE} className="font-semibold text-primary">
+              <span className="inline-flex items-center gap-2">
+                <PlusCircle className="h-4 w-4" /> Crear nuevo camión…
+              </span>
+            </SelectItem>
           </SelectContent>
         </Select>
+
+        <Dialog open={newTruckOpen} onOpenChange={setNewTruckOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Nuevo camión</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <Input
+                  type="number"
+                  placeholder="Nº"
+                  value={newTruckForm.truck_number}
+                  onChange={(e) => setNewTruckForm((f) => ({ ...f, truck_number: e.target.value }))}
+                />
+                <Input
+                  placeholder="Nombre del camión"
+                  value={newTruckForm.label}
+                  onChange={(e) => setNewTruckForm((f) => ({ ...f, label: e.target.value }))}
+                />
+              </div>
+              <Select
+                value={newTruckForm.material}
+                onValueChange={(v: TonnageMaterial) => setNewTruckForm((f) => ({ ...f, material: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="arenas">Arenas (material principal)</SelectItem>
+                  <SelectItem value="tortas">Tortas (material principal)</SelectItem>
+                  <SelectItem value="sulfatos">Sulfatos (material principal)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNewTruckOpen(false)}>Cancelar</Button>
+              <Button onClick={() => void createNewTruck()} disabled={creatingTruck}>
+                {creatingTruck ? "Creando…" : "Crear y seleccionar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         {selectedTruck && (
           <p className="mt-2 text-xs text-muted-foreground">
             Material principal del camión:{" "}

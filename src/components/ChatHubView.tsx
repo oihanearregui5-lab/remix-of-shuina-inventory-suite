@@ -40,6 +40,7 @@ const ChatHubView = () => {
     memberUserIds: [],
   });
   const [savingChannel, setSavingChannel] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showConversationOnMobile, setShowConversationOnMobile] = useState(false);
   const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>({});
   const [lastChannelsSnapshot, setLastChannelsSnapshot] = useState<ChatChannelItem[]>([]);
@@ -479,24 +480,47 @@ const ChatHubView = () => {
 
   const sendMessage = async () => {
     if (!user || !activeChannelId) return;
-    const validationError = validateChatDraft(draft);
-    if (validationError) {
-      setChatError(validationError);
-      return toast.error(validationError);
+    const trimmed = draft.trim();
+    if (editingMessageId) {
+      const validationError = validateChatDraft(draft);
+      if (validationError) { setChatError(validationError); return toast.error(validationError); }
+      setSending(true);
+      const { error } = await db.from("chat_messages").update({ message: trimmed }).eq("id", editingMessageId);
+      setSending(false);
+      if (error) { setChatError("No se pudo guardar el cambio."); return toast.error("No se pudo editar el mensaje"); }
+      setDraft(""); setEditingMessageId(null); setChatError(null);
+      void fetchMessages(activeChannelId, true);
+      return;
     }
+    if (!trimmed && !pendingFile) { setChatError("Escribe un mensaje o adjunta una imagen."); return; }
     setSending(true);
-    const query = editingMessageId
-      ? db.from("chat_messages").update({ message: draft.trim() }).eq("id", editingMessageId)
-      : db.from("chat_messages").insert({ channel_id: activeChannelId, author_user_id: user.id, message: draft.trim() });
-    const { error } = await query;
-    setSending(false);
-    if (error) {
-      setChatError(editingMessageId ? "No se pudo guardar el cambio." : "No se pudo enviar el mensaje.");
-      return toast.error(editingMessageId ? "No se pudo editar el mensaje" : "No se pudo enviar el mensaje");
+    const { data: created, error } = await db.from("chat_messages")
+      .insert({ channel_id: activeChannelId, author_user_id: user.id, message: trimmed || "📷 Imagen" })
+      .select("id").single();
+    if (error || !created) {
+      setSending(false);
+      setChatError("No se pudo enviar el mensaje.");
+      return toast.error("No se pudo enviar el mensaje");
     }
-    setDraft("");
-    setEditingMessageId(null);
-    setChatError(null);
+    if (pendingFile) {
+      const ext = pendingFile.name.split(".").pop() || "jpg";
+      const path = `${user.id}/${activeChannelId}/${created.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("chat-attachments").upload(path, pendingFile);
+      if (upErr) {
+        toast.error("Mensaje enviado pero la imagen falló");
+      } else {
+        await db.from("chat_message_attachments").insert({
+          message_id: created.id,
+          channel_id: activeChannelId,
+          storage_path: path,
+          mime_type: pendingFile.type,
+          file_size: pendingFile.size,
+          uploaded_by_user_id: user.id,
+        });
+      }
+    }
+    setSending(false);
+    setDraft(""); setPendingFile(null); setChatError(null);
     void fetchMessages(activeChannelId, true);
   };
 
@@ -568,6 +592,8 @@ const ChatHubView = () => {
 
         <div className={showConversationOnMobile ? "block" : "hidden md:block"}>
           <ChatConversation
+            pendingFile={pendingFile}
+            onPendingFileChange={setPendingFile}
             channel={activeChannel}
             currentUserId={user?.id}
             currentUserName={profile?.full_name}
