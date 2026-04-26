@@ -1,68 +1,25 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, Download, History } from "lucide-react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardView from "@/components/DashboardView";
 import Fichajes from "@/pages/Fichajes";
+const AdminFichajes = lazy(() => import("@/pages/AdminFichajes"));
+const TaskHubView = lazy(() => import("@/components/TaskHubView"));
+const MachineFleetView = lazy(() => import("@/components/MachineFleetView"));
+const AdminHubView = lazy(() => import("@/components/AdminHubView"));
+const StaffHubView = lazy(() => import("@/components/StaffHubView"));
+const ChatHubView = lazy(() => import("@/components/ChatHubView"));
+const GasolineHubView = lazy(() => import("@/components/GasolineHubView"));
+const WorkReportsHubView = lazy(() => import("@/components/WorkReportsHubView"));
+const VacationsJourneysView = lazy(() => import("@/components/admin/VacationsJourneysView"));
+const AdminAlbaranesView = lazy(() => import("@/components/admin/AdminAlbaranesView"));
+const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
+const TonnageTripsView = lazy(() => import("@/components/TonnageTripsView"));
+const AdminTonnageView = lazy(() => import("@/components/admin/AdminTonnageView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
-import SectionFallback from "@/components/shared/SectionFallback";
 
-// Loaders separados para poder hacer prefetch al hover/focus
-const loadAdminFichajes = () => import("@/pages/AdminFichajes");
-const loadTaskHub = () => import("@/components/TaskHubView");
-const loadMachineFleet = () => import("@/components/MachineFleetView");
-const loadAdminHub = () => import("@/components/AdminHubView");
-const loadStaffHub = () => import("@/components/StaffHubView");
-const loadChatHub = () => import("@/components/ChatHubView");
-const loadGasolineHub = () => import("@/components/GasolineHubView");
-const loadWorkReportsHub = () => import("@/components/WorkReportsHubView");
-const loadVacationsJourneys = () => import("@/components/admin/VacationsJourneysView");
-const loadAdminAlbaranes = () => import("@/components/admin/AdminAlbaranesView");
-const loadPersonalNotes = () => import("@/components/PersonalNotesView");
-const loadTonnageTrips = () => import("@/components/TonnageTripsView");
-const loadAdminTonnage = () => import("@/components/admin/AdminTonnageView");
-const loadReports = () => import("@/components/admin/ReportsView");
-const loadAuditLogs = () => import("@/components/admin/AuditLogsView");
-const loadUnifiedCalendar = () => import("@/components/UnifiedCalendarView");
-
-const AdminFichajes = lazy(loadAdminFichajes);
-const TaskHubView = lazy(loadTaskHub);
-const MachineFleetView = lazy(loadMachineFleet);
-const AdminHubView = lazy(loadAdminHub);
-const StaffHubView = lazy(loadStaffHub);
-const ChatHubView = lazy(loadChatHub);
-const GasolineHubView = lazy(loadGasolineHub);
-const WorkReportsHubView = lazy(loadWorkReportsHub);
-const VacationsJourneysView = lazy(loadVacationsJourneys);
-const AdminAlbaranesView = lazy(loadAdminAlbaranes);
-const PersonalNotesView = lazy(loadPersonalNotes);
-const TonnageTripsView = lazy(loadTonnageTrips);
-const AdminTonnageView = lazy(loadAdminTonnage);
-const ReportsView = lazy(loadReports);
-const AuditLogsView = lazy(loadAuditLogs);
-const UnifiedCalendarView = lazy(loadUnifiedCalendar);
-
-// Mapa sección → loader. Se invoca al hacer hover/focus en un item de
-// navegación para precargar el chunk antes de que el usuario navegue.
-const sectionPrefetchers: Partial<Record<string, () => Promise<unknown>>> = {
-  fichajes: loadAdminFichajes,
-  tasks: loadTaskHub,
-  machines: loadMachineFleet,
-  admin: loadAdminHub,
-  staff: loadStaffHub,
-  chat: loadChatHub,
-  gasoline: loadGasolineHub,
-  workReports: loadWorkReportsHub,
-  vacations: loadVacationsJourneys,
-  albaranes: loadAdminAlbaranes,
-  notes: loadPersonalNotes,
-  tonnage: loadTonnageTrips,
-  reports: loadReports,
-  audit: loadAuditLogs,
-  unifiedCalendar: loadUnifiedCalendar,
-};
-
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "reports" | "audit" | "unifiedCalendar";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "adminTonnage";
 type WorkspaceMode = "worker" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
@@ -70,22 +27,18 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "workReports", label: "Parte", description: "Iniciar, seguir y finalizar trabajo.", icon: FileText, workspace: "worker", mobilePrimary: true },
   { key: "tasks", label: "Tareas", description: "Pendientes y prioridades del día.", icon: ClipboardList, workspace: "worker", mobilePrimary: true },
   { key: "chat", label: "Chat", description: "Mensajes internos del equipo.", icon: MessageSquare, workspace: "worker", mobilePrimary: true },
+  { key: "tonnage", label: "Toneladas", description: "Registra viajes durante el día.", icon: Scale, workspace: "worker", mobilePrimary: true },
   { key: "notes", label: "Mi espacio", description: "Notas privadas, rápidas y personales.", icon: NotebookPen, workspace: "worker", mobilePrimary: true },
   { key: "machines", label: "Máquinas", description: "Flota, incidencias y mantenimiento.", icon: Truck, workspace: "worker" },
   { key: "gasoline", label: "Gasolina", description: "Tarjetas y movimientos de repostaje.", icon: Fuel, workspace: "worker", mobilePrimary: true },
-  { key: "tonnage", label: "Toneladas", description: "Registra los viajes de hoy en pocos segundos.", icon: Scale, workspace: "worker", mobilePrimary: true },
-  { key: "staff", label: "Equipo", description: "Vacaciones, turnos y solicitudes.", icon: CalendarRange, workspace: "worker" },
-  { key: "unifiedCalendar", label: "Agenda", description: "Tareas, vacaciones, ITV y festivos en un calendario.", icon: CalendarRange, workspace: "worker" },
+  { key: "staff", label: "Calendario", description: "Vacaciones, turnos y solicitudes.", icon: CalendarRange, workspace: "worker" },
   { key: "admin", label: "Dashboard", description: "Resumen global y control operativo.", icon: ShieldCheck, workspace: "admin", adminOnly: true, mobilePrimary: true },
   { key: "fichajes", label: "Fichajes", description: "Control y revisión de entradas y salidas.", icon: Clock, workspace: "admin", mobilePrimary: true },
   { key: "workReports", label: "Partes", description: "Seguimiento y corrección de partes.", icon: FileText, workspace: "admin", mobilePrimary: true },
+  { key: "adminTonnage", label: "Toneladas", description: "Tabla tipo Excel con totales y export.", icon: Scale, workspace: "admin", mobilePrimary: true },
   { key: "gasoline", label: "Gasolina", description: "Tarjetas, gastos y exportación.", icon: Fuel, workspace: "admin", mobilePrimary: true },
-  { key: "tonnage", label: "Toneladas", description: "Tabla mensual de viajes y kilos por camión.", icon: Scale, workspace: "admin", mobilePrimary: true },
-  { key: "vacations", label: "Vacaciones", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
-  { key: "unifiedCalendar", label: "Agenda", description: "Calendario unificado de toda la operativa.", icon: CalendarRange, workspace: "admin" },
-  { key: "albaranes", label: "Albaranes", description: "Módulo preparado para gestión documental.", icon: ReceiptText, workspace: "admin", adminOnly: true },
-  { key: "reports", label: "Reportes", description: "Exporta fichajes, partes, toneladas y más.", icon: Download, workspace: "admin" },
-  { key: "audit", label: "Auditoría", description: "Historial de cambios sensibles.", icon: History, workspace: "admin", adminOnly: true },
+  { key: "vacations", label: "Calendario", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
+  { key: "albaranes", label: "Albaranes", description: "Registro de pedidos por proveedor, destino y máquina.", icon: ReceiptText, workspace: "admin", adminOnly: true },
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
 ];
 
@@ -109,25 +62,17 @@ const Index = () => {
     }
   }, [canViewAdmin, workspaceMode]);
 
-  const handleSectionChange = useCallback((section: AppSection) => {
+  const handleSectionChange = (section: AppSection) => {
     setCurrentSection(section);
     setMobileMenuOpen(false);
-  }, []);
-
-  const handleSectionPrefetch = useCallback((section: AppSection) => {
-    const loader = sectionPrefetchers[section];
-    if (loader) {
-      // Disparamos la carga sin bloquear; ignoramos errores (red caída).
-      void loader().catch(() => {});
-    }
-  }, []);
+  };
 
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
-    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "notes", "machines", "gasoline", "tonnage", "staff", "unifiedCalendar"];
+    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff"];
     const adminSections: AppSection[] = role === "admin"
-      ? ["admin", "fichajes", "workReports", "gasoline", "tonnage", "vacations", "unifiedCalendar", "albaranes", "reports", "audit", "staff"]
-      : ["fichajes", "workReports", "gasoline", "tonnage", "vacations", "unifiedCalendar", "reports", "staff"];
+      ? ["admin", "fichajes", "workReports", "adminTonnage", "gasoline", "vacations", "albaranes", "staff"]
+      : ["fichajes", "workReports", "adminTonnage", "gasoline", "vacations", "staff"];
     const allowed = workspaceMode === "admin" && canViewAdmin ? adminSections : workerSections;
     return sections.filter((section) => {
       const sectionWorkspace = section.workspace ?? "worker";
@@ -188,39 +133,18 @@ const Index = () => {
       case "notes":
         return <PersonalNotesView />;
       case "tonnage":
-        return workspaceMode === "admin" && canViewAdmin ? <AdminTonnageView /> : <TonnageTripsView />;
+        return <TonnageTripsView />;
+      case "adminTonnage":
+        return <AdminTonnageView />;
       case "albaranes":
         return <AdminAlbaranesView />;
       case "admin":
         return <AdminHubView />;
       case "vacations":
         return <VacationsJourneysView />;
-      case "unifiedCalendar":
-        return <UnifiedCalendarView />;
-      case "reports":
-        return <ReportsView />;
-      case "audit":
-        return <AuditLogsView />;
       case "fichajes":
       default:
         return workspaceMode === "admin" && canViewAdmin ? <AdminFichajes /> : <Fichajes />;
-    }
-  };
-
-  const handleNotificationNavigate = (link: string) => {
-    const map: Record<string, AppSection> = {
-      tasks: "tasks",
-      chat: "chat",
-      staff: workspaceMode === "admin" && canViewAdmin ? "vacations" : "staff",
-      machines: workspaceMode === "admin" && canViewAdmin ? "admin" : "machines",
-      workReports: "workReports",
-      gasoline: "gasoline",
-      tonnage: "tonnage",
-      albaranes: "albaranes",
-    };
-    const target = map[link];
-    if (target && visibleSections.some((s) => s.key === target)) {
-      handleSectionChange(target);
     }
   };
 
@@ -230,7 +154,6 @@ const Index = () => {
       onMobileMenuOpenChange={setMobileMenuOpen}
       currentSection={currentSection}
       onSectionChange={handleSectionChange}
-      onSectionPrefetch={handleSectionPrefetch}
       sections={visibleSections}
       canViewAdmin={canViewAdmin}
       isAdmin={isAdmin}
@@ -238,9 +161,8 @@ const Index = () => {
       profileName={profile?.full_name}
       onSignOut={signOut}
       onChangeWorkspace={handleChangeWorkspace}
-      onNotificationNavigate={handleNotificationNavigate}
     >
-      <Suspense fallback={<SectionFallback />}>
+      <Suspense fallback={<section className="panel-surface px-5 py-8 text-sm text-muted-foreground">Cargando módulo…</section>}>
         {renderCurrentSection()}
       </Suspense>
     </AppShell>
