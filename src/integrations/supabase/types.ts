@@ -1363,6 +1363,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by_user_id: string | null
+          driver_user_id: string | null
           id: string
           load_zone_id: string | null
           material_snapshot: string | null
@@ -1381,6 +1382,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by_user_id?: string | null
+          driver_user_id?: string | null
           id?: string
           load_zone_id?: string | null
           material_snapshot?: string | null
@@ -1399,6 +1401,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by_user_id?: string | null
+          driver_user_id?: string | null
           id?: string
           load_zone_id?: string | null
           material_snapshot?: string | null
