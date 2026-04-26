@@ -87,11 +87,14 @@ const QtyStepper = ({ label, value, color, onChange }: QtyStepperProps) => {
 
 const TonnageRegisterTrip = () => {
   const { isSimple } = useUIMode();
+  const { user } = useAuth();
   const today = useMemo(() => new Date(), []);
   const { trucks, zones, addTrip, reload } = useTonnage(today);
   const db = supabase as any;
 
   const [truckId, setTruckId] = useState<string>("");
+  const [driverUserId, setDriverUserId] = useState<string>("");
+  const [drivers, setDrivers] = useState<DriverOption[]>([]);
   const [newTruckOpen, setNewTruckOpen] = useState(false);
   const [newTruckForm, setNewTruckForm] = useState<{ truck_number: string; label: string; material: TonnageMaterial }>({
     truck_number: "",
@@ -99,6 +102,28 @@ const TonnageRegisterTrip = () => {
     material: "arenas",
   });
   const [creatingTruck, setCreatingTruck] = useState(false);
+
+  // Cargar lista de conductores (todos los perfiles)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await db
+        .from("profiles")
+        .select("user_id, full_name")
+        .order("full_name", { ascending: true });
+      if (cancelled) return;
+      const list = ((data ?? []) as DriverOption[]).filter((d) => (d.full_name || "").trim().length > 0);
+      setDrivers(list);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [db]);
+
+  // Por defecto, conductor = usuario actual
+  useEffect(() => {
+    if (user?.id && !driverUserId) setDriverUserId(user.id);
+  }, [user?.id, driverUserId]);
 
   const handleTruckChange = (value: string) => {
     if (value === NEW_TRUCK_VALUE) {
