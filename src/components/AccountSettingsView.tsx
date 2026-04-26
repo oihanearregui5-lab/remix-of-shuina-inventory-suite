@@ -62,17 +62,24 @@ const AccountSettingsView = () => {
       return;
     }
     setSaving(true);
+    const newName = profile.full_name.trim();
     const { error } = await db
       .from("profiles")
       .update({
-        full_name: profile.full_name.trim(),
+        full_name: newName,
         phone: profile.phone?.trim() || null,
       })
       .eq("user_id", user.id);
-    setSaving(false);
     if (error) {
+      setSaving(false);
       toast.error("No se pudo guardar el perfil");
       return;
+    }
+    // Mantener el metadata de auth en sync para que bootstrapUser no sobrescriba con el nombre antiguo
+    const { error: metaErr } = await supabase.auth.updateUser({ data: { full_name: newName } });
+    setSaving(false);
+    if (metaErr) {
+      console.error("No se pudo sincronizar el metadata", metaErr);
     }
     toast.success("Perfil actualizado");
     await bootstrapUser();
