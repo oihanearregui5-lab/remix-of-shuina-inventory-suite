@@ -981,6 +981,57 @@ export type Database = {
           },
         ]
       }
+      staff_journeys: {
+        Row: {
+          badge_label: string | null
+          color: string | null
+          created_at: string
+          created_by_user_id: string | null
+          id: string
+          journey_date: string
+          notes: string | null
+          shift: string
+          staff_member_id: string
+        }
+        Insert: {
+          badge_label?: string | null
+          color?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          journey_date: string
+          notes?: string | null
+          shift: string
+          staff_member_id: string
+        }
+        Update: {
+          badge_label?: string | null
+          color?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          journey_date?: string
+          notes?: string | null
+          shift?: string
+          staff_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_journeys_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_journeys_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_shifts: {
         Row: {
           created_at: string
@@ -1630,6 +1681,15 @@ export type Database = {
       }
     }
     Functions: {
+      apply_vacation_balance_adjustment: {
+        Args: {
+          p_days: number
+          p_direction: number
+          p_request_type: string
+          p_staff_member_id: string
+        }
+        Returns: undefined
+      }
       can_access_chat_channel: {
         Args: { _channel_id: string }
         Returns: boolean
@@ -1644,6 +1704,10 @@ export type Database = {
         Returns: boolean
       }
       can_manage_vacation_journeys: { Args: never; Returns: boolean }
+      count_request_days: {
+        Args: { p_end: string; p_start: string }
+        Returns: number
+      }
       create_notification: {
         Args: {
           _body: string
