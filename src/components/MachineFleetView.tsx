@@ -1,19 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Activity, AlertTriangle, Download, ImagePlus, Images, Loader2, Pencil, Plus, Search, TimerReset, Trash2, UserRound, Wrench } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Camera, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUIMode } from "@/hooks/useUIMode";
 import PageHeader from "@/components/shared/PageHeader";
 import MachineDetailDialog, { type MachineDialogItem } from "@/components/machines/MachineDetailDialog";
-import MachineAttachmentsDialog from "@/components/machines/MachineAttachmentsDialog";
+import MachinePhotosDialog from "@/components/machines/MachinePhotosDialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { buildMachineUsageSummary, formatHoursCompact, type MachineUsageReport } from "@/lib/machine-usage";
-import { machineSeed } from "@/data/transtubari";
+import { cn } from "@/lib/utils";
 import baneraTisvolImage from "@/assets/banera-tisvol-r6823bdp.jpg";
 import camionicoNissanImage from "@/assets/camionico-nissan-3971bkd.jpg";
 import komatsuImage from "@/assets/komatsu.jpg";
@@ -56,6 +56,52 @@ const machineVisuals: Record<string, string> = {
   "wirtgen-2200-sm": wirtgen2200SmImage,
 };
 
+// Mapeo adicional por nombre/matrícula normalizados.
+// Permite que la foto se vincule aunque la máquina de Supabase tenga un UUID
+// distinto al id del seed. El matching se hace sobre nombre visible o matrícula.
+const normalize = (value: string | null | undefined): string =>
+  (value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quita tildes
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const machineVisualsByName: Record<string, string> = {
+  "banera-tisvol": baneraTisvolImage,
+  "r6823bdp": baneraTisvolImage,
+  "camionico-nissan": camionicoNissanImage,
+  "3971-bkd": camionicoNissanImage,
+  "komatsu": komatsuImage,
+  "liebherr-900": liebherrImage,
+  "liebherr": liebherrImage,
+  "pala-volvo-vieja-220": palaVolvoImage,
+  "pala-volvo-220": palaVolvoImage,
+  "retro-hitachi": retroHitachiImage,
+  "scania-azul": scaniaAzulImage,
+  "3930-jjd": scaniaAzulImage,
+  "volvo-nueva-150": volvoNuevaImage,
+  "volvo-150": volvoNuevaImage,
+  "wirtgen-2100": wirtgen2100Image,
+  "wirtgen-2200-sm": wirtgen2200SmImage,
+  "wirtgen-2200": wirtgen2200SmImage,
+};
+
+const resolveMachineImage = (machine: { id: string; display_name: string; license_plate: string | null }): string | null => {
+  // 1) Si el id coincide con el seed → usamos esa
+  const bySeedId = machineVisuals[machine.id];
+  if (bySeedId) return bySeedId;
+  // 2) Buscar por nombre normalizado
+  const byName = machineVisualsByName[normalize(machine.display_name)];
+  if (byName) return byName;
+  // 3) Buscar por matrícula normalizada
+  if (machine.license_plate) {
+    const byPlate = machineVisualsByName[normalize(machine.license_plate)];
+    if (byPlate) return byPlate;
+  }
+  return null;
+};
+
 interface MachineAssetItem {
   id: string;
   display_name: string;
@@ -72,434 +118,447 @@ interface ServiceItem { id: string; machine_id: string; title: string; due_date:
 interface IncidentItem { id: string; machine_id: string; title: string; status: string; due_date: string | null }
 interface WorkReportItem extends MachineUsageReport {}
 
+const emptyForm = { display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active" as MachineStatus, notes: "" };
+
 const MachineFleetView = () => {
   const { user, isAdmin } = useAuth();
+  const { isSimple } = useUIMode();
   const db = supabase as any;
-  const machineImageMap = useMemo(() => new Map(machineSeed.filter((item) => item.image).map((item) => [item.id, machineVisuals[item.image]])), []);
+
   const [machines, setMachines] = useState<MachineAssetItem[]>([]);
   const [notes, setNotes] = useState<MachineNoteItem[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [incidents, setIncidents] = useState<IncidentItem[]>([]);
   const [workReports, setWorkReports] = useState<WorkReportItem[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [photoCounts, setPhotoCounts] = useState<Record<string, number>>({});
+
   const [selectedMachine, setSelectedMachine] = useState<MachineDialogItem | null>(null);
+  const [photosDialog, setPhotosDialog] = useState<{ id: string; name: string } | null>(null);
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [density, setDensity] = useState<"comfy" | "compact">(() => {
+    if (typeof window === "undefined") return "comfy";
+    return (window.localStorage.getItem("transtubari-machines-density") as "comfy" | "compact") || "comfy";
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<MachineStatus | "all">("all");
-  const [form, setForm] = useState({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active" as MachineStatus, notes: "", photo_url: "" as string | null });
-  const [uploadingPhotoFor, setUploadingPhotoFor] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const cardFileInputs = useRef<Record<string, HTMLInputElement | null>>({});
-  const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<string, string>>({});
-  const [galleryMachine, setGalleryMachine] = useState<{ id: string; name: string } | null>(null);
 
-  useEffect(() => { if (user) void Promise.all([fetchMachines(), fetchNotes(), fetchServices(), fetchIncidents(), fetchWorkReports()]); }, [user]);
+  const toggleDensity = () => {
+    const next = density === "comfy" ? "compact" : "comfy";
+    setDensity(next);
+    if (typeof window !== "undefined") window.localStorage.setItem("transtubari-machines-density", next);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    void Promise.all([fetchMachines(), fetchNotes(), fetchServices(), fetchIncidents(), fetchWorkReports(), fetchPhotoCounts()]);
+  }, [user]);
 
   const fetchMachines = async () => {
-    const { data, error } = await db.from("machine_assets").select("id, display_name, asset_family, asset_code, license_plate, status, notes, photo_url").order("display_name");
+    const { data, error } = await db
+      .from("machine_assets")
+      .select("id, display_name, asset_family, asset_code, license_plate, status, notes, photo_url")
+      .order("display_name");
     if (error) return toast.error("No se pudieron cargar las máquinas");
     setMachines((data ?? []) as MachineAssetItem[]);
   };
-  const fetchNotes = async () => { const { data } = await db.from("machine_notes").select("id, machine_id, note, is_highlight, created_at").order("created_at", { ascending: false }).limit(300); setNotes((data ?? []) as MachineNoteItem[]); };
-  const fetchServices = async () => { const { data } = await db.from("machine_service_records").select("id, machine_id, title, due_date, status").order("due_date"); setServices((data ?? []) as ServiceItem[]); };
-  const fetchIncidents = async () => { const { data } = await db.from("machine_incidents").select("id, machine_id, title, due_date, status").order("created_at", { ascending: false }); setIncidents((data ?? []) as IncidentItem[]); };
+  const fetchNotes = async () => {
+    const { data } = await db.from("machine_notes").select("id, machine_id, note, is_highlight, created_at").order("created_at", { ascending: false }).limit(300);
+    setNotes((data ?? []) as MachineNoteItem[]);
+  };
+  const fetchServices = async () => {
+    const { data } = await db.from("machine_service_records").select("id, machine_id, title, due_date, status").order("due_date");
+    setServices((data ?? []) as ServiceItem[]);
+  };
+  const fetchIncidents = async () => {
+    const { data } = await db.from("machine_incidents").select("id, machine_id, title, due_date, status").order("created_at", { ascending: false });
+    setIncidents((data ?? []) as IncidentItem[]);
+  };
   const fetchWorkReports = async () => {
     const { data } = await db.from("work_reports").select("id, machine, worker_name, started_at, ended_at").order("started_at", { ascending: false }).limit(500);
     setWorkReports((data ?? []) as WorkReportItem[]);
   };
+  const fetchPhotoCounts = async () => {
+    const { data } = await db.from("machine_photos").select("machine_id");
+    const counts: Record<string, number> = {};
+    ((data ?? []) as Array<{ machine_id: string }>).forEach((row) => {
+      counts[row.machine_id] = (counts[row.machine_id] ?? 0) + 1;
+    });
+    setPhotoCounts(counts);
+  };
 
-  const saveMachine = async () => {
-    if (!form.display_name.trim() || !form.asset_family.trim()) return;
-    const payload = { display_name: form.display_name.trim(), asset_family: form.asset_family.trim(), asset_code: form.asset_code.trim() || null, license_plate: form.license_plate.trim() || null, status: form.status, notes: form.notes.trim() || null, photo_url: form.photo_url || null };
-    const { error } = editingId ? await db.from("machine_assets").update(payload).eq("id", editingId) : await db.from("machine_assets").insert(payload);
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFormDialogOpen(true);
+  };
+
+  const openEdit = (machine: MachineAssetItem) => {
+    setEditingId(machine.id);
+    setForm({
+      display_name: machine.display_name,
+      asset_family: machine.asset_family,
+      asset_code: machine.asset_code || "",
+      license_plate: machine.license_plate || "",
+      status: machine.status,
+      notes: machine.notes || "",
+    });
+    setFormDialogOpen(true);
+  };
+
+  const saveMachine = async (keepOpen = false) => {
+    if (!form.display_name.trim() || !form.asset_family.trim()) {
+      toast.error("Nombre y familia son obligatorios");
+      return;
+    }
+    const payload = {
+      display_name: form.display_name.trim(),
+      asset_family: form.asset_family.trim(),
+      asset_code: form.asset_code.trim() || null,
+      license_plate: form.license_plate.trim() || null,
+      status: form.status,
+      notes: form.notes.trim() || null,
+    };
+    const { error } = editingId
+      ? await db.from("machine_assets").update(payload).eq("id", editingId)
+      : await db.from("machine_assets").insert(payload);
     if (error) return toast.error(editingId ? "No se pudo editar la máquina" : "No se pudo crear la máquina");
     toast.success(editingId ? "Máquina actualizada" : "Máquina creada");
     setEditingId(null);
-    setForm({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active", notes: "", photo_url: "" });
+    setForm(emptyForm);
+    if (!keepOpen) setFormDialogOpen(false);
     void fetchMachines();
   };
 
-  const resolveMachineVisual = (machine: MachineAssetItem) => {
-    if (machine.photo_url) return photoSignedUrls[machine.id] || null;
-    return machineImageMap.get(machine.id) || null;
-  };
-
-  useEffect(() => {
-    const pending = machines.filter((machine) => machine.photo_url && !photoSignedUrls[machine.id]);
-    if (pending.length === 0) return;
-    void (async () => {
-      const updates: Record<string, string> = {};
-      for (const machine of pending) {
-        if (!machine.photo_url) continue;
-        const path = machine.photo_url.startsWith("machine-photos/") ? machine.photo_url.replace("machine-photos/", "") : machine.photo_url;
-        const { data } = await db.storage.from("machine-photos").createSignedUrl(path, 60 * 60);
-        if (data?.signedUrl) updates[machine.id] = data.signedUrl;
-      }
-      if (Object.keys(updates).length > 0) setPhotoSignedUrls((current) => ({ ...current, ...updates }));
-    })();
-  }, [machines]);
-
-  const uploadPhoto = async (machineId: string | null, file: File) => {
-    if (!user) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecciona una imagen válida");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen no puede superar 5 MB");
-      return;
-    }
-    const targetId = machineId || "drafts";
-    setUploadingPhotoFor(targetId);
-    try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${targetId}/${crypto.randomUUID()}.${ext}`;
-      const { error: uploadError } = await db.storage.from("machine-photos").upload(path, file, { upsert: false, contentType: file.type });
-      if (uploadError) throw uploadError;
-      if (machineId) {
-        const { error: updateError } = await db.from("machine_assets").update({ photo_url: path }).eq("id", machineId);
-        if (updateError) throw updateError;
-        toast.success("Foto actualizada");
-        setPhotoSignedUrls((current) => {
-          const next = { ...current };
-          delete next[machineId];
-          return next;
-        });
-        void fetchMachines();
-      } else {
-        setForm((current) => ({ ...current, photo_url: path }));
-        toast.success("Foto cargada, recuerda guardar la máquina");
-      }
-    } catch (error) {
-      toast.error("No se pudo subir la foto");
-    } finally {
-      setUploadingPhotoFor(null);
-    }
-  };
-
   const deleteMachine = async (machineId: string) => {
+    if (!window.confirm("¿Eliminar esta máquina?")) return;
     const { error } = await db.from("machine_assets").delete().eq("id", machineId);
     if (error) return toast.error("No se pudo eliminar la máquina");
     toast.success("Máquina eliminada");
     void fetchMachines();
   };
 
-  const saveNote = async (machineId: string) => {
-    if (!user || !drafts[machineId]?.trim()) return;
-    const { error } = await db.from("machine_notes").insert({ machine_id: machineId, author_user_id: user.id, note: drafts[machineId].trim(), is_highlight: drafts[machineId].trim().length > 90 });
-    if (error) return toast.error("No se pudo guardar la observación");
-    setDrafts((current) => ({ ...current, [machineId]: "" }));
-    toast.success("Observación guardada");
-    void fetchNotes();
-  };
+  const machineCards = useMemo(
+    () =>
+      machines.map((machine) => {
+        const noteItems = notes.filter((note) => note.machine_id === machine.id);
+        const serviceItems = services.filter((service) => service.machine_id === machine.id);
+        const incidentItems = incidents.filter((incident) => incident.machine_id === machine.id);
+        const usage = buildMachineUsageSummary(machine, workReports);
+        const openIncidents = incidentItems.filter((incident) => incident.status !== "resolved").length;
+        const pendingServices = serviceItems.filter((service) => service.status !== "completed").length;
+        const riskScore =
+          (machine.status === "repair" ? 4 : 0) +
+          (machine.status === "maintenance" ? 2 : 0) +
+          (machine.status === "inspection" ? 2 : 0) +
+          openIncidents * 2 +
+          pendingServices;
+        const riskLevel: "critical" | "attention" | "stable" =
+          riskScore >= 6 ? "critical" : riskScore >= 3 ? "attention" : "stable";
 
-  const exportMachine = (machine: MachineAssetItem) => {
-    const payload = {
-      machine,
-      notes: notes.filter((note) => note.machine_id === machine.id),
-      services: services.filter((service) => service.machine_id === machine.id),
-      incidents: incidents.filter((incident) => incident.machine_id === machine.id),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${machine.display_name.toLowerCase().replace(/\s+/g, "-")}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+        return {
+          ...machine,
+          visual: machine.photo_url || resolveMachineImage(machine) || null,
+          noteItems,
+          serviceItems,
+          incidentItems,
+          usage,
+          openIncidents,
+          pendingServices,
+          riskLevel,
+          photoCount: photoCounts[machine.id] ?? 0,
+        };
+      }),
+    [incidents, machines, notes, services, workReports, photoCounts],
+  );
 
-  const machineCards = useMemo(() => machines.map((machine) => {
-    const noteItems = notes.filter((note) => note.machine_id === machine.id);
-    const serviceItems = services.filter((service) => service.machine_id === machine.id);
-    const incidentItems = incidents.filter((incident) => incident.machine_id === machine.id);
-    const usage = buildMachineUsageSummary(machine, workReports);
-    const today = new Date();
-    const sevenDaysAhead = new Date(today.getTime() + 7 * 24 * 36e5);
-    const upcomingService = serviceItems.find((service) => service.due_date);
-    const dueSoonCount = [...serviceItems, ...incidentItems].filter((item) => {
-      if (!item.due_date) return false;
-      const dueDate = new Date(item.due_date);
-      return dueDate <= sevenDaysAhead;
-    }).length;
-    const openIncidents = incidentItems.filter((incident) => incident.status !== "resolved").length;
-    const pendingServices = serviceItems.filter((service) => service.status !== "completed").length;
-    const riskScore =
-      (machine.status === "repair" ? 4 : 0) +
-      (machine.status === "maintenance" ? 2 : 0) +
-      (machine.status === "inspection" ? 2 : 0) +
-      openIncidents * 2 +
-      pendingServices +
-      dueSoonCount;
-    const riskLevel: "critical" | "attention" | "stable" = riskScore >= 6 ? "critical" : riskScore >= 3 ? "attention" : "stable";
-
-    return {
-      ...machine,
-      visual: resolveMachineVisual(machine),
-      noteItems,
-      serviceItems,
-      incidentItems,
-      usage,
-      dueSoonCount,
-      openIncidents,
-      pendingServices,
-      upcomingService,
-      riskLevel,
-      riskScore,
-    };
-  }), [incidents, machines, notes, services, workReports]);
-
-  const fleetSummary = useMemo(() => ({
-    total: machineCards.length,
-    activeNow: machineCards.filter((machine) => Boolean(machine.usage.activeReport)).length,
-    inRepair: machineCards.filter((machine) => machine.status === "repair").length,
-    dueSoon: machineCards.reduce((sum, machine) => sum + machine.dueSoonCount, 0),
-    withAlerts: machineCards.filter((machine) => machine.riskLevel !== "stable").length,
-  }), [machineCards]);
-
-  const priorityMachines = useMemo(() =>
-    [...machineCards]
-      .filter((machine) => machine.riskLevel !== "stable")
-      .sort((left, right) => right.riskScore - left.riskScore || right.openIncidents - left.openIncidents)
-      .slice(0, 4),
-  [machineCards]);
+  const fleetSummary = useMemo(
+    () => ({
+      total: machineCards.length,
+      activeNow: machineCards.filter((machine) => Boolean(machine.usage.activeReport)).length,
+      inRepair: machineCards.filter((machine) => machine.status === "repair").length,
+      withAlerts: machineCards.filter((machine) => machine.riskLevel !== "stable").length,
+    }),
+    [machineCards],
+  );
 
   const filteredMachineCards = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     return machineCards.filter((machine) => {
       const matchesStatus = statusFilter === "all" || machine.status === statusFilter;
-      const matchesSearch = !normalizedSearch || [machine.display_name, machine.asset_family, machine.license_plate, machine.asset_code]
-        .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(normalizedSearch));
+      const matchesSearch =
+        !normalizedSearch ||
+        [machine.display_name, machine.asset_family, machine.license_plate, machine.asset_code]
+          .filter(Boolean)
+          .some((value) => value!.toLowerCase().includes(normalizedSearch));
       return matchesStatus && matchesSearch;
     });
   }, [machineCards, searchTerm, statusFilter]);
 
+  const openDetail = (machine: (typeof machineCards)[number]) => {
+    setSelectedMachine({
+      id: machine.id,
+      name: machine.display_name,
+      plate: machine.license_plate || "Sin matrícula",
+      family: machine.asset_family,
+      status: machine.status === "inactive" ? "inspection" : machine.status,
+      focus: [machine.asset_code || "Sin código", machine.asset_family],
+      provider: "Proveedor pendiente",
+      nextInspection: machine.serviceItems[0]?.due_date || "Sin revisión programada",
+      nextIvt: machine.incidentItems[0]?.due_date || "Sin ITV registrada",
+      fluids: [],
+      notes: machine.noteItems,
+      priority: machine.riskLevel,
+      serviceOverview: machine.serviceItems.slice(0, 4).map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.due_date })),
+      incidentOverview: machine.incidentItems.slice(0, 4).map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.due_date })),
+      usage: {
+        totalHours30d: formatHoursCompact(machine.usage.totalHours30d),
+        activeOperator: machine.usage.activeReport?.worker_name ?? "Sin uso activo",
+        activeSince: machine.usage.activeReport?.started_at ?? "No hay sesión abierta",
+        operators: machine.usage.uniqueOperators,
+        recentTimeline: machine.usage.recentTimeline.map((item) => ({
+          id: item.id,
+          workerName: item.workerName,
+          startedAt: item.startedAt,
+          endedAt: item.endedAt,
+          durationLabel: formatHoursCompact(item.durationHours),
+          isActive: item.isActive,
+        })),
+      },
+    });
+  };
+
   return (
-    <div className="space-y-5 animate-fade-in">
-      <PageHeader eyebrow="Máquinas" title="Flota unificada" description="Lectura operativa, prioridades de taller y seguimiento completo de cada unidad en un solo panel." />
-
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <article className="panel-surface p-4 xl:col-span-1">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Flota</p>
-          <p className="mt-2 text-2xl font-semibold text-foreground">{fleetSummary.total}</p>
-          <p className="text-sm text-muted-foreground">unidades registradas</p>
-        </article>
-        <article className="panel-surface p-4 xl:col-span-1">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">En uso</p>
-          <p className="mt-2 text-2xl font-semibold text-foreground">{fleetSummary.activeNow}</p>
-          <p className="text-sm text-muted-foreground">partes activos ahora mismo</p>
-        </article>
-        <article className="panel-surface p-4 xl:col-span-1">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Averías</p>
-          <p className="mt-2 text-2xl font-semibold text-foreground">{fleetSummary.inRepair}</p>
-          <p className="text-sm text-muted-foreground">máquinas fuera de ritmo</p>
-        </article>
-        <article className="panel-surface p-4 xl:col-span-1">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Vencimientos</p>
-          <p className="mt-2 text-2xl font-semibold text-foreground">{fleetSummary.dueSoon}</p>
-          <p className="text-sm text-muted-foreground">hitos próximos o vencidos</p>
-        </article>
-        <article className="panel-surface p-4 xl:col-span-1">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Radar</p>
-          <p className="mt-2 text-2xl font-semibold text-foreground">{fleetSummary.withAlerts}</p>
-          <p className="text-sm text-muted-foreground">unidades con atención prioritaria</p>
-        </article>
-      </section>
-
-      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.8fr)]">
-        <div className="panel-surface p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Control de flota</p>
-              <p className="text-sm text-muted-foreground">Busca por máquina, familia, matrícula o código y filtra por estado.</p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="relative min-w-[220px]">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar unidad" className="pl-9" />
-              </div>
-              <Select value={statusFilter} onValueChange={(value: MachineStatus | "all") => setStatusFilter(value)}>
-                <SelectTrigger className="min-w-[180px]"><SelectValue placeholder="Estado" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="active">Operativa</SelectItem>
-                  <SelectItem value="maintenance">Mantenimiento</SelectItem>
-                  <SelectItem value="repair">Avería</SelectItem>
-                  <SelectItem value="inspection">Inspección</SelectItem>
-                  <SelectItem value="inactive">Inactiva</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+    <div className="space-y-4 animate-fade-in">
+      <PageHeader
+        eyebrow="Máquinas"
+        title="Flota"
+        description="Estado, mantenimiento y fotos de cada unidad."
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleDensity}
+              title={density === "comfy" ? "Pasar a vista compacta (4 columnas)" : "Pasar a vista espaciada (3 columnas)"}
+            >
+              {density === "comfy" ? "Vista compacta" : "Vista espaciada"}
+            </Button>
+            {isAdmin ? (
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4" /> Nueva máquina
+              </Button>
+            ) : null}
           </div>
+        }
+      />
+
+      {!isSimple && (
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <article className="panel-surface p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Flota</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">{fleetSummary.total}</p>
+          </article>
+          <article className="panel-surface p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">En uso ahora</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">{fleetSummary.activeNow}</p>
+          </article>
+          <article className="panel-surface p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Averías</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">{fleetSummary.inRepair}</p>
+          </article>
+          <article className="panel-surface p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Con alertas</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">{fleetSummary.withAlerts}</p>
+          </article>
+        </section>
+      )}
+
+      {/* Filtros */}
+      <section className="panel-surface p-3 md:p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar máquina, familia o matrícula"
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={(value: MachineStatus | "all") => setStatusFilter(value)}>
+            <SelectTrigger className="sm:w-48">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="active">Operativa</SelectItem>
+              <SelectItem value="maintenance">Mantenimiento</SelectItem>
+              <SelectItem value="repair">Avería</SelectItem>
+              <SelectItem value="inspection">Inspección</SelectItem>
+              <SelectItem value="inactive">Inactiva</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-
-        <aside className="panel-surface p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground"><AlertTriangle className="h-4 w-4 text-warning" /> Radar prioritario</div>
-          <div className="mt-3 space-y-3">
-            {priorityMachines.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hay máquinas críticas ni revisiones urgentes en este momento.</p>
-            ) : priorityMachines.map((machine) => (
-              <button
-                key={machine.id}
-                type="button"
-                onClick={() => setSelectedMachine({
-                  id: machine.id,
-                  name: machine.display_name,
-                  plate: machine.license_plate || "Sin matrícula",
-                  family: machine.asset_family,
-                  status: machine.status === "inactive" ? "inspection" : machine.status,
-                  focus: [machine.asset_code || "Sin código", `${machine.openIncidents} incidencias abiertas`, `${machine.pendingServices} mantenimientos pendientes`],
-                  provider: "Proveedor pendiente",
-                  nextInspection: machine.upcomingService?.due_date ? format(new Date(machine.upcomingService.due_date), "d MMM yyyy", { locale: es }) : "Sin revisión programada",
-                  nextIvt: machine.incidentItems[0]?.due_date ? format(new Date(machine.incidentItems[0].due_date), "d MMM yyyy", { locale: es }) : "Sin ITV registrada",
-                  fluids: ["Aceite motor", "Aceite hidráulico", "Anticongelante"],
-                  notes: machine.noteItems,
-                  priority: machine.riskLevel,
-                  serviceOverview: machine.serviceItems.slice(0, 4).map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.due_date })),
-                  incidentOverview: machine.incidentItems.slice(0, 4).map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.due_date })),
-                  usage: { totalHours30d: formatHoursCompact(machine.usage.totalHours30d), activeOperator: machine.usage.activeReport?.worker_name ?? "Sin uso activo", activeSince: machine.usage.activeReport?.started_at ? `Desde ${format(new Date(machine.usage.activeReport.started_at), "d MMM · HH:mm", { locale: es })}` : "No hay sesión abierta", operators: machine.usage.uniqueOperators, recentTimeline: machine.usage.recentTimeline.map((item) => ({ id: item.id, workerName: item.workerName, startedAt: item.startedAt, endedAt: item.endedAt, durationLabel: formatHoursCompact(item.durationHours), isActive: item.isActive })) }
-                })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-3 text-left transition-colors hover:bg-muted/40"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-foreground">{machine.display_name}</p>
-                    <p className="text-xs text-muted-foreground">{machine.asset_family} · {machine.license_plate || "Sin matrícula"}</p>
-                  </div>
-                  <span className="rounded-full bg-warning/15 px-2.5 py-1 text-[11px] font-medium text-foreground">{machine.dueSoonCount} hitos</span>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{machine.openIncidents} incidencias abiertas · {machine.pendingServices} mantenimientos pendientes</p>
-              </button>
-            ))}
-          </div>
-        </aside>
       </section>
 
-      <section className="grid gap-3 lg:grid-cols-[360px_1fr]">
-        {isAdmin && (
-          <aside className="panel-surface p-4">
-            <div className="mb-4 flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">{editingId ? "Editar máquina" : "Nueva máquina"}</p></div>
-            <div className="space-y-3">
-              <Input value={form.display_name} onChange={(e) => setForm((current) => ({ ...current, display_name: e.target.value }))} placeholder="Nombre visible" />
-              <Input value={form.asset_family} onChange={(e) => setForm((current) => ({ ...current, asset_family: e.target.value }))} placeholder="Familia" />
-              <Input value={form.asset_code} onChange={(e) => setForm((current) => ({ ...current, asset_code: e.target.value }))} placeholder="Código interno" />
-              <Input value={form.license_plate} onChange={(e) => setForm((current) => ({ ...current, license_plate: e.target.value }))} placeholder="Matrícula" />
-              <Select value={form.status} onValueChange={(value: MachineStatus) => setForm((current) => ({ ...current, status: value }))}>
-                <SelectTrigger><SelectValue placeholder="Estado" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Operativa</SelectItem>
-                  <SelectItem value="maintenance">Mantenimiento</SelectItem>
-                  <SelectItem value="repair">Avería</SelectItem>
-                  <SelectItem value="inspection">Inspección</SelectItem>
-                  <SelectItem value="inactive">Inactiva</SelectItem>
-                </SelectContent>
-              </Select>
-              <Textarea value={form.notes} onChange={(e) => setForm((current) => ({ ...current, notes: e.target.value }))} placeholder="Observaciones generales" className="min-h-24" />
-              <div className="space-y-2">
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadPhoto(editingId, file); event.target.value = ""; }} />
-                <Button type="button" variant="soft" className="w-full" onClick={() => fileInputRef.current?.click()} disabled={uploadingPhotoFor !== null}>
-                  {uploadingPhotoFor === (editingId || "drafts") ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-                  {form.photo_url ? "Cambiar foto" : "Subir foto"}
-                </Button>
-                {form.photo_url && !editingId ? <p className="text-xs text-muted-foreground">Foto cargada. Se asociará al guardar.</p> : null}
-              </div>
-              <div className="flex gap-2">
-                <Button className="flex-1" onClick={() => void saveMachine()}>Guardar</Button>
-                {editingId && <Button variant="outline" onClick={() => { setEditingId(null); setForm({ display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active", notes: "", photo_url: "" }); }}>Cancelar</Button>}
-              </div>
-            </div>
-          </aside>
-        )}
-
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {/* Grid de tarjetas compactas */}
+      {filteredMachineCards.length === 0 ? (
+        <div className="panel-surface p-8 text-center text-sm text-muted-foreground">
+          No hay máquinas que coincidan con los filtros actuales.
+        </div>
+      ) : (
+        <section className={cn(
+          "grid",
+          density === "compact"
+            ? "gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            : "gap-5 sm:grid-cols-2 lg:grid-cols-3",
+        )}>
           {filteredMachineCards.map((machine) => (
-            <article key={machine.id} className="panel-surface p-4">
-              <button className="w-full text-left" onClick={() => setSelectedMachine({ id: machine.id, name: machine.display_name, plate: machine.license_plate || "Sin matrícula", family: machine.asset_family, status: machine.status === "inactive" ? "inspection" : machine.status, focus: [machine.asset_code || "Sin código", machine.asset_family, `${machine.openIncidents} incidencias`, `${machine.pendingServices} servicios pendientes`], provider: "Proveedor pendiente", nextInspection: machine.serviceItems[0]?.due_date ? format(new Date(machine.serviceItems[0].due_date), "d MMM yyyy", { locale: es }) : "Sin revisión programada", nextIvt: machine.incidentItems[0]?.due_date ? format(new Date(machine.incidentItems[0].due_date), "d MMM yyyy", { locale: es }) : "Sin ITV registrada", fluids: ["Aceite motor", "Aceite hidráulico", "Anticongelante"], notes: machine.noteItems, priority: machine.riskLevel, serviceOverview: machine.serviceItems.slice(0, 4).map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.due_date })), incidentOverview: machine.incidentItems.slice(0, 4).map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.due_date })), usage: { totalHours30d: formatHoursCompact(machine.usage.totalHours30d), activeOperator: machine.usage.activeReport?.worker_name ?? "Sin uso activo", activeSince: machine.usage.activeReport?.started_at ? `Desde ${format(new Date(machine.usage.activeReport.started_at), "d MMM · HH:mm", { locale: es })}` : "No hay sesión abierta", operators: machine.usage.uniqueOperators, recentTimeline: machine.usage.recentTimeline.map((item) => ({ id: item.id, workerName: item.workerName, startedAt: item.startedAt, endedAt: item.endedAt, durationLabel: formatHoursCompact(item.durationHours), isActive: item.isActive })) } })}>
+            <article key={machine.id} className="panel-surface flex flex-col overflow-hidden p-0">
+              {/* Foto con overlay de fotos disponibles */}
+              <button
+                type="button"
+                onClick={() => openDetail(machine)}
+                className="group relative block aspect-[16/10] w-full overflow-hidden bg-muted"
+              >
                 {machine.visual ? (
-                  <div className="mb-4 overflow-hidden rounded-lg border border-border bg-muted">
-                    <img src={machine.visual} alt={machine.display_name} className="h-40 w-full object-cover" loading="lazy" />
+                  <img
+                    src={machine.visual}
+                    alt={machine.display_name}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
+                    <Camera className="h-8 w-8" />
+                    <span className="text-[10px] uppercase tracking-wider">Sin foto</span>
                   </div>
-                ) : null}
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-foreground">{machine.display_name}</p>
-                    <p className="text-sm text-muted-foreground">{machine.license_plate || "Sin matrícula"} · {machine.asset_family}</p>
-                  </div>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${machineStatusTone[machine.status]}`}>{machineStatusLabel[machine.status]}</span>
-                </div>
+                )}
+                {machine.photoCount > 0 && (
+                  <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
+                    <Camera className="h-3 w-3" />
+                    {machine.photoCount}
+                  </span>
+                )}
               </button>
 
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="rounded-xl bg-muted px-2 py-3 text-foreground"><p className="font-semibold">{machine.noteItems.length}</p><p className="text-muted-foreground">Notas</p></div>
-                <div className="rounded-xl bg-muted px-2 py-3 text-foreground"><p className="font-semibold">{formatHoursCompact(machine.usage.totalHours30d)}</p><p className="text-muted-foreground">Uso 30d</p></div>
-                <div className="rounded-xl bg-muted px-2 py-3 text-foreground"><p className="font-semibold">{machine.usage.uniqueOperators}</p><p className="text-muted-foreground">Operarios</p></div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-background px-2.5 py-1 text-foreground">{machine.openIncidents} incidencias abiertas</span>
-                <span className="rounded-full bg-background px-2.5 py-1 text-foreground">{machine.pendingServices} mantenimientos</span>
-                <span className={`rounded-full px-2.5 py-1 ${machine.riskLevel === "critical" ? "bg-destructive/10 text-destructive" : machine.riskLevel === "attention" ? "bg-warning/15 text-foreground" : "bg-success/15 text-success"}`}>
-                  {machine.riskLevel === "critical" ? "Crítica" : machine.riskLevel === "attention" ? "Atención" : "Estable"}
-                </span>
-              </div>
-
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <div className="rounded-lg border border-border bg-background px-3 py-3 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground"><Activity className="h-4 w-4 text-primary" /> Estado operativo</div>
-                  <p className="mt-2 font-semibold text-foreground">{machine.usage.activeReport ? "En uso ahora" : "Sin uso activo"}</p>
-                  <p className="text-xs text-muted-foreground">{machine.usage.lastActivityAt ? `Último movimiento ${format(new Date(machine.usage.lastActivityAt), "d MMM · HH:mm", { locale: es })}` : "Sin partes vinculados"}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-background px-3 py-3 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground"><UserRound className="h-4 w-4 text-secondary" /> Taller y alertas</div>
-                  <p className="mt-2 font-semibold text-foreground">{machine.upcomingService?.title ?? "Sin revisión inmediata"}</p>
-                  <p className="text-xs text-muted-foreground">{machine.dueSoonCount > 0 ? `${machine.dueSoonCount} hitos vencidos o próximos` : `${machine.usage.sessions30d} jornadas en 30 días`}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-lg border border-border bg-background p-3">
-                <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground"><TimerReset className="h-4 w-4 text-primary" /> Tiempos recientes</div>
-                <div className="space-y-2 text-sm">
-                  {machine.usage.recentTimeline.length === 0 ? <p className="text-muted-foreground">Sin uso operativo reciente.</p> : machine.usage.recentTimeline.slice(0, 3).map((item) => (
-                    <div key={item.id} className="flex items-center justify-between gap-3 rounded-md bg-muted px-3 py-2">
-                      <div>
-                        <p className="font-medium text-foreground">{item.workerName}</p>
-                        <p className="text-xs text-muted-foreground">{format(new Date(item.startedAt), "d MMM · HH:mm", { locale: es })}{item.endedAt ? ` → ${format(new Date(item.endedAt), "HH:mm", { locale: es })}` : " · En curso"}</p>
-                      </div>
-                      <span className="text-xs font-semibold text-foreground">{formatHoursCompact(item.durationHours)}</span>
+              {/* Info compacta */}
+              <div className="flex flex-1 flex-col gap-2 p-3">
+                <button type="button" onClick={() => openDetail(machine)} className="text-left">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-foreground">{machine.display_name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {machine.license_plate || "Sin matrícula"} · {machine.asset_family}
+                      </p>
                     </div>
-                  ))}
+                    <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider", machineStatusTone[machine.status])}>
+                      {machineStatusLabel[machine.status]}
+                    </span>
+                  </div>
+                </button>
+
+                {/* Chips de info rápida */}
+                {(machine.openIncidents > 0 || machine.pendingServices > 0) && (
+                  <p className="text-xs text-muted-foreground">
+                    {machine.openIncidents > 0 && <span className="mr-2 font-medium text-destructive">{machine.openIncidents} avería{machine.openIncidents > 1 ? "s" : ""}</span>}
+                    {machine.pendingServices > 0 && <span className="font-medium text-foreground">{machine.pendingServices} mantenimiento{machine.pendingServices > 1 ? "s" : ""}</span>}
+                  </p>
+                )}
+
+                {machine.riskLevel === "critical" && (
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Atención prioritaria
+                  </div>
+                )}
+
+                {/* Acciones */}
+                <div className="mt-auto flex flex-wrap gap-1.5 pt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1 px-2 text-xs"
+                    onClick={() => setPhotosDialog({ id: machine.id, name: machine.display_name })}
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                    {machine.photoCount > 0 ? `Ver fotos (${machine.photoCount})` : "Fotos"}
+                  </Button>
+                  {isAdmin && (
+                    <>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(machine)} title="Editar">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => void deleteMachine(machine.id)} title="Eliminar">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  )}
                 </div>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <Textarea value={drafts[machine.id] || ""} onChange={(e) => setDrafts((current) => ({ ...current, [machine.id]: e.target.value }))} placeholder="Nueva observación de seguimiento" className="min-h-20" />
-                <Button className="w-full" variant="soft" onClick={() => void saveNote(machine.id)}><Wrench className="h-4 w-4" /> Guardar observación</Button>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                {(machine.noteItems.slice(0, 2)).map((note) => <div key={note.id} className="rounded-xl bg-muted px-3 py-3 text-sm text-foreground">{note.note}</div>)}
-                {machine.noteItems.length === 0 && <p className="text-sm text-muted-foreground">Sin observaciones todavía.</p>}
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => setGalleryMachine({ id: machine.id, name: machine.display_name })}><Images className="h-4 w-4" /> Galería</Button>
-                <Button size="sm" variant="outline" onClick={() => exportMachine(machine)}><Download className="h-4 w-4" /> Descargar</Button>
-                {isAdmin && <Button size="sm" variant="outline" onClick={() => { setEditingId(machine.id); setForm({ display_name: machine.display_name, asset_family: machine.asset_family, asset_code: machine.asset_code || "", license_plate: machine.license_plate || "", status: machine.status, notes: machine.notes || "", photo_url: machine.photo_url || "" }); }}><Pencil className="h-4 w-4" /> Editar</Button>}
-                {isAdmin && <Button size="sm" variant="outline" onClick={() => { const input = cardFileInputs.current[machine.id]; if (input) input.click(); }} disabled={uploadingPhotoFor === machine.id}>
-                  {uploadingPhotoFor === machine.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} Portada
-                </Button>}
-                <input ref={(el) => { cardFileInputs.current[machine.id] = el; }} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadPhoto(machine.id, file); event.target.value = ""; }} />
-                {isAdmin && <Button size="sm" variant="outline" onClick={() => void deleteMachine(machine.id)}><Trash2 className="h-4 w-4" /> Eliminar</Button>}
               </div>
             </article>
           ))}
-          {filteredMachineCards.length === 0 && <div className="panel-surface col-span-full px-4 py-8 text-sm text-muted-foreground">No hay máquinas que coincidan con los filtros actuales.</div>}
         </section>
-      </section>
+      )}
 
+      {/* Detalle */}
       <MachineDetailDialog open={Boolean(selectedMachine)} machine={selectedMachine} onOpenChange={(open) => !open && setSelectedMachine(null)} />
-      <MachineAttachmentsDialog open={Boolean(galleryMachine)} machineId={galleryMachine?.id ?? null} machineName={galleryMachine?.name} onOpenChange={(open) => !open && setGalleryMachine(null)} />
+
+      {/* Fotos */}
+      <MachinePhotosDialog
+        open={Boolean(photosDialog)}
+        machineId={photosDialog?.id ?? null}
+        machineName={photosDialog?.name ?? ""}
+        onOpenChange={(open) => !open && setPhotosDialog(null)}
+        onCountChange={(machineId, count) => setPhotoCounts((current) => ({ ...current, [machineId]: count }))}
+      />
+
+      {/* Dialog alta/edición */}
+      <Dialog open={formDialogOpen} onOpenChange={setFormDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Editar máquina" : "Nueva máquina"}</DialogTitle>
+            <DialogDescription>Datos básicos de la unidad. Las fotos y el detalle se gestionan desde la tarjeta.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} placeholder="Nombre de la máquina" />
+            <Input value={form.asset_family} onChange={(e) => setForm({ ...form, asset_family: e.target.value })} placeholder="Familia (pala, camión, etc.)" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input value={form.asset_code} onChange={(e) => setForm({ ...form, asset_code: e.target.value })} placeholder="Código" />
+              <Input value={form.license_plate} onChange={(e) => setForm({ ...form, license_plate: e.target.value })} placeholder="Matrícula" />
+            </div>
+            <Select value={form.status} onValueChange={(value: MachineStatus) => setForm({ ...form, status: value })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Operativa</SelectItem>
+                <SelectItem value="maintenance">Mantenimiento</SelectItem>
+                <SelectItem value="repair">Avería</SelectItem>
+                <SelectItem value="inspection">Inspección</SelectItem>
+                <SelectItem value="inactive">Inactiva</SelectItem>
+              </SelectContent>
+            </Select>
+            <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Observaciones" className="min-h-20" />
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button className="flex-1 min-w-[140px]" onClick={() => void saveMachine(false)}>
+                {editingId ? "Guardar cambios" : "Crear máquina"}
+              </Button>
+              {!editingId && (
+                <Button variant="outline" className="flex-1 min-w-[140px]" onClick={() => void saveMachine(true)}>
+                  Crear y añadir otra
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => setFormDialogOpen(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

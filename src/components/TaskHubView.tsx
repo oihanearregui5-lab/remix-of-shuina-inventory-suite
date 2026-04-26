@@ -15,11 +15,12 @@ import { parseTaskLabels, serializeTaskLabels, type TaskPriority, type TaskStatu
 import { toast } from "sonner";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
+import { useUIMode } from "@/hooks/useUIMode";
 
 interface TaskItem extends TaskDialogItem {
   assigned_staff_id?: string | null;
   assigned_staff_name?: string | null;
-  scope?: "personal" | "general";
+  scope?: "personal" | "general" | null;
 }
 
 interface StaffOption {
@@ -33,8 +34,9 @@ interface CalendarEventItem {
   start_at: string;
 }
 
-const statusFilters: Array<{ key: "active" | TaskStatus; label: string }> = [
+const statusFilters: Array<{ key: "active" | "generales" | TaskStatus; label: string }> = [
   { key: "active", label: "Activas" },
+  { key: "generales", label: "Generales" },
   { key: "planned", label: "Pendientes" },
   { key: "in_progress", label: "En curso" },
   { key: "completed", label: "Completadas" },
@@ -44,10 +46,11 @@ const TaskHubView = () => {
   const { user, isAdmin } = useAuth();
   const db = supabase as any;
   const { reminders } = useSmartReminders();
+  const { isSimple } = useUIMode();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [staff, setStaff] = useState<StaffOption[]>([]);
   const [events, setEvents] = useState<CalendarEventItem[]>([]);
-  const [activeStatusFilter, setActiveStatusFilter] = useState<"active" | TaskStatus>("active");
+  const [activeStatusFilter, setActiveStatusFilter] = useState<"active" | "generales" | TaskStatus>("active");
   const [activeLabelFilter, setActiveLabelFilter] = useState<string>("all");
   const [activeAssigneeFilter, setActiveAssigneeFilter] = useState<string>("all");
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
@@ -113,7 +116,7 @@ const TaskHubView = () => {
   }, [month]);
 
   const resetForm = () => {
-    setForm({ title: "", description: "", labels: "", due_date: "", priority: "medium", assigned_staff_id: "unassigned", scope: "personal" });
+    setForm({ title: "", description: "", labels: "", due_date: "", priority: "medium", assigned_staff_id: "unassigned", scope: "personal" as const });
     setEditingId(null);
   };
 
@@ -130,7 +133,7 @@ const TaskHubView = () => {
       due_date: task.due_date || "",
       priority: task.priority,
       assigned_staff_id: task.assigned_staff_id || "unassigned",
-      scope: task.scope || "personal",
+      scope: (task.scope === "general" ? "general" : "personal") as "personal" | "general",
     });
     setEditingId(task.id);
     setComposerOpen(true);
@@ -140,7 +143,13 @@ const TaskHubView = () => {
     if (!user || !values.title.trim()) return;
     setSaving(true);
 
-    const isGeneral = isAdmin && values.scope === "general";
+    const resolvedScope: "personal" | "general" = isAdmin && values.scope === "general" ? "general" : "personal";
+    const resolvedAssignee = resolvedScope === "general"
+      ? null
+      : isAdmin && values.assigned_staff_id !== "unassigned"
+        ? values.assigned_staff_id
+        : null;
+
     const payload = {
       title: values.title.trim(),
       description: values.description.trim() || null,
@@ -148,8 +157,8 @@ const TaskHubView = () => {
       due_date: values.due_date || null,
       priority: values.priority,
       created_by_user_id: user.id,
-      assigned_staff_id: !isGeneral && isAdmin && values.assigned_staff_id !== "unassigned" ? values.assigned_staff_id : null,
-      scope: isGeneral ? "general" : "personal",
+      assigned_staff_id: resolvedAssignee,
+      scope: resolvedScope,
     };
 
     const query = editingId ? db.from("tasks").update(payload).eq("id", editingId) : db.from("tasks").insert({ ...payload, status: "planned" });
@@ -183,7 +192,14 @@ const TaskHubView = () => {
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      const statusOk = activeStatusFilter === "active" ? !["completed", "cancelled"].includes(task.status) : task.status === activeStatusFilter;
+      let statusOk: boolean;
+      if (activeStatusFilter === "active") {
+        statusOk = !["completed", "cancelled"].includes(task.status);
+      } else if (activeStatusFilter === "generales") {
+        statusOk = task.scope === "general" && task.status !== "cancelled";
+      } else {
+        statusOk = task.status === activeStatusFilter;
+      }
       const labelOk = activeLabelFilter === "all" ? true : parseTaskLabels(task.category).includes(activeLabelFilter);
       const assigneeOk = activeAssigneeFilter === "all" ? true : (task.assigned_staff_id || "unassigned") === activeAssigneeFilter;
       return statusOk && labelOk && assigneeOk;
@@ -205,9 +221,9 @@ const TaskHubView = () => {
         actions={<Button className="h-11 rounded-2xl" onClick={openCreate}><Plus className="h-4 w-4" /> Nueva tarea</Button>}
       />
 
-      <SmartRemindersPanel reminders={reminders.filter((reminder) => reminder.section === "tasks")} compact />
+      {!isSimple ? <SmartRemindersPanel reminders={reminders.filter((reminder) => reminder.section === "tasks")} compact /> : null}
 
-      <section className="grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
+      <section className={isSimple ? "space-y-3" : "grid gap-3 xl:grid-cols-[1.15fr_0.85fr]"}>
         <div className="space-y-3">
           <section className="panel-surface p-4">
             <div className="flex items-center justify-between gap-3">
@@ -226,25 +242,27 @@ const TaskHubView = () => {
                   </button>
                 ))}
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <Select value={activeLabelFilter} onValueChange={setActiveLabelFilter}>
-                  <SelectTrigger className="h-11 rounded-2xl"><SelectValue placeholder="Etiqueta" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las etiquetas</SelectItem>
-                    {availableLabels.map((label) => <SelectItem key={label} value={label}>{label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                {isAdmin ? (
-                  <Select value={activeAssigneeFilter} onValueChange={setActiveAssigneeFilter}>
-                    <SelectTrigger className="h-11 rounded-2xl"><SelectValue placeholder="Asignado a" /></SelectTrigger>
+              {!isSimple ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Select value={activeLabelFilter} onValueChange={setActiveLabelFilter}>
+                    <SelectTrigger className="h-11 rounded-2xl"><SelectValue placeholder="Etiqueta" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todo el equipo</SelectItem>
-                      <SelectItem value="unassigned">Sin asignar</SelectItem>
-                      {staff.map((person) => <SelectItem key={person.id} value={person.id}>{person.full_name}</SelectItem>)}
+                      <SelectItem value="all">Todas las etiquetas</SelectItem>
+                      {availableLabels.map((label) => <SelectItem key={label} value={label}>{label}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                ) : null}
-              </div>
+                  {isAdmin ? (
+                    <Select value={activeAssigneeFilter} onValueChange={setActiveAssigneeFilter}>
+                      <SelectTrigger className="h-11 rounded-2xl"><SelectValue placeholder="Asignado a" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todo el equipo</SelectItem>
+                        <SelectItem value="unassigned">Sin asignar</SelectItem>
+                        {staff.map((person) => <SelectItem key={person.id} value={person.id}>{person.full_name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -277,35 +295,37 @@ const TaskHubView = () => {
           ) : null}
         </div>
 
-        <div className="space-y-3">
-          <section className="panel-surface p-4">
-            <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Calendario del mes</p></div>
-            <div className="rounded-3xl border border-border bg-background p-3">
-              <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} month={month} onMonthChange={setMonth} modifiers={{ hasTask: taskDates }} modifiersClassNames={{ hasTask: "bg-primary/15 text-foreground font-semibold" }} className="w-full" />
-            </div>
-            <div className="mt-3 space-y-2">
-              {selectedDate && <p className="text-sm font-medium text-foreground">{format(selectedDate, "EEEE d MMMM", { locale: es })}</p>}
-              {selectedDayTasks.map((task) => (
-                <button key={task.id} onClick={() => setSelectedTask(task)} className="block w-full rounded-2xl border border-border bg-background px-3 py-3 text-left text-sm text-foreground">
-                  {task.title}
-                  <span className="mt-1 block text-xs text-muted-foreground">{task.category || "Sin etiquetas"}</span>
-                </button>
-              ))}
-              {selectedDayEvents.map((event) => <div key={event.id} className="rounded-2xl bg-muted px-3 py-3 text-sm text-foreground">{event.title}</div>)}
-              {selectedDayTasks.length === 0 && selectedDayEvents.length === 0 && <p className="text-sm text-muted-foreground">No hay nada organizado para este día.</p>}
-            </div>
-          </section>
-
-          <section className="panel-surface p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Acción rápida</p>
-                <p className="text-xs text-muted-foreground">Crea trabajo nuevo sin perder tiempo.</p>
+        {!isSimple ? (
+          <div className="space-y-3">
+            <section className="panel-surface p-4">
+              <div className="mb-4 flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Calendario del mes</p></div>
+              <div className="rounded-3xl border border-border bg-background p-3">
+                <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} month={month} onMonthChange={setMonth} modifiers={{ hasTask: taskDates }} modifiersClassNames={{ hasTask: "bg-primary/15 text-foreground font-semibold" }} className="w-full" />
               </div>
-              <Button variant="surface" className="h-11 rounded-2xl" onClick={openCreate}><Plus className="h-4 w-4" /> Crear</Button>
-            </div>
-          </section>
-        </div>
+              <div className="mt-3 space-y-2">
+                {selectedDate && <p className="text-sm font-medium text-foreground">{format(selectedDate, "EEEE d MMMM", { locale: es })}</p>}
+                {selectedDayTasks.map((task) => (
+                  <button key={task.id} onClick={() => setSelectedTask(task)} className="block w-full rounded-2xl border border-border bg-background px-3 py-3 text-left text-sm text-foreground">
+                    {task.title}
+                    <span className="mt-1 block text-xs text-muted-foreground">{task.category || "Sin etiquetas"}</span>
+                  </button>
+                ))}
+                {selectedDayEvents.map((event) => <div key={event.id} className="rounded-2xl bg-muted px-3 py-3 text-sm text-foreground">{event.title}</div>)}
+                {selectedDayTasks.length === 0 && selectedDayEvents.length === 0 && <p className="text-sm text-muted-foreground">No hay nada organizado para este día.</p>}
+              </div>
+            </section>
+
+            <section className="panel-surface p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Acción rápida</p>
+                  <p className="text-xs text-muted-foreground">Crea trabajo nuevo sin perder tiempo.</p>
+                </div>
+                <Button variant="surface" className="h-11 rounded-2xl" onClick={openCreate}><Plus className="h-4 w-4" /> Crear</Button>
+              </div>
+            </section>
+          </div>
+        ) : null}
       </section>
 
       <TaskComposerDialog

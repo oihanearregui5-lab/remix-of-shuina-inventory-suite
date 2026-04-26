@@ -15,8 +15,6 @@ import ExcelVacationPlanner from "@/components/admin/ExcelVacationPlanner";
 import WorkerLiveStatusPanel from "@/components/shared/WorkerLiveStatusPanel";
 import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
 import WorkerProfileDialog from "@/components/staff/WorkerProfileDialog";
-import HighlightComposerDialog, { type HighlightRecord } from "@/components/admin/HighlightComposerDialog";
-import { Plus, Pencil } from "lucide-react";
 
 interface AdminMetrics {
   openTasks: number;
@@ -28,7 +26,7 @@ interface AdminMetrics {
   channels: number;
   messagesToday: number;
 }
-interface DailyHighlight { id: string; title: string; summary: string | null; category: string; highlight_date: string }
+interface DailyHighlight { id: string; title: string; summary: string | null; category: string }
 interface VacationReviewItem { id: string; request_type: string; start_date: string; end_date: string; reason: string | null; requester_user_id: string; requester_name?: string | null }
 interface CompanyCalendarDay { id: string; calendar_date: string; title: string; day_type: string; color_tag: string | null; notes: string | null }
 
@@ -44,8 +42,6 @@ const AdminHubView = () => {
   const [responseDrafts, setResponseDrafts] = useState<Record<string, string>>({});
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [calendarDays, setCalendarDays] = useState<CompanyCalendarDay[]>([]);
-  const [highlightDialogOpen, setHighlightDialogOpen] = useState(false);
-  const [editingHighlight, setEditingHighlight] = useState<HighlightRecord | null>(null);
 
   useEffect(() => {
     if (!canViewAdmin) return;
@@ -60,7 +56,7 @@ const AdminHubView = () => {
       supabase.from("machine_incidents").select("id", { count: "exact", head: true }).neq("status", "resolved"),
       supabase.from("machine_service_records").select("id", { count: "exact", head: true }).neq("status", "completed"),
       supabase.from("time_entries").select("id", { count: "exact", head: true }).is("clock_out", null),
-      supabase.from("daily_highlights").select("id, title, summary, category, highlight_date").order("highlight_date", { ascending: false }).limit(6),
+      supabase.from("daily_highlights").select("id, title, summary, category").order("highlight_date", { ascending: false }).limit(4),
       supabase.from("vacation_requests").select("id, request_type, start_date, end_date, reason, requester_user_id").eq("status", "pending").order("created_at", { ascending: true }).limit(8),
       supabase.from("work_reports").select("id", { count: "exact", head: true }).is("ended_at", null),
       supabase.from("chat_channels").select("id", { count: "exact", head: true }),
@@ -135,6 +131,11 @@ const AdminHubView = () => {
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader eyebrow="Administración" title="Dashboard" description="Vista clara para controlar fichajes, partes, gasolina, calendario y equipo desde un solo sitio." />
+
+      {/* TRABAJADORES EN TIEMPO REAL (arriba de todo, prioridad visual) */}
+      <WorkerLiveStatusPanel items={liveWorkers} loading={liveWorkersLoading} onSelectWorker={setSelectedWorkerId} />
+      <WorkerProfileDialog staffId={selectedWorkerId} open={Boolean(selectedWorkerId)} onOpenChange={(open) => !open && setSelectedWorkerId(null)} />
+
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Fichajes activos</p><p className="mt-2 text-3xl font-bold text-foreground">{metrics.activeClockings}</p></div>
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Tareas abiertas</p><p className="mt-2 text-3xl font-bold text-foreground">{metrics.openTasks}</p></div>
@@ -272,45 +273,13 @@ const AdminHubView = () => {
             </div>
           </section>
 
-          <WorkerLiveStatusPanel items={liveWorkers} loading={liveWorkersLoading} onSelectWorker={setSelectedWorkerId} />
-          <WorkerProfileDialog staffId={selectedWorkerId} open={Boolean(selectedWorkerId)} onOpenChange={(open) => !open && setSelectedWorkerId(null)} />
-
           <section className="panel-surface p-4">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Noticias y cambios del día</p></div>
-              <Button size="sm" onClick={() => { setEditingHighlight(null); setHighlightDialogOpen(true); }}>
-                <Plus className="h-4 w-4" /> Nuevo aviso
-              </Button>
-            </div>
+            <div className="mb-4 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Noticias y cambios del día</p></div>
             <div className="space-y-2">
-              {highlights.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => { setEditingHighlight(item); setHighlightDialogOpen(true); }}
-                  className="group flex w-full items-start justify-between gap-3 rounded-xl bg-muted px-4 py-3 text-left transition-colors hover:bg-muted/70"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-foreground">{item.title}</p>
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">{item.category}</span>
-                    </div>
-                    {item.summary && <p className="mt-1 text-sm text-muted-foreground">{item.summary}</p>}
-                    <p className="mt-1 text-xs text-muted-foreground">{format(new Date(item.highlight_date), "d MMM yyyy", { locale: es })}</p>
-                  </div>
-                  <Pencil className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                </button>
-              ))}
-              {highlights.length === 0 && <div className="rounded-xl bg-muted px-4 py-6 text-sm text-muted-foreground">Todavía no hay avisos cargados. Pulsa “Nuevo aviso” para publicar el primero.</div>}
+              {highlights.map((item) => <div key={item.id} className="rounded-xl bg-muted px-4 py-3"><p className="font-medium text-foreground">{item.title}</p>{item.summary && <p className="mt-1 text-sm text-muted-foreground">{item.summary}</p>}</div>)}
+              {highlights.length === 0 && <div className="rounded-xl bg-muted px-4 py-6 text-sm text-muted-foreground">Todavía no hay avisos cargados.</div>}
             </div>
           </section>
-
-          <HighlightComposerDialog
-            open={highlightDialogOpen}
-            onOpenChange={setHighlightDialogOpen}
-            highlight={editingHighlight}
-            onSaved={() => void loadMetrics()}
-          />
 
           <section className="panel-surface p-4">
             <div className="mb-4 flex items-center gap-2"><Wrench className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Resumen de control</p></div>
