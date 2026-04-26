@@ -207,6 +207,39 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_message_attachments: {
+        Row: {
+          channel_id: string
+          created_at: string
+          file_size: number | null
+          id: string
+          message_id: string
+          mime_type: string | null
+          storage_path: string
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          file_size?: number | null
+          id?: string
+          message_id: string
+          mime_type?: string | null
+          storage_path: string
+          uploaded_by_user_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          file_size?: number | null
+          id?: string
+          message_id?: string
+          mime_type?: string | null
+          storage_path?: string
+          uploaded_by_user_id?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           author_user_id: string
@@ -266,6 +299,87 @@ export type Database = {
           id?: string
           notes?: string | null
           title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consumable_movements: {
+        Row: {
+          consumable_id: string
+          created_at: string
+          created_by_user_id: string
+          id: string
+          machine_id: string | null
+          movement_date: string
+          movement_type: string
+          quantity: number
+          reason: string | null
+        }
+        Insert: {
+          consumable_id: string
+          created_at?: string
+          created_by_user_id: string
+          id?: string
+          machine_id?: string | null
+          movement_date?: string
+          movement_type: string
+          quantity: number
+          reason?: string | null
+        }
+        Update: {
+          consumable_id?: string
+          created_at?: string
+          created_by_user_id?: string
+          id?: string
+          machine_id?: string | null
+          movement_date?: string
+          movement_type?: string
+          quantity?: number
+          reason?: string | null
+        }
+        Relationships: []
+      }
+      consumables: {
+        Row: {
+          category: string
+          created_at: string
+          created_by_user_id: string | null
+          current_stock: number
+          id: string
+          is_active: boolean
+          min_stock: number
+          name: string
+          notes: string | null
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          current_stock?: number
+          id?: string
+          is_active?: boolean
+          min_stock?: number
+          name: string
+          notes?: string | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          current_stock?: number
+          id?: string
+          is_active?: boolean
+          min_stock?: number
+          name?: string
+          notes?: string | null
+          sort_order?: number
+          unit?: string
           updated_at?: string
         }
         Relationships: []
@@ -803,23 +917,29 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           full_name: string
           id: string
+          phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           full_name?: string
           id?: string
+          phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           full_name?: string
           id?: string
+          phone?: string | null
           updated_at?: string
           user_id?: string
         }
