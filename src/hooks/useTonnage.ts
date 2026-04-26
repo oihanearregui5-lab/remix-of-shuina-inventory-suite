@@ -49,6 +49,7 @@ export interface TonnageTrip {
   material_snapshot: TonnageMaterial;
   notes: string | null;
   created_by_user_id: string | null;
+  driver_user_id: string | null;
   created_at: string;
 }
 
@@ -64,6 +65,7 @@ export interface TonnageTripInput {
   load_zone_id?: string | null;
   unload_zone_id?: string | null;
   notes?: string | null;
+  driver_user_id?: string | null;
 }
 
 // ============================================================
