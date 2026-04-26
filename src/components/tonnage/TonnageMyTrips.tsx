@@ -48,14 +48,20 @@ const TonnageMyTrips = () => {
   );
 
   const myTodayTrips = useMemo(
-    () => todayTrips.filter((t) => t.created_by_user_id === user?.id),
+    () => todayTrips.filter((t) => (t.driver_user_id ?? t.created_by_user_id) === user?.id),
     [todayTrips, user],
   );
 
   // Cargar nombres de conductores (perfiles) para los viajes de hoy
   const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
   useEffect(() => {
-    const ids = Array.from(new Set(todayTrips.map((t) => t.created_by_user_id).filter(Boolean))) as string[];
+    const ids = Array.from(
+      new Set(
+        todayTrips
+          .flatMap((t) => [t.driver_user_id, t.created_by_user_id])
+          .filter(Boolean) as string[],
+      ),
+    );
     if (ids.length === 0) {
       setDriverNames(new Map());
       return;
