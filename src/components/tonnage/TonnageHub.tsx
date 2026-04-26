@@ -64,12 +64,15 @@ const TonnageHub = ({ asAdmin = false }: TonnageHubProps) => {
             </TabsTrigger>
           </TabsList>
         ) : (
-          <TabsList className="!grid w-full grid-cols-2 h-auto">
+          <TabsList className="!grid w-full grid-cols-3 h-auto">
             <TabsTrigger value="registrar" className="gap-2 py-2.5">
-              <Plus className="h-4 w-4" /> Registrar viaje
+              <Plus className="h-4 w-4" /> Registrar
             </TabsTrigger>
             <TabsTrigger value="mis-viajes" className="gap-2 py-2.5">
               <ListChecks className="h-4 w-4" /> Mis viajes
+            </TabsTrigger>
+            <TabsTrigger value="camiones" className="gap-2 py-2.5">
+              <Truck className="h-4 w-4" /> Camiones
             </TabsTrigger>
           </TabsList>
         )}
@@ -83,6 +86,9 @@ const TonnageHub = ({ asAdmin = false }: TonnageHubProps) => {
               </TabsContent>
               <TabsContent value="mis-viajes" className="mt-0">
                 <TonnageMyTrips />
+              </TabsContent>
+              <TabsContent value="camiones" className="mt-0">
+                <TonnageTrucksManager />
               </TabsContent>
             </>
           )}

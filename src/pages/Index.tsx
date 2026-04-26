@@ -31,13 +31,14 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "machines", label: "Máquinas", description: "Flota, incidencias y mantenimiento.", icon: Truck, workspace: "worker" },
   { key: "gasoline", label: "Gasolina", description: "Tarjetas y movimientos de repostaje.", icon: Fuel, workspace: "worker", mobilePrimary: true },
   { key: "staff", label: "Calendario", description: "Vacaciones, turnos y solicitudes.", icon: CalendarRange, workspace: "worker" },
-  { key: "admin", label: "Dashboard", description: "Resumen global y control operativo.", icon: ShieldCheck, workspace: "admin", adminOnly: true, mobilePrimary: true },
+  { key: "albaranes", label: "Albaranes", description: "Sube facturas y albaranes de tus compras.", icon: ReceiptText, workspace: "worker" },
+  { key: "admin", label: "Resumen", description: "Visión global del día y control operativo.", icon: ShieldCheck, workspace: "admin", adminOnly: true, mobilePrimary: true },
   { key: "fichajes", label: "Fichajes", description: "Control y revisión de entradas y salidas.", icon: Clock, workspace: "admin", mobilePrimary: true },
   { key: "workReports", label: "Partes", description: "Seguimiento y corrección de partes.", icon: FileText, workspace: "admin", mobilePrimary: true },
   { key: "tonnage", label: "Viajes", description: "Análisis, zonas, tabla mensual y camiones.", icon: Scale, workspace: "admin", mobilePrimary: true },
   { key: "gasoline", label: "Gasolina", description: "Tarjetas, gastos y exportación.", icon: Fuel, workspace: "admin", mobilePrimary: true },
   { key: "vacations", label: "Calendario", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
-  { key: "albaranes", label: "Albaranes", description: "Registro de pedidos por proveedor, destino y máquina.", icon: ReceiptText, workspace: "admin", adminOnly: true },
+  { key: "albaranes", label: "Albaranes", description: "Registro de pedidos por proveedor, destino y máquina.", icon: ReceiptText, workspace: "admin" },
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
 ];
 
@@ -68,7 +69,7 @@ const Index = () => {
 
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
-    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff"];
+    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"];
     const adminSections: AppSection[] = role === "admin"
       ? ["admin", "fichajes", "workReports", "tonnage", "gasoline", "vacations", "albaranes", "staff"]
       : ["fichajes", "workReports", "tonnage", "gasoline", "vacations", "staff"];

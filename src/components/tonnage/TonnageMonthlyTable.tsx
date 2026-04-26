@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Trash2, X } from "lucide-react";
 import { addMonths, format, getDaysInMonth, startOfMonth, subMonths } from "date-fns";
 import { es } from "date-fns/locale";
@@ -192,44 +193,65 @@ const TonnageMonthlyTable = () => {
   const totalKg = trips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
   const avgKg = totalViajes > 0 ? totalKg / totalViajes : 0;
 
-  const exportCSV = () => {
+  const exportExcel = () => {
+    // Construye los datos como array de arrays (más fácil para hojas tipo plantilla)
+    const aoa: (string | number)[][] = [];
+
+    // Cabecera (fila 1): título del mes
+    aoa.push([`${monthLabel.toUpperCase()} ${year}`]);
+    // Fila vacía
+    aoa.push([]);
+    // Cabecera (fila 3): "Día" + nombres de camiones + métricas
     const header = ["Día", ...trucks.map((t) => `#${t.truck_number} ${t.label}`), "Nº VIAJES", "Peso total", "Media"];
-    const rows: string[] = [header.join(";")];
+    aoa.push(header);
+
+    // Filas día a día
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = format(new Date(year, monthIdx, day), "yyyy-MM-dd");
       const dayCells = cellMap.get(dateStr);
-      const cols = [String(day)];
+      const row: (string | number)[] = [day];
       let dayTotal = 0;
       let dayCount = 0;
       for (const truck of trucks) {
         const cell = dayCells?.get(truck.id);
         if (cell) {
-          cols.push(String(Math.round(cell.kg)));
+          row.push(Math.round(cell.kg));
           dayTotal += cell.kg;
           dayCount += cell.count;
         } else {
-          cols.push("");
+          row.push("");
         }
       }
-      cols.push(String(dayCount));
-      cols.push(String(Math.round(dayTotal)));
-      cols.push(dayCount > 0 ? String(Math.round(dayTotal / dayCount)) : "");
-      rows.push(cols.join(";"));
+      row.push(dayCount);
+      row.push(Math.round(dayTotal));
+      row.push(dayCount > 0 ? Math.round(dayTotal / dayCount) : "");
+      aoa.push(row);
     }
-    const totalRow = ["Total"];
-    for (const ts of truckSummaries) totalRow.push(String(Math.round(ts.totalKg)));
-    totalRow.push(String(totalViajes));
-    totalRow.push(String(Math.round(totalKg)));
-    totalRow.push(totalViajes > 0 ? String(Math.round(avgKg)) : "");
-    rows.push(totalRow.join(";"));
-    const blob = new Blob(["\uFEFF" + rows.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `toneladas_${monthLabel}_${year}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success("CSV exportado");
+
+    // Fila final: totales
+    const totalRow: (string | number)[] = ["Total"];
+    for (const ts of truckSummaries) totalRow.push(Math.round(ts.totalKg));
+    totalRow.push(totalViajes);
+    totalRow.push(Math.round(totalKg));
+    totalRow.push(totalViajes > 0 ? Math.round(avgKg) : "");
+    aoa.push(totalRow);
+
+    // Crear libro
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Anchos de columna
+    const colWidths = [{ wch: 6 }, ...trucks.map(() => ({ wch: 12 })), { wch: 10 }, { wch: 12 }, { wch: 10 }];
+    ws["!cols"] = colWidths;
+
+    // Combinar la fila del título
+    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: header.length - 1 } }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `${monthLabel.slice(0, 3).toUpperCase()} ${String(year).slice(-2)}`);
+
+    // Descargar
+    XLSX.writeFile(wb, `Toneladas_${monthLabel}_${year}.xlsx`);
+    toast.success("Excel exportado");
   };
 
   return (
