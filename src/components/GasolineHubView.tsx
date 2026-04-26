@@ -102,10 +102,17 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
   );
 
   const handleSave = () => {
-    const validationError = validateFuelDraft(draft);
-    if (validationError) {
-      toast.error(validationError);
-      return;
+    if (isAdminView) {
+      const validationError = validateFuelDraft(draft);
+      if (validationError) {
+        toast.error(validationError);
+        return;
+      }
+    } else {
+      // Validación mínima para trabajador (sin importe)
+      if (!draft.date) { toast.error("Indica la fecha"); return; }
+      if (!draft.station.trim()) { toast.error("Indica la gasolinera"); return; }
+      if (!draft.vehicle.trim()) { toast.error("Indica el vehículo o matrícula"); return; }
     }
 
     const payload = {
@@ -187,24 +194,30 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
               </div>
               <div className="mt-5 space-y-3">
                 <p className="text-lg font-semibold tracking-[0.12em] text-foreground">{card.masked}</p>
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                  <div className="rounded-xl bg-muted/45 px-3 py-2">
-                    <p>Movimientos</p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">{card.entries}</p>
-                  </div>
-                  <div className="rounded-xl bg-muted/45 px-3 py-2">
-                    <p>Total</p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">{card.totalAmount.toFixed(2)} €</p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">{card.lastDate ? `Último uso · ${card.lastDate}` : "Sin registros todavía"}</p>
+                {isAdminView ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div className="rounded-xl bg-muted/45 px-3 py-2">
+                        <p>Movimientos</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">{card.entries}</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/45 px-3 py-2">
+                        <p>Total</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">{card.totalAmount.toFixed(2)} €</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{card.lastDate ? `Último uso · ${card.lastDate}` : "Sin registros todavía"}</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Pulsa para registrar un repostaje con esta tarjeta.</p>
+                )}
               </div>
             </button>
           );
         })}
       </section>
 
-      {selectedCardAlerts.length > 0 ? (
+      {isAdminView && selectedCardAlerts.length > 0 ? (
         <section className="panel-surface p-4">
           <div className="mb-4 flex items-center gap-2">
             <AlertTriangle className="h-4.5 w-4.5 text-primary" />
@@ -224,7 +237,8 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
         </section>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+      <section className={cn("grid gap-4", isAdminView && "xl:grid-cols-[0.95fr_1.05fr]") }>
+        {isAdminView && (
         <Card className="border-border/80 shadow-[var(--shadow-soft)] xl:order-2">
           <CardHeader className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-lg"><CalendarDays className="h-5 w-5 text-primary" /> Movimientos de la tarjeta</CardTitle>
@@ -261,6 +275,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
             )}
           </CardContent>
         </Card>
+        )}
 
         <Card className="border-border/80 shadow-[var(--shadow-soft)]">
           <CardHeader className="space-y-2">
@@ -268,14 +283,16 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
             <p className="text-sm text-muted-foreground">Formulario compacto para añadir o corregir un gasto de forma rápida.</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Tarjeta</p><p className="mt-1 font-semibold text-foreground">{selectedCard.masked}</p></div>
-              <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Registros</p><p className="mt-1 font-semibold text-foreground">{cardRecords.length}</p></div>
-              <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Importe acumulado</p><p className="mt-1 font-semibold text-foreground">{totalAmount.toFixed(2)} €</p></div>
-              <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Litros acumulados</p><p className="mt-1 font-semibold text-foreground">{totalLiters.toFixed(2)}</p></div>
-              <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Precio medio</p><p className="mt-1 font-semibold text-foreground">{averagePrice ? `${averagePrice.toFixed(2)} €/l` : "—"}</p></div>
-              <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Alertas</p><p className="mt-1 font-semibold text-foreground">{selectedCardAlerts.length}</p></div>
-            </div>
+            {isAdminView && (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Tarjeta</p><p className="mt-1 font-semibold text-foreground">{selectedCard.masked}</p></div>
+                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Registros</p><p className="mt-1 font-semibold text-foreground">{cardRecords.length}</p></div>
+                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Importe acumulado</p><p className="mt-1 font-semibold text-foreground">{totalAmount.toFixed(2)} €</p></div>
+                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Litros acumulados</p><p className="mt-1 font-semibold text-foreground">{totalLiters.toFixed(2)}</p></div>
+                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Precio medio</p><p className="mt-1 font-semibold text-foreground">{averagePrice ? `${averagePrice.toFixed(2)} €/l` : "—"}</p></div>
+                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Alertas</p><p className="mt-1 font-semibold text-foreground">{selectedCardAlerts.length}</p></div>
+              </div>
+            )}
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -286,14 +303,18 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
                 <Label htmlFor="gas-station">Gasolinera</Label>
                 <Input id="gas-station" placeholder="Repsol, Cepsa, BP..." value={draft.station} onChange={(event) => setDraft((current) => ({ ...current, station: event.target.value }))} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="gas-amount">Importe</Label>
-                <Input id="gas-amount" type="number" min="0" step="0.01" placeholder="0,00" value={draft.amount} onChange={(event) => setDraft((current) => ({ ...current, amount: event.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gas-liters">Litros / cantidad</Label>
-                <Input id="gas-liters" type="number" min="0" step="0.01" placeholder="Opcional" value={draft.liters} onChange={(event) => setDraft((current) => ({ ...current, liters: event.target.value }))} />
-              </div>
+              {isAdminView && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="gas-amount">Importe</Label>
+                    <Input id="gas-amount" type="number" min="0" step="0.01" placeholder="0,00" value={draft.amount} onChange={(event) => setDraft((current) => ({ ...current, amount: event.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gas-liters">Litros / cantidad</Label>
+                    <Input id="gas-liters" type="number" min="0" step="0.01" placeholder="Opcional" value={draft.liters} onChange={(event) => setDraft((current) => ({ ...current, liters: event.target.value }))} />
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="gas-vehicle">Matrícula o vehículo</Label>
                 <div className="relative">

@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
-import { Pencil, Trash2, Truck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Pencil, Trash2, Truck, User } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import EmptyState from "@/components/shared/EmptyState";
 import { useAuth } from "@/hooks/useAuth";
 import { useTonnage, formatKg, type TonnageMaterial, type TonnageTrip } from "@/hooks/useTonnage";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +51,33 @@ const TonnageMyTrips = () => {
     () => todayTrips.filter((t) => t.created_by_user_id === user?.id),
     [todayTrips, user],
   );
+
+  // Cargar nombres de conductores (perfiles) para los viajes de hoy
+  const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    const ids = Array.from(new Set(todayTrips.map((t) => t.created_by_user_id).filter(Boolean))) as string[];
+    if (ids.length === 0) {
+      setDriverNames(new Map());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", ids);
+      if (cancelled) return;
+      const map = new Map<string, string>();
+      ((data ?? []) as Array<{ user_id: string; full_name: string }>).forEach((p) => {
+        map.set(p.user_id, p.full_name || "Sin nombre");
+      });
+      setDriverNames(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [todayTrips]);
+
 
   const todayTotalKg = todayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
   const myTotalKg = myTodayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
@@ -168,6 +196,19 @@ const TonnageMyTrips = () => {
                         </p>
                         {isMine && <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">· tú</span>}
                       </div>
+                      {(() => {
+                        const driverName = trip.created_by_user_id
+                          ? isMine
+                            ? "Tú"
+                            : driverNames.get(trip.created_by_user_id) || "Conductor"
+                          : null;
+                        return driverName ? (
+                          <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-foreground">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            {driverName}
+                          </p>
+                        ) : null;
+                      })()}
                       <p className="text-xs text-muted-foreground">
                         {trip.trip_time ? trip.trip_time.slice(0, 5) : "—"} · {formatKg(Number(trip.weight_kg))} kg
                         {loadLabel && <> · de <span className="font-medium text-foreground">{loadLabel}</span></>}
