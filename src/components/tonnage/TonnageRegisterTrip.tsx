@@ -319,6 +319,29 @@ const TonnageRegisterTrip = () => {
         )}
       </section>
 
+      {/* Conductor */}
+      <section className="panel-surface p-4">
+        <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
+          <User className="h-4 w-4 text-primary" /> Conductor
+        </Label>
+        <Select value={driverUserId} onValueChange={setDriverUserId}>
+          <SelectTrigger className="h-12 text-base">
+            <SelectValue placeholder="¿Quién conduce?" />
+          </SelectTrigger>
+          <SelectContent>
+            {drivers.map((d) => (
+              <SelectItem key={d.user_id} value={d.user_id}>
+                {d.full_name}
+                {d.user_id === user?.id ? " (tú)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          Por defecto eres tú. Cámbialo si registras un viaje de un compañero.
+        </p>
+      </section>
+
       {/* Peso + hora */}
       <section className="panel-surface p-4">
         <div className="grid gap-3 md:grid-cols-2">
