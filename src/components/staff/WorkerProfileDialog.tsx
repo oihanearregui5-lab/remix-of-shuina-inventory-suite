@@ -326,7 +326,7 @@ const WorkerProfileDialog = ({ staffId, open, onOpenChange }: WorkerProfileDialo
                     <div className="flex-1">
                       <p className="text-xs uppercase tracking-wider text-muted-foreground">Fecha de alta</p>
                       <p className="font-medium text-foreground">
-                        {staff.contract_start_date ? format(new Date(staff.contract_start_date), "d MMMM yyyy", { locale: es }) : "—"}
+                        {staff.start_date ? format(new Date(staff.start_date), "d MMMM yyyy", { locale: es }) : "—"}
                       </p>
                     </div>
                   </div>
