@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
-import { Pencil, Trash2, Truck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Pencil, Trash2, Truck, User } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import EmptyState from "@/components/shared/EmptyState";
 import { useAuth } from "@/hooks/useAuth";
 import { useTonnage, formatKg, type TonnageMaterial, type TonnageTrip } from "@/hooks/useTonnage";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
