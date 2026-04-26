@@ -1503,6 +1503,41 @@ export type Database = {
           },
         ]
       }
+      work_report_photos: {
+        Row: {
+          caption: string | null
+          id: string
+          storage_path: string
+          uploaded_at: string
+          uploaded_by_user_id: string
+          work_report_id: string
+        }
+        Insert: {
+          caption?: string | null
+          id?: string
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by_user_id: string
+          work_report_id: string
+        }
+        Update: {
+          caption?: string | null
+          id?: string
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by_user_id?: string
+          work_report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_report_photos_work_report_id_fkey"
+            columns: ["work_report_id"]
+            isOneToOne: false
+            referencedRelation: "work_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_reports: {
         Row: {
           action: string | null
