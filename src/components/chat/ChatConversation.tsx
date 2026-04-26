@@ -31,7 +31,13 @@ interface ChatConversationProps {
 }
 
 const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, messages, loading, sending, error, draft, editingMessageId, authorNames, onBack, onDraftChange, onSend, onStartEdit, onCancelEdit, onDeleteMessage, listRef }: ChatConversationProps) => {
-  const title = useMemo(() => (channel ? `# ${channel.name}` : "Selecciona un canal"), [channel]);
+  const title = useMemo(() => {
+    if (!channel) return "Selecciona una conversación";
+    const name = channel.displayName || channel.name;
+    if (channel.kind === "direct") return name;
+    if (channel.kind === "group") return name;
+    return `# ${name}`;
+  }, [channel]);
   const groupedMessages = useMemo(() => {
     const groups: Array<{ day: string; items: ChatMessageItem[] }> = [];
     messages.forEach((message) => {
