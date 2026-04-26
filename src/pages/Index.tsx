@@ -140,6 +140,10 @@ const Index = () => {
         return <TonnageHub asAdmin={workspaceMode === "admin"} />;
       case "albaranes":
         return <AdminAlbaranesView />;
+      case "account":
+        return <AccountSettingsView />;
+      case "consumables":
+        return <ConsumablesView />;
       case "admin":
         return <AdminHubView />;
       case "vacations":
