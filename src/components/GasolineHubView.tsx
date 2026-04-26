@@ -230,7 +230,8 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
         </section>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+      <section className={cn("grid gap-4", isAdminView && "xl:grid-cols-[0.95fr_1.05fr]") }>
+        {isAdminView && (
         <Card className="border-border/80 shadow-[var(--shadow-soft)] xl:order-2">
           <CardHeader className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-lg"><CalendarDays className="h-5 w-5 text-primary" /> Movimientos de la tarjeta</CardTitle>
@@ -267,6 +268,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
             )}
           </CardContent>
         </Card>
+        )}
 
         <Card className="border-border/80 shadow-[var(--shadow-soft)]">
           <CardHeader className="space-y-2">
