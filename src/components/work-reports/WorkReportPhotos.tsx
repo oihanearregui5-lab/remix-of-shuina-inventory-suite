@@ -106,7 +106,10 @@ const WorkReportPhotos = ({ reportId, canEdit = true, compact = false }: WorkRep
   const deletePhoto = async (photo: PhotoRow) => {
     if (!window.confirm("¿Eliminar esta foto?")) return;
     const { error } = await db.from("work_report_photos").delete().eq("id", photo.id);
-    if (error) return toast.error("No se pudo eliminar");
+    if (error) {
+      toast.error("No se pudo eliminar");
+      return;
+    }
     await supabase.storage.from(BUCKET).remove([photo.storage_path]);
     toast.success("Foto eliminada");
     void fetchPhotos();
