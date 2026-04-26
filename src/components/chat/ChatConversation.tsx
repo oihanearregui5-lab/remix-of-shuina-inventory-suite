@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, Loader2, Pencil, SendHorizonal, Trash2 } from "lucide-react";
-import { useMemo, type RefObject } from "react";
+import { ArrowLeft, ImagePlus, Loader2, Paperclip, Pencil, SendHorizonal, Trash2, X } from "lucide-react";
+import { useMemo, useRef, type RefObject } from "react";
 import EmptyState from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,8 @@ interface ChatConversationProps {
   draft: string;
   editingMessageId: string | null;
   authorNames: Record<string, string>;
+  pendingFile: File | null;
+  onPendingFileChange: (file: File | null) => void;
   onBack: () => void;
   onDraftChange: (value: string) => void;
   onSend: () => void;

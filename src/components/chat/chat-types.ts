@@ -15,6 +15,14 @@ export interface ChatChannelItem {
   displayInitial?: string;
 }
 
+export interface ChatMessageAttachment {
+  id: string;
+  message_id: string;
+  storage_path: string;
+  signed_url?: string | null;
+  mime_type: string | null;
+}
+
 export interface ChatMessageItem {
   id: string;
   channel_id: string;
@@ -22,6 +30,7 @@ export interface ChatMessageItem {
   message: string;
   created_at: string;
   updated_at: string;
+  attachments?: ChatMessageAttachment[];
 }
 
 export interface ChannelSummary {
