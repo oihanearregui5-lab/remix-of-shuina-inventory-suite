@@ -9,7 +9,6 @@ import {
   formatLongDate,
   formatMonthLabel,
   getDaysForView,
-  getHolidayTone,
   getMonthMatrix,
   getNextAnchorDate,
   HOLIDAY_TYPE_OPTIONS,
@@ -48,10 +47,28 @@ const VacationGeneralCalendarSection = ({ holidays, onSaveHoliday, onDeleteHolid
   const renderDayCell = (date: Date, compact = false) => {
     const dateKey = toDateKey(date);
     const holiday = holidaysByDate.get(dateKey);
-    const typeTone = holiday ? getHolidayTone(holiday.type) : date.getDay() === 0 || date.getDay() === 6 ? "bg-muted text-muted-foreground" : "bg-background text-foreground";
+    // Si hay holiday, aplicamos color personalizado en background con buen contraste de texto.
+    const fallbackTone = date.getDay() === 0 || date.getDay() === 6 ? "bg-muted text-muted-foreground" : "bg-background text-foreground";
+    const typeTone = holiday ? "" : fallbackTone;
     const selected = selectedDateKey === dateKey;
 
     const isOutsideMonth = viewMode === "month" && date.getMonth() !== anchorDate.getMonth();
+
+    // Cálculo simple de luminosidad para decidir si el texto va negro o blanco
+    const computeTextColor = (hex: string): string => {
+      const m = hex.replace("#", "");
+      const full = m.length === 3 ? m.split("").map((c) => c + c).join("") : m;
+      const r = parseInt(full.slice(0, 2), 16);
+      const g = parseInt(full.slice(2, 4), 16);
+      const b = parseInt(full.slice(4, 6), 16);
+      // Luminosidad relativa
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return lum > 0.6 ? "#1a1a1a" : "#ffffff";
+    };
+
+    const customStyle: React.CSSProperties | undefined = holiday
+      ? { backgroundColor: holiday.color_hex, color: computeTextColor(holiday.color_hex) }
+      : undefined;
 
     return (
       <button
@@ -59,13 +76,14 @@ const VacationGeneralCalendarSection = ({ holidays, onSaveHoliday, onDeleteHolid
         type="button"
         title={holiday?.label ?? formatLongDate(date)}
         onClick={() => startEditingDate(dateKey)}
+        style={customStyle}
         className={`rounded-lg border px-2 py-2 text-left transition-colors ${typeTone} ${selected ? "border-primary shadow-[var(--shadow-soft)]" : "border-border"} ${compact ? "min-h-[80px]" : "min-h-[112px]"} ${isOutsideMonth ? "opacity-35" : ""}`}
       >
         <div className="flex items-start justify-between gap-2">
           <span className="text-sm font-semibold">{date.getDate()}</span>
-          {holiday ? <PencilLine className="h-3.5 w-3.5" /> : null}
+          {holiday ? <PencilLine className="h-3.5 w-3.5 opacity-70" /> : null}
         </div>
-        <p className="mt-3 text-xs leading-5">{holiday?.label ?? ""}</p>
+        <p className="mt-3 text-xs leading-5 break-words">{holiday?.label ?? ""}</p>
       </button>
     );
   };

@@ -109,12 +109,14 @@ const AdminHubView = () => {
     return alerts.slice(0, 4);
   }, [liveSummary.paused, metrics.activeClockings, metrics.activeWorkReports, metrics.openIncidents, metrics.pendingVacations]);
 
-  const executivePulse = useMemo(() => [
-    { label: "Trabajo activo", value: `${metrics.activeClockings} fichajes · ${metrics.activeWorkReports} partes`, icon: Clock3 },
-    { label: "Riesgo técnico", value: `${metrics.openIncidents} incidencias · ${metrics.serviceItems} mantenimientos`, icon: Siren },
-    { label: "Equipo", value: `${liveSummary.working} trabajando · ${liveSummary.off} fuera`, icon: Users2 },
-    { label: "Comunicación", value: `${metrics.channels} canales · ${metrics.messagesToday} mensajes hoy`, icon: MessageSquareMore },
+  const executivePulseRaw = useMemo(() => [
+    { label: "Trabajo activo", value: `${metrics.activeClockings} fichajes · ${metrics.activeWorkReports} partes`, icon: Clock3, count: metrics.activeClockings + metrics.activeWorkReports },
+    { label: "Riesgo técnico", value: `${metrics.openIncidents} incidencias · ${metrics.serviceItems} mantenimientos`, icon: Siren, count: metrics.openIncidents + metrics.serviceItems },
+    { label: "Equipo", value: `${liveSummary.working} trabajando · ${liveSummary.off} fuera`, icon: Users2, count: liveSummary.working + liveSummary.off },
+    { label: "Comunicación", value: `${metrics.channels} canales · ${metrics.messagesToday} mensajes hoy`, icon: MessageSquareMore, count: metrics.channels + metrics.messagesToday },
   ], [liveSummary.off, liveSummary.working, metrics.activeClockings, metrics.activeWorkReports, metrics.channels, metrics.messagesToday, metrics.openIncidents, metrics.serviceItems]);
+  // Solo mostramos items con datos reales; si todos están a cero, no enseñamos la sección
+  const executivePulse = useMemo(() => executivePulseRaw.filter((item) => item.count > 0), [executivePulseRaw]);
 
   const reviewVacationRequest = async (requestId: string, status: "approved" | "rejected") => {
     const adminResponse = responseDrafts[requestId]?.trim() || null;
@@ -143,31 +145,30 @@ const AdminHubView = () => {
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Mantenimientos</p><p className="mt-2 text-3xl font-bold text-foreground">{metrics.serviceItems}</p></div>
       </section>
 
-      <section className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="panel-surface p-4">
-          <div className="mb-4 flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Pulso ejecutivo</p></div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {executivePulse.map((item) => {
-              const Icon = item.icon;
-              return <div key={item.label} className="rounded-xl border border-border bg-background px-4 py-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Icon className="h-4 w-4 text-primary" /> {item.label}</div><p className="mt-2 text-lg font-semibold text-foreground">{item.value}</p></div>;
-            })}
-          </div>
-        </section>
+      {(executivePulse.length > 0 || adminAlerts.length > 0) && (
+        <section className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
+          {executivePulse.length > 0 && (
+            <section className="panel-surface p-4">
+              <div className="mb-4 flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Pulso ejecutivo</p></div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {executivePulse.map((item) => {
+                  const Icon = item.icon;
+                  return <div key={item.label} className="rounded-xl border border-border bg-background px-4 py-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Icon className="h-4 w-4 text-primary" /> {item.label}</div><p className="mt-2 text-lg font-semibold text-foreground">{item.value}</p></div>;
+                })}
+              </div>
+            </section>
+          )}
 
-        <section className="panel-surface p-4">
-          <div className="mb-4 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Radar de prioridades</p></div>
-          <div className="space-y-2">
-            {adminAlerts.length === 0 ? <div className="rounded-xl bg-muted px-4 py-6 text-sm text-muted-foreground">No hay alertas operativas destacadas ahora mismo.</div> : adminAlerts.map((alert) => <div key={alert.title} className="rounded-xl border border-border bg-background px-4 py-3"><p className="font-medium text-foreground">{alert.title}</p><p className="mt-1 text-sm text-muted-foreground">{alert.detail}</p></div>)}
-          </div>
+          {adminAlerts.length > 0 && (
+            <section className="panel-surface p-4">
+              <div className="mb-4 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Radar de prioridades</p></div>
+              <div className="space-y-2">
+                {adminAlerts.map((alert) => <div key={alert.title} className="rounded-xl border border-border bg-background px-4 py-3"><p className="font-medium text-foreground">{alert.title}</p><p className="mt-1 text-sm text-muted-foreground">{alert.detail}</p></div>)}
+              </div>
+            </section>
+          )}
         </section>
-      </section>
-
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><FileText className="h-4 w-4 text-primary" /> Partes de trabajo</div><p className="mt-2 text-sm text-foreground">Seguimiento rápido de partes con edición manual de horas y revisión centralizada.</p></div>
-        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Fuel className="h-4 w-4 text-primary" /> Gasolina</div><p className="mt-2 text-sm text-foreground">Tarjetas claras, movimientos simples y exportación lista para administración.</p></div>
-        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><ReceiptText className="h-4 w-4 text-primary" /> Albaranes</div><p className="mt-2 text-sm text-foreground">Módulo ya integrado en la estructura general para completarlo más adelante.</p></div>
-        <div className="panel-surface p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><CalendarRange className="h-4 w-4 text-primary" /> Calendario</div><p className="mt-2 text-sm text-foreground">Vista central para vacaciones, jornadas y organización global del equipo.</p></div>
-      </section>
+      )}
 
       <section className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
         <section className="panel-surface p-4">
@@ -281,18 +282,31 @@ const AdminHubView = () => {
             </div>
           </section>
 
-          <section className="panel-surface p-4">
-            <div className="mb-4 flex items-center gap-2"><Wrench className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Resumen de control</p></div>
-            <div className="space-y-2 text-sm text-foreground">
-              <div className="rounded-xl bg-muted px-4 py-3">{liveSummary.working} trabajando ahora mismo.</div>
-              <div className="rounded-xl bg-muted px-4 py-3">{liveSummary.paused} con jornada abierta sin parte activo.</div>
-              <div className="rounded-xl bg-muted px-4 py-3">{liveSummary.off} fuera de jornada.</div>
-              <div className="rounded-xl bg-muted px-4 py-3">{metrics.openTasks} tareas siguen abiertas.</div>
-              <div className="rounded-xl bg-muted px-4 py-3">{metrics.openIncidents} incidencias siguen en seguimiento.</div>
-              <div className="rounded-xl bg-muted px-4 py-3">{metrics.messagesToday} mensajes internos se han movido hoy.</div>
-              <div className="rounded-xl bg-muted px-4 py-3">{metrics.pendingVacations} solicitudes de vacaciones siguen pendientes.</div>
-            </div>
-          </section>
+          {(() => {
+            const controlItems = [
+              { key: "working", value: liveSummary.working, text: `${liveSummary.working} trabajando ahora mismo.` },
+              { key: "paused", value: liveSummary.paused, text: `${liveSummary.paused} con jornada abierta sin parte activo.` },
+              { key: "off", value: liveSummary.off, text: `${liveSummary.off} fuera de jornada.` },
+              { key: "openTasks", value: metrics.openTasks, text: `${metrics.openTasks} tareas siguen abiertas.` },
+              { key: "openIncidents", value: metrics.openIncidents, text: `${metrics.openIncidents} incidencias siguen en seguimiento.` },
+              { key: "messagesToday", value: metrics.messagesToday, text: `${metrics.messagesToday} mensajes internos se han movido hoy.` },
+              { key: "pendingVacations", value: metrics.pendingVacations, text: `${metrics.pendingVacations} solicitudes de vacaciones siguen pendientes.` },
+            ].filter((item) => item.value > 0);
+            return (
+              <section className="panel-surface p-4">
+                <div className="mb-4 flex items-center gap-2"><Wrench className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Resumen de control</p></div>
+                <div className="space-y-2 text-sm text-foreground">
+                  {controlItems.length === 0 ? (
+                    <div className="rounded-xl bg-muted px-4 py-6 text-sm text-muted-foreground text-center">Todo en calma. Sin actividad pendiente ahora mismo.</div>
+                  ) : (
+                    controlItems.map((item) => (
+                      <div key={item.key} className="rounded-xl bg-muted px-4 py-3">{item.text}</div>
+                    ))
+                  )}
+                </div>
+              </section>
+            );
+          })()}
         </div>
       </section>
     </div>
