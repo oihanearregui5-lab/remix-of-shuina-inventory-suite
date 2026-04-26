@@ -74,8 +74,8 @@ const Index = () => {
     if (!workspaceMode) return [];
     const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes", "account"];
     const adminSections: AppSection[] = role === "admin"
-      ? ["admin", "fichajes", "workReports", "tonnage", "gasoline", "consumables", "vacations", "albaranes", "staff"]
-      : ["fichajes", "workReports", "tonnage", "gasoline", "consumables", "vacations", "staff"];
+      ? ["admin", "fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff"]
+      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"];
     const allowed = workspaceMode === "admin" && canViewAdmin ? adminSections : workerSections;
     return sections.filter((section) => {
       const sectionWorkspace = section.workspace ?? "worker";
