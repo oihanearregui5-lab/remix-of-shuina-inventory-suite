@@ -146,17 +146,7 @@ const AppShell = <T extends string>({
           </span>
         </button>
 
-        {/* Cambiar espacio */}
-        {onChangeWorkspace ? (
-          <button
-            type="button"
-            onClick={onChangeWorkspace}
-            className="flex w-full items-center gap-2 rounded-lg bg-sidebar-accent/40 px-3 py-2.5 text-xs font-semibold text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
-          >
-            <RefreshCcw className="h-3.5 w-3.5" />
-            Cambiar espacio
-          </button>
-        ) : null}
+        {/* Cambiar espacio se gestiona desde el header */}
 
         {/* Usuario + cerrar sesión */}
         <div className="flex items-center justify-between gap-3 rounded-lg bg-sidebar-accent/55 px-3 py-3">
