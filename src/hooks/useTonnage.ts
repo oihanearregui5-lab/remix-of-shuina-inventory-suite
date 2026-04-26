@@ -115,7 +115,7 @@ export const useTonnage = (monthDate: Date) => {
     const { data, error } = await db
       .from("tonnage_trips")
       .select(
-        "id, truck_id, trip_date, trip_time, weight_kg, qty_tortas, qty_arenas_a, qty_arenas_b, qty_sulfatos, load_zone_id, unload_zone_id, material_snapshot, notes, created_by_user_id, created_at",
+        "id, truck_id, trip_date, trip_time, weight_kg, qty_tortas, qty_arenas_a, qty_arenas_b, qty_sulfatos, load_zone_id, unload_zone_id, material_snapshot, notes, created_by_user_id, driver_user_id, created_at",
       )
       .gte("trip_date", monthStart)
       .lte("trip_date", monthEnd)
