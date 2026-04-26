@@ -130,7 +130,7 @@ const AdminHubView = () => {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <PageHeader eyebrow="Administración" title="Dashboard" description="Vista clara para controlar fichajes, partes, gasolina, calendario y equipo desde un solo sitio." />
+      <PageHeader eyebrow="Administración" title="Resumen general" description="Vista clara para controlar fichajes, partes, gasolina, calendario y equipo desde un solo sitio." />
 
       {/* TRABAJADORES EN TIEMPO REAL (arriba de todo, prioridad visual) */}
       <WorkerLiveStatusPanel items={liveWorkers} loading={liveWorkersLoading} onSelectWorker={setSelectedWorkerId} />
