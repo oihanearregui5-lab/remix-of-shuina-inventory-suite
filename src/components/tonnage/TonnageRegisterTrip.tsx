@@ -229,6 +229,7 @@ const TonnageRegisterTrip = () => {
       qty_sulfatos: qtySulfatos,
       load_zone_id: loadZoneId || null,
       unload_zone_id: unloadZoneId || null,
+      driver_user_id: driverUserId || null,
     });
     setSaving(false);
     if (ok) reset();
