@@ -102,10 +102,17 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
   );
 
   const handleSave = () => {
-    const validationError = validateFuelDraft(draft);
-    if (validationError) {
-      toast.error(validationError);
-      return;
+    if (isAdminView) {
+      const validationError = validateFuelDraft(draft);
+      if (validationError) {
+        toast.error(validationError);
+        return;
+      }
+    } else {
+      // Validación mínima para trabajador (sin importe)
+      if (!draft.date) { toast.error("Indica la fecha"); return; }
+      if (!draft.station.trim()) { toast.error("Indica la gasolinera"); return; }
+      if (!draft.vehicle.trim()) { toast.error("Indica el vehículo o matrícula"); return; }
     }
 
     const payload = {
