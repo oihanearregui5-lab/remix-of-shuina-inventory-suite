@@ -187,24 +187,30 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
               </div>
               <div className="mt-5 space-y-3">
                 <p className="text-lg font-semibold tracking-[0.12em] text-foreground">{card.masked}</p>
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                  <div className="rounded-xl bg-muted/45 px-3 py-2">
-                    <p>Movimientos</p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">{card.entries}</p>
-                  </div>
-                  <div className="rounded-xl bg-muted/45 px-3 py-2">
-                    <p>Total</p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">{card.totalAmount.toFixed(2)} €</p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">{card.lastDate ? `Último uso · ${card.lastDate}` : "Sin registros todavía"}</p>
+                {isAdminView ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div className="rounded-xl bg-muted/45 px-3 py-2">
+                        <p>Movimientos</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">{card.entries}</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/45 px-3 py-2">
+                        <p>Total</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">{card.totalAmount.toFixed(2)} €</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{card.lastDate ? `Último uso · ${card.lastDate}` : "Sin registros todavía"}</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Pulsa para registrar un repostaje con esta tarjeta.</p>
+                )}
               </div>
             </button>
           );
         })}
       </section>
 
-      {selectedCardAlerts.length > 0 ? (
+      {isAdminView && selectedCardAlerts.length > 0 ? (
         <section className="panel-surface p-4">
           <div className="mb-4 flex items-center gap-2">
             <AlertTriangle className="h-4.5 w-4.5 text-primary" />
