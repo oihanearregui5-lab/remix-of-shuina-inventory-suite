@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Clock, MapPin, Minus, Package, Plus, Scale, Truck, PlusCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Clock, MapPin, Minus, Package, Plus, Scale, Truck, PlusCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useUIMode } from "@/hooks/useUIMode";
 import { useTonnage, formatKg, type TonnageMaterial } from "@/hooks/useTonnage";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+interface DriverOption {
+  user_id: string;
+  full_name: string;
+}
 
 const NEW_TRUCK_VALUE = "__create_new_truck__";
 
