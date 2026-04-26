@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, UserCircle, Droplet } from "lucide-react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, UserCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardView from "@/components/DashboardView";
 import Fichajes from "@/pages/Fichajes";
 const AdminFichajes = lazy(() => import("@/pages/AdminFichajes"));
 const TaskHubView = lazy(() => import("@/components/TaskHubView"));
-const MachineFleetView = lazy(() => import("@/components/MachineFleetView"));
+const MachineHub = lazy(() => import("@/components/MachineHub"));
 const AdminHubView = lazy(() => import("@/components/AdminHubView"));
 const StaffHubView = lazy(() => import("@/components/StaffHubView"));
 const ChatHubView = lazy(() => import("@/components/ChatHubView"));
@@ -16,11 +16,10 @@ const AdminAlbaranesView = lazy(() => import("@/components/admin/AdminAlbaranesV
 const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
 const TonnageHub = lazy(() => import("@/components/tonnage/TonnageHub"));
 const AccountSettingsView = lazy(() => import("@/components/AccountSettingsView"));
-const ConsumablesView = lazy(() => import("@/components/machines/ConsumablesView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "account" | "consumables";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "account";
 type WorkspaceMode = "worker" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
