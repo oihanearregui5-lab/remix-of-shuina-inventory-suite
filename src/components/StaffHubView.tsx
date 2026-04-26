@@ -190,7 +190,7 @@ const StaffHubView = () => {
                 <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               </div>
-              <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo u observaciones" className="min-h-24" />
+              <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo u observaciones" className="min-h-24 hide-on-simple" />
               <Button onClick={() => void submitRequest()} disabled={saving || !startDate || !endDate}><Send className="h-4 w-4" /> Enviar solicitud</Button>
             </div>
           </section>

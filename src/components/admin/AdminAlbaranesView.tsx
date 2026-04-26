@@ -1,261 +1,656 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Plus, FileText, ImageIcon, Search, Building2, Wrench, Truck, MoreHorizontal } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Building2,
+  Camera,
+  Download,
+  FileText,
+  Loader2,
+  Pencil,
+  Plus,
+  ReceiptText,
+  Search,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import DeliveryNoteDialog, {
-  type DeliveryNoteRow,
-  type DeliveryNoteCompany,
-  type DeliveryNoteExpenseTarget,
-  COMPANY_OPTIONS,
-  EXPENSE_TARGET_OPTIONS,
-} from "@/components/admin/DeliveryNoteDialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-const companyLabel = (value: DeliveryNoteCompany) =>
-  COMPANY_OPTIONS.find((c) => c.value === value)?.label ?? value;
+// ============================================================
+// TIPOS Y CONSTANTES
+// ============================================================
+type CompanyKey = "nacohi" | "irigaray" | "hermua" | "hergoy" | "cst" | "finanzauto" | "blumaq" | "dicona" | "sadar" | "otros";
+type ExpenseTargetKey = "maquina" | "taller" | "otros";
 
-const expenseLabel = (value: DeliveryNoteExpenseTarget) =>
-  EXPENSE_TARGET_OPTIONS.find((c) => c.value === value)?.label ?? value;
+const COMPANIES: Array<{ key: CompanyKey; label: string }> = [
+  { key: "nacohi", label: "Nacohi" },
+  { key: "irigaray", label: "Irigaray" },
+  { key: "hermua", label: "Hermua" },
+  { key: "hergoy", label: "Hergoy" },
+  { key: "cst", label: "CST" },
+  { key: "finanzauto", label: "Finanzauto" },
+  { key: "blumaq", label: "Blumaq" },
+  { key: "dicona", label: "Dicona" },
+  { key: "sadar", label: "Sadar" },
+  { key: "otros", label: "Otros" },
+];
 
-const expenseIcon: Record<DeliveryNoteExpenseTarget, typeof Truck> = {
-  maquina: Truck,
-  taller: Wrench,
-  otros: MoreHorizontal,
+const EXPENSE_TARGETS: Array<{ key: ExpenseTargetKey; label: string }> = [
+  { key: "maquina", label: "Máquina" },
+  { key: "taller", label: "Taller" },
+  { key: "otros", label: "Otros" },
+];
+
+interface DeliveryNote {
+  id: string;
+  order_number: string;
+  company: CompanyKey;
+  expense_target: ExpenseTargetKey;
+  machine_asset_id: string | null;
+  amount: number | null;
+  delivery_date: string;
+  notes: string | null;
+  photo_path: string | null;
+  created_at: string;
+  photoUrl?: string | null;
+}
+
+interface MachineOption {
+  id: string;
+  display_name: string;
+  license_plate: string | null;
+}
+
+const emptyForm = {
+  order_number: "",
+  company: "nacohi" as CompanyKey,
+  expense_target: "maquina" as ExpenseTargetKey,
+  machine_asset_id: "",
+  amount: "",
+  delivery_date: format(new Date(), "yyyy-MM-dd"),
+  notes: "",
 };
 
-const formatCurrency = (value: number | null) =>
-  value === null ? "—" : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(value);
+const BUCKET = "delivery-notes";
 
+// ============================================================
+// COMPONENTE
+// ============================================================
 const AdminAlbaranesView = () => {
-  const { toast } = useToast();
+  const { user, canViewAdmin } = useAuth();
+  const db = supabase as any;
+  const [notes, setNotes] = useState<DeliveryNote[]>([]);
+  const [machines, setMachines] = useState<MachineOption[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Formulario y dialog
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<DeliveryNoteRow | null>(null);
-  const [companyFilter, setCompanyFilter] = useState<"all" | DeliveryNoteCompany>("all");
-  const [targetFilter, setTargetFilter] = useState<"all" | DeliveryNoteExpenseTarget>("all");
-  const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoPathToKeep, setPhotoPathToKeep] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: notes = [], isLoading } = useQuery({
-    queryKey: ["delivery-notes"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("delivery_notes")
-        .select("*")
-        .order("delivery_date", { ascending: false })
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as DeliveryNoteRow[];
-    },
-  });
+  // Filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCompany, setFilterCompany] = useState<CompanyKey | "all">("all");
+  const [filterTarget, setFilterTarget] = useState<ExpenseTargetKey | "all">("all");
 
-  const { data: machines = [] } = useQuery({
-    queryKey: ["delivery-note-machines-index"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("machine_assets").select("id, display_name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  // Lightbox
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-  const machineNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    machines.forEach((m) => map.set(m.id, m.display_name));
-    return map;
-  }, [machines]);
-
-  const kpis = useMemo(() => {
-    const total = notes.reduce((sum, n) => sum + (n.amount ?? 0), 0);
-    const byTarget = { maquina: 0, taller: 0, otros: 0 } as Record<DeliveryNoteExpenseTarget, number>;
-    notes.forEach((n) => { byTarget[n.expense_target] += n.amount ?? 0; });
-    return [
-      { label: "Albaranes", value: notes.length.toString(), icon: FileText },
-      { label: "Total importe", value: formatCurrency(total), icon: Building2 },
-      { label: "Gasto en máquinas", value: formatCurrency(byTarget.maquina), icon: Truck },
-      { label: "Gasto en taller", value: formatCurrency(byTarget.taller), icon: Wrench },
-    ];
-  }, [notes]);
-
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return notes.filter((n) => {
-      if (companyFilter !== "all" && n.company !== companyFilter) return false;
-      if (targetFilter !== "all" && n.expense_target !== targetFilter) return false;
-      if (!term) return true;
-      const machineName = n.machine_asset_id ? machineNameById.get(n.machine_asset_id) ?? "" : "";
-      return (
-        n.order_number.toLowerCase().includes(term) ||
-        companyLabel(n.company).toLowerCase().includes(term) ||
-        machineName.toLowerCase().includes(term) ||
-        (n.notes ?? "").toLowerCase().includes(term)
-      );
-    });
-  }, [notes, companyFilter, targetFilter, search, machineNameById]);
-
-  const handleOpenNew = () => {
-    setEditingNote(null);
-    setDialogOpen(true);
-  };
-
-  const handleOpenEdit = (note: DeliveryNoteRow) => {
-    setEditingNote(note);
-    setDialogOpen(true);
-  };
-
-  const handleViewPhoto = async (note: DeliveryNoteRow) => {
-    if (!note.photo_path) {
-      toast({ title: "Sin foto", description: "Este albarán no tiene foto adjunta.", variant: "destructive" });
+  // ============ FETCH ============
+  const fetchNotes = async () => {
+    setLoading(true);
+    const { data, error } = await db
+      .from("delivery_notes")
+      .select("id, order_number, company, expense_target, machine_asset_id, amount, delivery_date, notes, photo_path, created_at")
+      .order("delivery_date", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("No se pudieron cargar los albaranes");
+      setLoading(false);
       return;
     }
-    try {
-      const { data, error } = await supabase.storage
-        .from("delivery-notes")
-        .createSignedUrl(note.photo_path, 60);
-      if (error || !data?.signedUrl) throw error ?? new Error("No URL");
-      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "No se pudo abrir",
-        description: error instanceof Error ? error.message : "Error desconocido",
-        variant: "destructive",
-      });
-    }
+    const rows = (data ?? []) as DeliveryNote[];
+    // Signed URLs para las fotos
+    const withUrls = await Promise.all(
+      rows.map(async (note) => {
+        if (!note.photo_path) return note;
+        const { data: urlData } = await supabase.storage.from(BUCKET).createSignedUrl(note.photo_path, 3600);
+        return { ...note, photoUrl: urlData?.signedUrl };
+      }),
+    );
+    setNotes(withUrls);
+    setLoading(false);
   };
 
+  const fetchMachines = async () => {
+    const { data } = await db
+      .from("machine_assets")
+      .select("id, display_name, license_plate")
+      .order("display_name");
+    setMachines((data ?? []) as MachineOption[]);
+  };
+
+  useEffect(() => {
+    if (!user || !canViewAdmin) return;
+    void fetchNotes();
+    void fetchMachines();
+  }, [user, canViewAdmin]);
+
+  // ============ FORM ============
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoPathToKeep(null);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (note: DeliveryNote) => {
+    setEditingId(note.id);
+    setForm({
+      order_number: note.order_number,
+      company: note.company,
+      expense_target: note.expense_target,
+      machine_asset_id: note.machine_asset_id || "",
+      amount: note.amount !== null ? String(note.amount) : "",
+      delivery_date: note.delivery_date,
+      notes: note.notes || "",
+    });
+    setPhotoFile(null);
+    setPhotoPreview(note.photoUrl || null);
+    setPhotoPathToKeep(note.photo_path);
+    setDialogOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Solo imágenes");
+      return;
+    }
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setPhotoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const clearPhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoPathToKeep(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const save = async () => {
+    if (!user) return;
+    if (!form.order_number.trim()) {
+      toast.error("Falta el número de pedido");
+      return;
+    }
+    setSaving(true);
+
+    // Subir foto nueva si la hay
+    let finalPhotoPath: string | null = photoPathToKeep;
+    if (photoFile) {
+      const ext = photoFile.name.split(".").pop() || "jpg";
+      const path = `${format(new Date(), "yyyy/MM")}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, photoFile);
+      if (uploadError) {
+        toast.error("No se pudo subir la foto");
+        setSaving(false);
+        return;
+      }
+      // Si reemplaza una foto anterior al editar, borramos la vieja
+      if (editingId && photoPathToKeep && photoPathToKeep !== path) {
+        await supabase.storage.from(BUCKET).remove([photoPathToKeep]);
+      }
+      finalPhotoPath = path;
+    } else if (editingId && photoPathToKeep === null) {
+      // Usuario eliminó la foto en edición
+      const original = notes.find((n) => n.id === editingId);
+      if (original?.photo_path) {
+        await supabase.storage.from(BUCKET).remove([original.photo_path]);
+      }
+      finalPhotoPath = null;
+    }
+
+    const payload = {
+      order_number: form.order_number.trim(),
+      company: form.company,
+      expense_target: form.expense_target,
+      machine_asset_id: form.expense_target === "maquina" && form.machine_asset_id ? form.machine_asset_id : null,
+      amount: form.amount ? parseFloat(form.amount.replace(",", ".")) : null,
+      delivery_date: form.delivery_date,
+      notes: form.notes.trim() || null,
+      photo_path: finalPhotoPath,
+      created_by_user_id: user.id,
+    };
+
+    const { error } = editingId
+      ? await db.from("delivery_notes").update(payload).eq("id", editingId)
+      : await db.from("delivery_notes").insert(payload);
+
+    setSaving(false);
+    if (error) {
+      toast.error(editingId ? "No se pudo actualizar el albarán" : "No se pudo guardar el albarán");
+      return;
+    }
+    toast.success(editingId ? "Albarán actualizado" : "Albarán guardado");
+    setDialogOpen(false);
+    void fetchNotes();
+  };
+
+  const deleteNote = async (note: DeliveryNote) => {
+    if (!window.confirm(`¿Eliminar el albarán ${note.order_number}?`)) return;
+    const { error } = await db.from("delivery_notes").delete().eq("id", note.id);
+    if (error) return toast.error("No se pudo eliminar");
+    if (note.photo_path) {
+      await supabase.storage.from(BUCKET).remove([note.photo_path]);
+    }
+    toast.success("Albarán eliminado");
+    void fetchNotes();
+  };
+
+  // ============ FILTROS / KPIs ============
+  const filtered = useMemo(() => {
+    return notes.filter((n) => {
+      if (filterCompany !== "all" && n.company !== filterCompany) return false;
+      if (filterTarget !== "all" && n.expense_target !== filterTarget) return false;
+      if (!searchTerm) return true;
+      const q = searchTerm.toLowerCase();
+      const machineName = machines.find((m) => m.id === n.machine_asset_id)?.display_name || "";
+      return (
+        n.order_number.toLowerCase().includes(q) ||
+        n.company.toLowerCase().includes(q) ||
+        machineName.toLowerCase().includes(q) ||
+        (n.notes || "").toLowerCase().includes(q)
+      );
+    });
+  }, [notes, filterCompany, filterTarget, searchTerm, machines]);
+
+  const kpis = useMemo(() => {
+    const total = notes.length;
+    const withPhoto = notes.filter((n) => n.photo_path).length;
+    const machineCount = notes.filter((n) => n.expense_target === "maquina").length;
+    const totalAmount = notes.reduce((acc, n) => acc + (n.amount || 0), 0);
+    return { total, withPhoto, machineCount, totalAmount };
+  }, [notes]);
+
+  // ============ EXPORT CSV ============
+  const exportCSV = () => {
+    const header = "Nº pedido;Fecha;Empresa;Destino;Máquina;Importe;Foto;Observaciones";
+    const rows = filtered.map((n) => {
+      const mach = n.machine_asset_id ? machines.find((m) => m.id === n.machine_asset_id)?.display_name || "" : "";
+      return [
+        n.order_number,
+        format(new Date(n.delivery_date), "yyyy-MM-dd"),
+        COMPANIES.find((c) => c.key === n.company)?.label || n.company,
+        EXPENSE_TARGETS.find((e) => e.key === n.expense_target)?.label || n.expense_target,
+        mach,
+        n.amount ? n.amount.toFixed(2).replace(".", ",") : "",
+        n.photo_path ? "Sí" : "No",
+        (n.notes || "").replace(/[\r\n;]/g, " "),
+      ].join(";");
+    });
+    const csv = ["\uFEFF" + header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `albaranes_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exportado");
+  };
+
+  if (!canViewAdmin) {
+    return (
+      <div className="animate-fade-in py-16 text-center">
+        <p className="text-muted-foreground">No tienes permisos de administrador</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       <PageHeader
         eyebrow="Administración"
         title="Albaranes"
-        description="Registra cada albarán con número de pedido, empresa, destino del gasto y foto del documento."
+        description="Registro documental de pedidos por proveedor, destino y máquina."
         actions={
-          <Button onClick={handleOpenNew}>
-            <Plus className="mr-2 h-4 w-4" /> Nuevo albarán
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportCSV}>
+              <Download className="h-4 w-4" /> Exportar
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" /> Nuevo albarán
+            </Button>
+          </div>
         }
       />
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((item) => {
-          const Icon = item.icon;
-          return (
-            <article key={item.label} className="panel-surface p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{item.label}</p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">{item.value}</p>
-                </div>
-                <div className="rounded-lg bg-muted p-2 text-foreground">
-                  <Icon className="h-4 w-4" />
-                </div>
-              </div>
-            </article>
-          );
-        })}
+      {/* KPIs */}
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="panel-surface p-4">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Albaranes</p>
+          <p className="mt-1 text-2xl font-bold">{kpis.total}</p>
+        </div>
+        <div className="panel-surface p-4">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Con foto</p>
+          <p className="mt-1 text-2xl font-bold">{kpis.withPhoto}</p>
+        </div>
+        <div className="panel-surface p-4">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Destino máquina</p>
+          <p className="mt-1 text-2xl font-bold">{kpis.machineCount}</p>
+        </div>
+        <div className="panel-surface p-4">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Importe total</p>
+          <p className="mt-1 text-2xl font-bold">{kpis.totalAmount.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
+        </div>
       </section>
 
-      <section className="panel-surface p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-xs">
+      {/* Filtros */}
+      <section className="panel-surface p-3">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nº, empresa, máquina o notas…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nº pedido, máquina u observación"
               className="pl-9"
             />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Select value={companyFilter} onValueChange={(v) => setCompanyFilter(v as typeof companyFilter)}>
-              <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las empresas</SelectItem>
-                {COMPANY_OPTIONS.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={targetFilter} onValueChange={(v) => setTargetFilter(v as typeof targetFilter)}>
-              <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los destinos</SelectItem>
-                {EXPENSE_TARGET_OPTIONS.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {isLoading && <p className="py-8 text-center text-sm text-muted-foreground">Cargando albaranes…</p>}
-          {!isLoading && filtered.length === 0 && (
-            <div className="rounded-lg border border-dashed border-border bg-background p-8 text-center">
-              <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
-              <p className="mt-2 text-sm font-medium text-foreground">No hay albaranes que coincidan</p>
-              <p className="text-xs text-muted-foreground">Crea uno nuevo o ajusta los filtros.</p>
-            </div>
-          )}
-          {filtered.map((note) => {
-            const Icon = expenseIcon[note.expense_target];
-            const machineName = note.machine_asset_id ? machineNameById.get(note.machine_asset_id) : null;
-            return (
-              <button
-                key={note.id}
-                type="button"
-                onClick={() => handleOpenEdit(note)}
-                className="flex w-full flex-col gap-2 rounded-lg border border-border bg-background p-4 text-left transition hover:border-primary hover:bg-muted/30"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-foreground">{note.order_number}</p>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-foreground">
-                        <Icon className="h-3 w-3" /> {expenseLabel(note.expense_target)}
-                      </span>
-                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
-                        {companyLabel(note.company)}
-                      </span>
-                    </div>
-                    {machineName && (
-                      <p className="mt-1 text-sm text-foreground">{machineName}</p>
-                    )}
-                    {note.notes && (
-                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{note.notes}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-1 text-right">
-                    <p className="text-sm font-semibold text-foreground">{formatCurrency(note.amount)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(note.delivery_date), "d MMM yyyy", { locale: es })}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground">
-                  {note.photo_path && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => { e.stopPropagation(); handleViewPhoto(note); }}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); handleViewPhoto(note); } }}
-                      className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-primary hover:bg-primary/20"
-                    >
-                      <ImageIcon className="h-3.5 w-3.5" /> Ver foto
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+          <Select value={filterCompany} onValueChange={(v: CompanyKey | "all") => setFilterCompany(v)}>
+            <SelectTrigger className="md:w-48"><SelectValue placeholder="Empresa" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las empresas</SelectItem>
+              {COMPANIES.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterTarget} onValueChange={(v: ExpenseTargetKey | "all") => setFilterTarget(v)}>
+            <SelectTrigger className="md:w-40"><SelectValue placeholder="Destino" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {EXPENSE_TARGETS.map((e) => <SelectItem key={e.key} value={e.key}>{e.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </section>
 
-      <DeliveryNoteDialog open={dialogOpen} onOpenChange={setDialogOpen} note={editingNote} />
+      {/* Lista de albaranes */}
+      {loading ? (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="h-48 animate-pulse rounded-xl bg-muted" />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="panel-surface p-12 text-center">
+          <ReceiptText className="mx-auto h-10 w-10 text-muted-foreground" />
+          <p className="mt-3 text-sm text-muted-foreground">
+            {notes.length === 0 ? "Aún no hay albaranes. Pulsa \"Nuevo albarán\" para añadir el primero." : "Ningún albarán coincide con los filtros."}
+          </p>
+        </div>
+      ) : (
+        <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filtered.map((note) => {
+            const machine = machines.find((m) => m.id === note.machine_asset_id);
+            const companyLabel = COMPANIES.find((c) => c.key === note.company)?.label || note.company;
+            const targetLabel = EXPENSE_TARGETS.find((e) => e.key === note.expense_target)?.label || note.expense_target;
+            return (
+              <article key={note.id} className="panel-surface flex flex-col overflow-hidden p-0">
+                {/* Foto */}
+                <button
+                  type="button"
+                  onClick={() => note.photoUrl && setLightboxUrl(note.photoUrl)}
+                  className="group relative block aspect-[4/3] w-full overflow-hidden bg-muted"
+                  disabled={!note.photoUrl}
+                >
+                  {note.photoUrl ? (
+                    <img
+                      src={note.photoUrl}
+                      alt={`Albarán ${note.order_number}`}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground">
+                      <FileText className="h-8 w-8" />
+                      <span className="mt-1 text-xs">Sin foto</span>
+                    </div>
+                  )}
+                </button>
+
+                <div className="flex flex-1 flex-col gap-2 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-foreground">#{note.order_number}</p>
+                      <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                        <Building2 className="h-3 w-3" /> {companyLabel}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                      {targetLabel}
+                    </span>
+                  </div>
+
+                  {machine && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      Máquina: <span className="font-medium text-foreground">{machine.display_name}</span>
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{format(new Date(note.delivery_date), "d MMM yyyy", { locale: es })}</span>
+                    {note.amount !== null && <span className="font-semibold text-foreground">{note.amount.toFixed(2)} €</span>}
+                  </div>
+
+                  {note.notes && (
+                    <p className="line-clamp-2 text-xs text-muted-foreground">{note.notes}</p>
+                  )}
+
+                  <div className="mt-auto flex gap-1 pt-2">
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(note)} title="Editar">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => void deleteNote(note)} title="Eliminar">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      )}
+
+      {/* Dialog formulario */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Editar albarán" : "Nuevo albarán"}</DialogTitle>
+            <DialogDescription>
+              Rellena los datos del pedido y adjunta la foto del albarán si la tienes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-2">
+            {/* Número de pedido */}
+            <div className="space-y-1.5">
+              <Label>Nº de pedido</Label>
+              <Input
+                value={form.order_number}
+                onChange={(e) => setForm((f) => ({ ...f, order_number: e.target.value }))}
+                placeholder="Ej: 2025-0341"
+                autoFocus
+              />
+            </div>
+
+            {/* Empresa y destino en línea */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label>Empresa</Label>
+                <Select value={form.company} onValueChange={(v: CompanyKey) => setForm((f) => ({ ...f, company: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {COMPANIES.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Destino</Label>
+                <Select value={form.expense_target} onValueChange={(v: ExpenseTargetKey) => setForm((f) => ({ ...f, expense_target: v, machine_asset_id: v === "maquina" ? f.machine_asset_id : "" }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {EXPENSE_TARGETS.map((e) => <SelectItem key={e.key} value={e.key}>{e.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Máquina (solo si destino = máquina) */}
+            {form.expense_target === "maquina" && (
+              <div className="space-y-1.5">
+                <Label>Máquina concreta</Label>
+                <Select
+                  value={form.machine_asset_id}
+                  onValueChange={(v) => setForm((f) => ({ ...f, machine_asset_id: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Elige una máquina" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {machines.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.display_name}{m.license_plate ? ` · ${m.license_plate}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Fecha e importe */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label>Fecha</Label>
+                <Input
+                  type="date"
+                  value={form.delivery_date}
+                  onChange={(e) => setForm((f) => ({ ...f, delivery_date: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Importe (€)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="Opcional"
+                  value={form.amount}
+                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* Observaciones */}
+            <div className="space-y-1.5">
+              <Label>Observaciones</Label>
+              <Textarea
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                placeholder="Opcional"
+                className="min-h-20"
+              />
+            </div>
+
+            {/* Foto */}
+            <div className="space-y-1.5">
+              <Label>Foto del albarán</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              {photoPreview ? (
+                <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-muted">
+                  <img src={photoPreview} alt="Vista previa" className="h-full w-full object-contain" />
+                  <button
+                    type="button"
+                    onClick={clearPhoto}
+                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-lg"
+                    title="Quitar foto"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" className="h-20 w-full gap-2 border-dashed" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="h-4 w-4" /> Adjuntar foto
+                </Button>
+              )}
+            </div>
+
+            {/* Acciones */}
+            <div className="flex gap-2 pt-2">
+              <Button className="flex-1" onClick={() => void save()} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {editingId ? "Guardar cambios" : "Guardar albarán"}
+              </Button>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lightbox */}
+      <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
+        <DialogContent className="max-w-5xl border-none bg-black/95 p-0 overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Vista ampliada</DialogTitle>
+          </DialogHeader>
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          {lightboxUrl && (
+            <img src={lightboxUrl} alt="Albarán ampliado" className="max-h-[90vh] w-full object-contain" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
+import { useUIMode } from "@/hooks/useUIMode";
 import { buildWorkReportsCsv, EXPECTED_DAILY_HOURS, formatWorkHours, getDurationState, getWorkReportDurationHours } from "@/lib/work-reports";
 
 type WorkReport = {
@@ -110,6 +111,7 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
   const { profile, user, role } = useAuth();
   const db = supabase as any;
   const { reminders } = useSmartReminders();
+  const { isSimple } = useUIMode();
   const defaultWorkerName = profile?.full_name ?? "Trabajador";
   const [reports, setReports] = useState<WorkReport[]>([]);
   const [draft, setDraft] = useState<DraftState>(() => buildInitialDraft(defaultWorkerName));
@@ -314,7 +316,7 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
         description={isAdminView ? "Control real de partes con edición manual, validaciones y seguimiento fiable." : "Flujo rápido para iniciar, retomar y finalizar tareas sin errores típicos del día a día."}
       />
 
-      {!isAdminView ? <SmartRemindersPanel reminders={reminders.filter((reminder) => reminder.section === "workReports" || reminder.section === "fichajes")} compact /> : null}
+      {!isAdminView && !isSimple ? <SmartRemindersPanel reminders={reminders.filter((reminder) => reminder.section === "workReports" || reminder.section === "fichajes")} compact /> : null}
 
       <section className="grid gap-3 md:grid-cols-3">
         <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Estado actual</p><p className="mt-2 text-lg font-semibold text-foreground">{activeReport ? "En curso" : "Sin parte activo"}</p></div>
@@ -379,7 +381,7 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
             </div>
 
             <div className="space-y-2"><Label htmlFor="active-description">Descripción de tarea</Label><Textarea id="active-description" value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></div>
-            <div className="space-y-2"><Label htmlFor="active-observations">Observaciones</Label><Textarea id="active-observations" value={draft.observations} onChange={(event) => setDraft((current) => ({ ...current, observations: event.target.value }))} /></div>
+            <div className="space-y-2 hide-on-simple"><Label htmlFor="active-observations">Observaciones</Label><Textarea id="active-observations" value={draft.observations} onChange={(event) => setDraft((current) => ({ ...current, observations: event.target.value }))} /></div>
 
             <div className="flex flex-wrap gap-2">
               <Button size="lg" className="min-h-12 min-w-[220px]" onClick={() => void finishReport()}><PauseCircle className="h-4 w-4" /> Finalizar parte</Button>
