@@ -196,6 +196,19 @@ const TonnageMyTrips = () => {
                         </p>
                         {isMine && <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">· tú</span>}
                       </div>
+                      {(() => {
+                        const driverName = trip.created_by_user_id
+                          ? isMine
+                            ? "Tú"
+                            : driverNames.get(trip.created_by_user_id) || "Conductor"
+                          : null;
+                        return driverName ? (
+                          <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-foreground">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            {driverName}
+                          </p>
+                        ) : null;
+                      })()}
                       <p className="text-xs text-muted-foreground">
                         {trip.trip_time ? trip.trip_time.slice(0, 5) : "—"} · {formatKg(Number(trip.weight_kg))} kg
                         {loadLabel && <> · de <span className="font-medium text-foreground">{loadLabel}</span></>}
