@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Camera, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Camera, FileText, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUIMode } from "@/hooks/useUIMode";
 import PageHeader from "@/components/shared/PageHeader";
 import MachineDetailDialog, { type MachineDialogItem } from "@/components/machines/MachineDetailDialog";
+import MachineCardDialog from "@/components/machines/MachineCardDialog";
 import MachinePhotosDialog from "@/components/machines/MachinePhotosDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -151,6 +152,7 @@ const MachineFleetView = () => {
   const [photoCounts, setPhotoCounts] = useState<Record<string, number>>({});
 
   const [selectedMachine, setSelectedMachine] = useState<MachineDialogItem | null>(null);
+  const [cardDialogId, setCardDialogId] = useState<string | null>(null);
   const [photosDialog, setPhotosDialog] = useState<{ id: string; name: string } | null>(null);
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -545,6 +547,16 @@ const MachineFleetView = () => {
                 <div className="mt-auto flex flex-wrap gap-1.5 pt-2">
                   <Button
                     size="sm"
+                    variant="default"
+                    className="h-8 gap-1 px-2 text-xs"
+                    onClick={() => setCardDialogId(machine.id)}
+                    title="Ficha completa con tabs"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    Ficha
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="outline"
                     className="h-8 gap-1 px-2 text-xs"
                     onClick={() => setPhotosDialog({ id: machine.id, name: machine.display_name })}
@@ -568,6 +580,14 @@ const MachineFleetView = () => {
           ))}
         </section>
       )}
+
+      {/* Ficha completa con tabs (Tanda 5 v4) */}
+      <MachineCardDialog
+        machineId={cardDialogId}
+        open={Boolean(cardDialogId)}
+        onOpenChange={(o) => !o && setCardDialogId(null)}
+        onChanged={() => void fetchMachines()}
+      />
 
       {/* Detalle */}
       <MachineDetailDialog
