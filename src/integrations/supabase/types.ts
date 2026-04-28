@@ -597,54 +597,90 @@ export type Database = {
       }
       machine_assets: {
         Row: {
+          air_filter_last_date: string | null
           asset_code: string | null
           asset_family: string
+          coolant_last_date: string | null
           created_at: string
           display_name: string
+          fuel_filter_last_date: string | null
+          hydraulic_oil_last_date: string | null
           id: string
+          insurance_expiry_date: string | null
+          itv_last_date: string | null
+          itv_next_date: string | null
           license_plate: string | null
           next_inspection_date: string | null
           next_itv_date: string | null
           notes: string | null
+          oil_last_date: string | null
+          oil_last_hours: number | null
+          oil_next_hours: number | null
           photo_url: string | null
           provider_contact: string | null
           provider_name: string | null
           provider_notes: string | null
           status: Database["public"]["Enums"]["machine_status"]
+          technical_notes: string | null
+          tires_last_check_date: string | null
           updated_at: string
         }
         Insert: {
+          air_filter_last_date?: string | null
           asset_code?: string | null
           asset_family: string
+          coolant_last_date?: string | null
           created_at?: string
           display_name: string
+          fuel_filter_last_date?: string | null
+          hydraulic_oil_last_date?: string | null
           id?: string
+          insurance_expiry_date?: string | null
+          itv_last_date?: string | null
+          itv_next_date?: string | null
           license_plate?: string | null
           next_inspection_date?: string | null
           next_itv_date?: string | null
           notes?: string | null
+          oil_last_date?: string | null
+          oil_last_hours?: number | null
+          oil_next_hours?: number | null
           photo_url?: string | null
           provider_contact?: string | null
           provider_name?: string | null
           provider_notes?: string | null
           status?: Database["public"]["Enums"]["machine_status"]
+          technical_notes?: string | null
+          tires_last_check_date?: string | null
           updated_at?: string
         }
         Update: {
+          air_filter_last_date?: string | null
           asset_code?: string | null
           asset_family?: string
+          coolant_last_date?: string | null
           created_at?: string
           display_name?: string
+          fuel_filter_last_date?: string | null
+          hydraulic_oil_last_date?: string | null
           id?: string
+          insurance_expiry_date?: string | null
+          itv_last_date?: string | null
+          itv_next_date?: string | null
           license_plate?: string | null
           next_inspection_date?: string | null
           next_itv_date?: string | null
           notes?: string | null
+          oil_last_date?: string | null
+          oil_last_hours?: number | null
+          oil_next_hours?: number | null
           photo_url?: string | null
           provider_contact?: string | null
           provider_name?: string | null
           provider_notes?: string | null
           status?: Database["public"]["Enums"]["machine_status"]
+          technical_notes?: string | null
+          tires_last_check_date?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1900,6 +1936,7 @@ export type Database = {
         Args: { p_channel_id: string; p_user_id: string }
         Returns: boolean
       }
+      next_delivery_note_number: { Args: never; Returns: string }
       sync_current_user_staff_link: {
         Args: { _full_name?: string }
         Returns: undefined

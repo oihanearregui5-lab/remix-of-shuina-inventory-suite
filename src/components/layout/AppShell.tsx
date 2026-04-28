@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Eye, LogOut, Menu, RefreshCcw, Search, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Menu, RefreshCcw, Search, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useUIMode } from "@/hooks/useUIMode";
 import NotificationsBell from "@/components/shared/NotificationsBell";
 import GlobalSearchDialog from "@/components/shared/GlobalSearchDialog";
+import MyAccountDialog from "@/components/layout/MyAccountDialog";
 
 export interface AppShellSection<T extends string> {
   key: T;
@@ -22,7 +22,6 @@ interface AppShellProps<T extends string> {
   onMobileMenuOpenChange: (open: boolean) => void;
   currentSection: T;
   onSectionChange: (section: T) => void;
-  /** Prefetch opcional del chunk de la sección al hover/focus. */
   onSectionPrefetch?: (section: T) => void;
   sections: AppShellSection<T>[];
   canViewAdmin: boolean;
@@ -34,6 +33,8 @@ interface AppShellProps<T extends string> {
   onNotificationNavigate?: (link: string) => void;
   children: React.ReactNode;
 }
+
+const COLLAPSED_KEY = "transtubari-sidebar-collapsed";
 
 const AppShell = <T extends string>({
   mobileMenuOpen,
@@ -55,11 +56,28 @@ const AppShell = <T extends string>({
   const mobilePrimarySections = useMemo(() => {
     const preferred = visibleSections.filter((section) => section.mobilePrimary).slice(0, 5);
     const current = visibleSections.find((section) => section.key === currentSection);
-    const unique = [...preferred, current].filter((section, index, array) => section && array.findIndex((item) => item?.key === section.key) === index);
+    const unique = [...preferred, current].filter(
+      (section, index, array) => section && array.findIndex((item) => item?.key === section.key) === index,
+    );
     return unique.slice(0, 5);
   }, [currentSection, visibleSections]);
-  const { isSimple, toggleMode } = useUIMode();
+
   const [searchOpen, setSearchOpen] = useState(false);
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(COLLAPSED_KEY) === "1";
+  });
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -76,18 +94,32 @@ const AppShell = <T extends string>({
     onSectionChange(section as T);
   };
 
-  const navigation = (
+  const openAccountSettings = () => {
+    const accountSection = visibleSections.find((s) => s.key === ("account" as T));
+    if (accountSection) onSectionChange(accountSection.key);
+  };
+
+  const navigation = (isCollapsedDesktop: boolean) => (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-none border-b border-sidebar-border/70 px-5 py-5">
-        <div className="flex flex-col items-start gap-3">
+      <div
+        className={cn(
+          "flex-none border-b border-sidebar-border/70 py-5",
+          isCollapsedDesktop ? "px-3" : "px-5",
+        )}
+      >
+        <div className={cn("flex items-center", isCollapsedDesktop ? "justify-center" : "justify-start")}>
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sidebar-border/80 bg-sidebar-accent/60">
             <img src="/favicon.svg" alt="Abeja Transtubari" className="h-8 w-8 object-contain" />
           </div>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-        <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/70">Navegación</div>
+      <div className={cn("min-h-0 flex-1 overflow-y-auto py-4", isCollapsedDesktop ? "px-2" : "px-3")}>
+        {!isCollapsedDesktop && (
+          <div className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/70">
+            Navegación
+          </div>
+        )}
         <nav className="space-y-1.5" aria-label="Secciones">
           {visibleSections.map((section) => {
             const isActive = section.key === currentSection;
@@ -102,8 +134,10 @@ const AppShell = <T extends string>({
                 onFocus={() => onSectionPrefetch?.(section.key)}
                 onTouchStart={() => onSectionPrefetch?.(section.key)}
                 aria-current={isActive ? "page" : undefined}
+                title={isCollapsedDesktop ? section.label : undefined}
                 className={cn(
-                  "group flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                  "group flex w-full items-start rounded-lg text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                  isCollapsedDesktop ? "justify-center px-2 py-2" : "gap-3 px-3 py-3",
                   isActive
                     ? "bg-sidebar-primary/18 text-sidebar-foreground shadow-[var(--shadow-soft)] ring-1 ring-sidebar-primary/20"
                     : "text-sidebar-foreground/90 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground",
@@ -112,71 +146,76 @@ const AppShell = <T extends string>({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-lg border border-transparent transition-colors",
-                    isActive ? "bg-sidebar-primary text-sidebar-primary-foreground" : "bg-sidebar-accent/80 text-sidebar-foreground",
+                    "flex h-9 w-9 flex-none items-center justify-center rounded-lg border border-transparent transition-colors",
+                    !isCollapsedDesktop && "mt-0.5",
+                    isActive
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "bg-sidebar-accent/80 text-sidebar-foreground",
                   )}
                 >
                   <Icon className="h-4 w-4" />
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">{section.label}</span>
-                  <span className="mt-0.5 block text-xs leading-5 text-sidebar-foreground/75">{section.description}</span>
-                </span>
+                {!isCollapsedDesktop && (
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium">{section.label}</span>
+                    <span className="mt-0.5 block text-xs leading-5 text-sidebar-foreground/75">
+                      {section.description}
+                    </span>
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
       </div>
 
-      <div className="flex-none space-y-2 border-t border-sidebar-border/70 px-4 py-4">
-        {/* Switch modo simple/completo */}
+      <div
+        className={cn(
+          "flex-none space-y-2 border-t border-sidebar-border/70 py-4",
+          isCollapsedDesktop ? "px-2" : "px-4",
+        )}
+      >
+        {/* Botón plegar (solo en desktop) */}
         <button
           type="button"
-          onClick={toggleMode}
-          aria-pressed={isSimple}
-          className="flex w-full items-center justify-between gap-3 rounded-lg bg-sidebar-accent/55 px-3 py-2.5 text-sidebar-foreground transition-colors hover:bg-sidebar-accent/75"
-          title={isSimple ? "Cambiar a vista completa" : "Cambiar a vista sencilla"}
+          onClick={toggleCollapsed}
+          className={cn(
+            "hidden md:flex w-full items-center gap-2 rounded-lg bg-sidebar-accent/55 px-3 py-2 text-xs font-semibold text-sidebar-foreground transition-colors hover:bg-sidebar-accent/75",
+            isCollapsedDesktop && "justify-center px-2",
+          )}
+          title={isCollapsedDesktop ? "Expandir menú" : "Plegar menú"}
         >
-          <span className="flex items-center gap-2 text-xs font-semibold">
-            {isSimple ? <Eye className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-            {isSimple ? "Vista sencilla" : "Vista completa"}
-          </span>
-          <span className="rounded-full bg-sidebar-primary/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground">
-            {isSimple ? "ON" : "OFF"}
-          </span>
+          {isCollapsedDesktop ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {!isCollapsedDesktop && <span>Plegar</span>}
         </button>
 
-        {/* Cambiar espacio se gestiona desde el header */}
-
-        {/* Usuario + cerrar sesión */}
-        <div className="flex items-center justify-between gap-3 rounded-lg bg-sidebar-accent/55 px-3 py-3">
-          <button
-            type="button"
-            onClick={() => {
-              const accountSection = visibleSections.find((s) => s.key === ("account" as T));
-              if (accountSection) onSectionChange(accountSection.key);
-            }}
-            className="min-w-0 flex-1 text-left transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring rounded"
-            title="Editar mi cuenta"
-          >
-            <p className="truncate text-sm font-medium text-sidebar-foreground">{profileName ?? "Usuario"}</p>
-            <p className="truncate text-xs text-sidebar-foreground/70">
-              {workspaceMode === "admin" ? "Administración" : "Trabajador"}
-            </p>
-          </button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-sidebar-foreground/85 hover:bg-sidebar-primary/15 hover:text-sidebar-foreground"
-            onClick={() => void onSignOut()}
-            title="Cerrar sesión"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
+        {/* Bloque de usuario → abre Mi cuenta */}
+        <button
+          type="button"
+          onClick={() => setAccountDialogOpen(true)}
+          className={cn(
+            "flex w-full items-center rounded-lg bg-sidebar-accent/55 transition-colors hover:bg-sidebar-accent/75",
+            isCollapsedDesktop ? "justify-center px-2 py-2" : "gap-3 px-3 py-3",
+          )}
+          title="Mi cuenta"
+        >
+          <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-sidebar-primary/20 text-sidebar-foreground">
+            <UserCircle className="h-5 w-5" />
+          </span>
+          {!isCollapsedDesktop && (
+            <span className="min-w-0 flex-1 text-left">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">{profileName ?? "Usuario"}</p>
+              <p className="truncate text-xs text-sidebar-foreground/70">
+                {workspaceMode === "admin" ? "Administración" : "Trabajador"}
+              </p>
+            </span>
+          )}
+        </button>
       </div>
     </div>
   );
+
+  const desktopWidth = collapsed ? "md:w-[68px]" : "md:w-[320px]";
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -190,10 +229,13 @@ const AppShell = <T extends string>({
       )}
       <div className="flex min-h-screen w-full">
         <aside
-          className="hidden md:flex md:h-screen md:w-[320px] md:flex-col md:border-r md:border-sidebar-border/60 md:bg-sidebar md:sticky md:top-0"
+          className={cn(
+            "hidden md:flex md:h-screen md:flex-col md:border-r md:border-sidebar-border/60 md:bg-sidebar md:sticky md:top-0 transition-[width] duration-200",
+            desktopWidth,
+          )}
           aria-label="Navegación principal"
         >
-          {navigation}
+          {navigation(collapsed)}
         </aside>
         <div
           id="mobile-navigation"
@@ -206,7 +248,7 @@ const AppShell = <T extends string>({
             mobileMenuOpen && "translate-x-0",
           )}
         >
-          {navigation}
+          {navigation(false)}
         </div>
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 border-b border-border/70 bg-background/92 backdrop-blur-xl">
@@ -223,15 +265,42 @@ const AppShell = <T extends string>({
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
+                {/* Botón plegar/expandir en topbar (solo desktop) */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="hidden md:inline-flex"
+                  onClick={toggleCollapsed}
+                  aria-label={collapsed ? "Expandir menú" : "Plegar menú"}
+                  title={collapsed ? "Expandir menú" : "Plegar menú"}
+                >
+                  {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                </Button>
                 <div className="min-w-0 space-y-1">
                   <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-foreground md:text-lg">{activeSection?.label}</p>
-                    <p className="truncate text-xs text-muted-foreground md:hidden">{activeSection?.description}</p>
-                    <p className="hidden truncate text-sm text-muted-foreground md:block">{activeSection?.description}</p>
+                    <p className="truncate text-base font-semibold text-foreground md:text-lg">
+                      {activeSection?.label}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground md:hidden">
+                      {activeSection?.description}
+                    </p>
+                    <p className="hidden truncate text-sm text-muted-foreground md:block">
+                      {activeSection?.description}
+                    </p>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Nombre clicable → abre Mi cuenta */}
+                <button
+                  type="button"
+                  onClick={() => setAccountDialogOpen(true)}
+                  className="hidden md:inline-flex h-9 items-center gap-2 rounded-md border border-border px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+                  title="Mi cuenta"
+                >
+                  <UserCircle className="h-4 w-4" />
+                  <span className="max-w-[180px] truncate">{profileName ?? "Mi cuenta"}</span>
+                </button>
                 {onChangeWorkspace ? (
                   <Button
                     variant="outline"
@@ -266,8 +335,15 @@ const AppShell = <T extends string>({
                   <Search className="h-4 w-4" />
                 </Button>
                 <NotificationsBell onNavigate={onNotificationNavigate} />
-                <Button variant="outline" size="icon" aria-label="Cerrar sesión" className="md:hidden" onClick={() => void onSignOut()}>
-                  <LogOut className="h-4 w-4" />
+                {/* En móvil: botón Mi cuenta en lugar de Cerrar sesión suelto */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label="Mi cuenta"
+                  className="md:hidden"
+                  onClick={() => setAccountDialogOpen(true)}
+                >
+                  <UserCircle className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -325,6 +401,16 @@ const AppShell = <T extends string>({
       </nav>
 
       <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} onNavigate={handleSearchNavigate} />
+      <MyAccountDialog
+        open={accountDialogOpen}
+        onOpenChange={setAccountDialogOpen}
+        profileName={profileName}
+        workspaceMode={workspaceMode}
+        canChangeWorkspace={Boolean(onChangeWorkspace)}
+        onChangeWorkspace={onChangeWorkspace}
+        onOpenAccountSettings={openAccountSettings}
+        onSignOut={onSignOut}
+      />
     </div>
   );
 };

@@ -169,3 +169,13 @@ body.ui-simple .panel-surface {
   padding: 1.25rem;
 }
 
+/* En modo simple, oculta cualquier elemento marcado como secundario */
+body.ui-simple .hide-on-simple {
+  display: none !important;
+}
+
+/* En modo completo, oculta los elementos pensados solo para la vista sencilla */
+body:not(.ui-simple) .simple-show {
+  display: none !important;
+}
+
