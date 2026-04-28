@@ -124,12 +124,12 @@ const AdminHubView = () => {
   const reviewVacationRequest = async (requestId: string, status: "approved" | "rejected" | "pending") => {
     const adminResponse = responseDrafts[requestId]?.trim() || null;
     const currentUser = (await supabase.auth.getUser()).data.user;
-    const updatePayload: Record<string, unknown> = {
+    const updatePayload = {
       status,
       admin_response: status === "pending" ? null : adminResponse,
       reviewed_at: status === "pending" ? null : new Date().toISOString(),
       reviewed_by_user_id: status === "pending" ? null : currentUser?.id ?? null,
-    };
+    } as const;
     const { error } = await supabase.from("vacation_requests").update(updatePayload).eq("id", requestId);
     if (error) return toast.error("No se pudo actualizar la solicitud");
     toast.success(status === "approved" ? "Solicitud aceptada" : status === "rejected" ? "Solicitud declinada" : "Vuelve a pendiente");
