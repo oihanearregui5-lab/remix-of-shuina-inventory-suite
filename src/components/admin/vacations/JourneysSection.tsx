@@ -33,6 +33,7 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [modalWorkerId, setModalWorkerId] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   const excelWorkers = data?.workers ?? [];
   const { resolveExcelWorker, resolveAppWorker, getDisplayWorker } = useWorkerLookups(excelWorkers, workers);
