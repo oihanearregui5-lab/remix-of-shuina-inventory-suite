@@ -171,12 +171,33 @@ const TonnageDashboard = () => {
             </SelectContent>
           </Select>
 
+          <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+            <SelectTrigger className="w-32 h-9"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_VALUE}>Todos los tipos</SelectItem>
+              <SelectItem value="tolva">Tolva (facturable)</SelectItem>
+              <SelectItem value="acopio">Acopio</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" size="sm" variant="default" className="ml-auto gap-1.5">
+                <Download className="h-3.5 w-3.5" /> Exportar Excel
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportMonthExcel("tolva")}>Solo TOLVA (facturable)</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportMonthExcel("all")}>TODOS los viajes</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => { setFilterDay(ALL_VALUE); setFilterDriverId(ALL_VALUE); setFilterTruckId(ALL_VALUE); }}
-            className="text-destructive border-destructive/40 hover:bg-destructive/5 ml-auto"
+            onClick={() => { setFilterDay(ALL_VALUE); setFilterDriverId(ALL_VALUE); setFilterTruckId(ALL_VALUE); setFilterType(ALL_VALUE); }}
+            className="text-destructive border-destructive/40 hover:bg-destructive/5"
           >
             Borrar filtros
           </Button>
