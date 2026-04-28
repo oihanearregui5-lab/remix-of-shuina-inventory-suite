@@ -176,7 +176,7 @@ const MachineFleetView = () => {
   const fetchMachines = async () => {
     const { data, error } = await db
       .from("machine_assets")
-      .select("id, display_name, asset_family, asset_code, license_plate, status, notes, photo_url")
+      .select("id, display_name, asset_family, asset_code, license_plate, status, notes, photo_url, itv_last_date, itv_next_date, oil_last_date, oil_last_hours, oil_next_hours, hydraulic_oil_last_date, air_filter_last_date, fuel_filter_last_date, coolant_last_date, tires_last_check_date, insurance_expiry_date, technical_notes, provider_name, provider_contact, provider_notes, next_inspection_date")
       .order("display_name");
     if (error) return toast.error("No se pudieron cargar las máquinas");
     setMachines((data ?? []) as MachineAssetItem[]);
