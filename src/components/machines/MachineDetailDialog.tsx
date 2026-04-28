@@ -86,6 +86,8 @@ interface MachineDetailDialogProps {
   open: boolean;
   machine: MachineDialogItem | null;
   onOpenChange: (open: boolean) => void;
+  canEdit?: boolean;
+  onSaveTechnical?: (machineId: string, patch: Record<string, string | number | null>) => Promise<void> | void;
 }
 
 const statusLabel = {
