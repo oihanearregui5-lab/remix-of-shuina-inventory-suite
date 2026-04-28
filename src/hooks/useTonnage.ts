@@ -51,7 +51,10 @@ export interface TonnageTrip {
   created_by_user_id: string | null;
   driver_user_id: string | null;
   created_at: string;
+  trip_type: TripType;
 }
+
+export type TripType = "acopio" | "tolva";
 
 export interface TonnageTripInput {
   truck_id: string;
@@ -66,6 +69,7 @@ export interface TonnageTripInput {
   unload_zone_id?: string | null;
   notes?: string | null;
   driver_user_id?: string | null;
+  trip_type?: TripType;
 }
 
 // ============================================================
