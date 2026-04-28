@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
+import MachineExpiriesWidget from "@/components/dashboard/MachineExpiriesWidget";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
 import { useClockEntry } from "@/hooks/useClockEntry";
 import { useUIMode } from "@/hooks/useUIMode";
