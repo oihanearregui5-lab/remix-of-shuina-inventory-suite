@@ -305,6 +305,14 @@ const TonnageMyTrips = () => {
               </Select>
             </div>
 
+            <div>
+              <Label className="mb-1.5 block text-xs font-medium">Tipo de viaje</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" size="sm" variant={editForm.trip_type === "acopio" ? "default" : "outline"} onClick={() => setEditForm((f) => ({ ...f, trip_type: "acopio" }))}>ACOPIO</Button>
+                <Button type="button" size="sm" variant={editForm.trip_type === "tolva" ? "default" : "outline"} onClick={() => setEditForm((f) => ({ ...f, trip_type: "tolva" }))}>TOLVA</Button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="mb-1.5 block text-xs font-medium">Peso (kg)</Label>
