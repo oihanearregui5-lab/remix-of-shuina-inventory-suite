@@ -570,7 +570,39 @@ const MachineFleetView = () => {
       )}
 
       {/* Detalle */}
-      <MachineDetailDialog open={Boolean(selectedMachine)} machine={selectedMachine} onOpenChange={(open) => !open && setSelectedMachine(null)} />
+      <MachineDetailDialog
+        open={Boolean(selectedMachine)}
+        machine={selectedMachine}
+        onOpenChange={(open) => !open && setSelectedMachine(null)}
+        canEdit={isAdmin}
+        onSaveTechnical={async (machineId, patch) => {
+          const { error } = await db.from("machine_assets").update(patch).eq("id", machineId);
+          if (error) throw error;
+          await fetchMachines();
+          // refrescar el dialog con nuevos datos
+          setSelectedMachine((current) => {
+            if (!current || current.id !== machineId) return current;
+            return {
+              ...current,
+              technical: {
+                ...current.technical!,
+                itvLast: (patch.itv_last_date as string) ?? null,
+                itvNext: (patch.itv_next_date as string) ?? null,
+                oilLastDate: (patch.oil_last_date as string) ?? null,
+                oilLastHours: (patch.oil_last_hours as number) ?? null,
+                oilNextHours: (patch.oil_next_hours as number) ?? null,
+                hydraulicOilLast: (patch.hydraulic_oil_last_date as string) ?? null,
+                airFilterLast: (patch.air_filter_last_date as string) ?? null,
+                fuelFilterLast: (patch.fuel_filter_last_date as string) ?? null,
+                coolantLast: (patch.coolant_last_date as string) ?? null,
+                tiresLastCheck: (patch.tires_last_check_date as string) ?? null,
+                insuranceExpiry: (patch.insurance_expiry_date as string) ?? null,
+                notes: (patch.technical_notes as string) ?? null,
+              },
+            };
+          });
+        }}
+      />
 
       {/* Fotos */}
       <MachinePhotosDialog
