@@ -1030,6 +1030,7 @@ export type Database = {
           full_name: string
           id: string
           is_supervisor: boolean
+          is_truck_driver: boolean
           linked_user_id: string | null
           notes: string | null
           phone: string | null
@@ -1037,6 +1038,7 @@ export type Database = {
           sort_order: number
           staff_kind: Database["public"]["Enums"]["staff_kind"]
           start_date: string | null
+          truck_driver_role: string | null
           updated_at: string
           weekly_hours: number | null
         }
@@ -1049,6 +1051,7 @@ export type Database = {
           full_name: string
           id?: string
           is_supervisor?: boolean
+          is_truck_driver?: boolean
           linked_user_id?: string | null
           notes?: string | null
           phone?: string | null
@@ -1056,6 +1059,7 @@ export type Database = {
           sort_order?: number
           staff_kind?: Database["public"]["Enums"]["staff_kind"]
           start_date?: string | null
+          truck_driver_role?: string | null
           updated_at?: string
           weekly_hours?: number | null
         }
@@ -1068,6 +1072,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_supervisor?: boolean
+          is_truck_driver?: boolean
           linked_user_id?: string | null
           notes?: string | null
           phone?: string | null
@@ -1075,6 +1080,7 @@ export type Database = {
           sort_order?: number
           staff_kind?: Database["public"]["Enums"]["staff_kind"]
           start_date?: string | null
+          truck_driver_role?: string | null
           updated_at?: string
           weekly_hours?: number | null
         }
@@ -1410,6 +1416,7 @@ export type Database = {
           qty_tortas: number | null
           trip_date: string
           trip_time: string | null
+          trip_type: string | null
           truck_id: string
           unload_zone_id: string | null
           updated_at: string
@@ -1429,6 +1436,7 @@ export type Database = {
           qty_tortas?: number | null
           trip_date: string
           trip_time?: string | null
+          trip_type?: string | null
           truck_id: string
           unload_zone_id?: string | null
           updated_at?: string
@@ -1448,6 +1456,7 @@ export type Database = {
           qty_tortas?: number | null
           trip_date?: string
           trip_time?: string | null
+          trip_type?: string | null
           truck_id?: string
           unload_zone_id?: string | null
           updated_at?: string

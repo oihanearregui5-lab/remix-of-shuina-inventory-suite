@@ -51,7 +51,10 @@ export interface TonnageTrip {
   created_by_user_id: string | null;
   driver_user_id: string | null;
   created_at: string;
+  trip_type: TripType;
 }
+
+export type TripType = "acopio" | "tolva";
 
 export interface TonnageTripInput {
   truck_id: string;
@@ -66,6 +69,7 @@ export interface TonnageTripInput {
   unload_zone_id?: string | null;
   notes?: string | null;
   driver_user_id?: string | null;
+  trip_type?: TripType;
 }
 
 // ============================================================
@@ -115,7 +119,7 @@ export const useTonnage = (monthDate: Date) => {
     const { data, error } = await db
       .from("tonnage_trips")
       .select(
-        "id, truck_id, trip_date, trip_time, weight_kg, qty_tortas, qty_arenas_a, qty_arenas_b, qty_sulfatos, load_zone_id, unload_zone_id, material_snapshot, notes, created_by_user_id, driver_user_id, created_at",
+        "id, truck_id, trip_date, trip_time, weight_kg, qty_tortas, qty_arenas_a, qty_arenas_b, qty_sulfatos, load_zone_id, unload_zone_id, material_snapshot, notes, created_by_user_id, driver_user_id, created_at, trip_type",
       )
       .gte("trip_date", monthStart)
       .lte("trip_date", monthEnd)
@@ -169,6 +173,7 @@ export const useTonnage = (monthDate: Date) => {
         notes: input.notes?.trim() || null,
         created_by_user_id: user.id,
         driver_user_id: input.driver_user_id ?? user.id,
+        trip_type: input.trip_type ?? "tolva",
       });
       if (error) {
         toast.error("No se pudo guardar el viaje");
@@ -196,7 +201,7 @@ export const useTonnage = (monthDate: Date) => {
       if (changes.unload_zone_id !== undefined) payload.unload_zone_id = changes.unload_zone_id || null;
       if (changes.notes !== undefined) payload.notes = changes.notes?.trim() || null;
       if (changes.driver_user_id !== undefined) payload.driver_user_id = changes.driver_user_id;
-
+      if (changes.trip_type !== undefined) payload.trip_type = changes.trip_type;
       const { error } = await db.from("tonnage_trips").update(payload).eq("id", tripId);
       if (error) {
         toast.error("No se pudo actualizar el viaje");

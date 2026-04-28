@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, Trash2, Truck, User } from "lucide-react";
+import { Filter, Pencil, Trash2, Truck, User } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import EmptyState from "@/components/shared/EmptyState";
 import { useAuth } from "@/hooks/useAuth";
-import { useTonnage, formatKg, type TonnageMaterial, type TonnageTrip } from "@/hooks/useTonnage";
+import { useTonnage, formatKg, type TonnageMaterial, type TonnageTrip, type TripType } from "@/hooks/useTonnage";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+
+const ALL = "__all__";
 
 const materialTone: Record<TonnageMaterial, string> = {
   arenas: "bg-warning/20 text-foreground",
@@ -24,6 +26,7 @@ const TonnageMyTrips = () => {
   const today = useMemo(() => new Date(), []);
   const { trucks, zones, trips, loading, updateTrip, deleteTrip } = useTonnage(today);
   const todayStr = format(today, "yyyy-MM-dd");
+  const [typeFilter, setTypeFilter] = useState<TripType | typeof ALL>(ALL);
 
   const [editTrip, setEditTrip] = useState<TonnageTrip | null>(null);
   const [editForm, setEditForm] = useState({
@@ -36,6 +39,7 @@ const TonnageMyTrips = () => {
     truck_id: "",
     load_zone_id: "",
     unload_zone_id: "",
+    trip_type: "tolva" as TripType,
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -43,14 +47,17 @@ const TonnageMyTrips = () => {
     () =>
       trips
         .filter((t) => t.trip_date === todayStr)
+        .filter((t) => typeFilter === ALL || t.trip_type === typeFilter)
         .sort((a, b) => (b.trip_time || "").localeCompare(a.trip_time || "") || b.created_at.localeCompare(a.created_at)),
-    [trips, todayStr],
+    [trips, todayStr, typeFilter],
   );
 
   const myTodayTrips = useMemo(
     () => todayTrips.filter((t) => (t.driver_user_id ?? t.created_by_user_id) === user?.id),
     [todayTrips, user],
   );
+
+  const tolvaCount = todayTrips.filter((t) => t.trip_type === "tolva").length;
 
   // Cargar nombres de conductores (perfiles) para los viajes de hoy
   const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
@@ -104,6 +111,7 @@ const TonnageMyTrips = () => {
       truck_id: trip.truck_id,
       load_zone_id: trip.load_zone_id || "",
       unload_zone_id: trip.unload_zone_id || "",
+      trip_type: (trip.trip_type ?? "tolva") as TripType,
     });
   };
 
@@ -122,6 +130,7 @@ const TonnageMyTrips = () => {
       qty_sulfatos: editForm.qty_sulfatos,
       load_zone_id: editForm.load_zone_id || null,
       unload_zone_id: editForm.unload_zone_id || null,
+      trip_type: editForm.trip_type,
     });
     setSavingEdit(false);
     if (ok) setEditTrip(null);
@@ -156,16 +165,26 @@ const TonnageMyTrips = () => {
       </header>
 
       <section className="panel-surface p-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-sm font-semibold text-foreground">
+            <p className="text-sm font-semibold text-foreground capitalize">
               {format(today, "EEEE d 'de' MMMM", { locale: es })}
             </p>
-            <p className="text-xs text-muted-foreground">Más recientes primero · Pulsa el lápiz para editar</p>
+            <p className="text-xs text-muted-foreground">
+              {todayTrips.length} viaje{todayTrips.length !== 1 ? "s" : ""} · {tolvaCount} de tolva facturable{tolvaCount !== 1 ? "s" : ""}
+            </p>
           </div>
-          <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-            {todayTrips.length} total
-          </span>
+          <div className="flex items-center gap-1.5">
+            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
+              <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Todos</SelectItem>
+                <SelectItem value="tolva">Tolva</SelectItem>
+                <SelectItem value="acopio">Acopio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {loading ? (
@@ -201,6 +220,12 @@ const TonnageMyTrips = () => {
                         <p className="truncate text-sm font-semibold text-foreground">
                           {truck?.label ?? "Camión eliminado"}
                         </p>
+                        <span className={cn(
+                          "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                          (trip.trip_type ?? "tolva") === "tolva" ? "bg-success/15 text-success" : "bg-warning/20 text-foreground",
+                        )}>
+                          {trip.trip_type ?? "tolva"}
+                        </span>
                         {isMine && <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">· tú</span>}
                       </div>
                       {(() => {
@@ -278,6 +303,14 @@ const TonnageMyTrips = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label className="mb-1.5 block text-xs font-medium">Tipo de viaje</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" size="sm" variant={editForm.trip_type === "acopio" ? "default" : "outline"} onClick={() => setEditForm((f) => ({ ...f, trip_type: "acopio" }))}>ACOPIO</Button>
+                <Button type="button" size="sm" variant={editForm.trip_type === "tolva" ? "default" : "outline"} onClick={() => setEditForm((f) => ({ ...f, trip_type: "tolva" }))}>TOLVA</Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">

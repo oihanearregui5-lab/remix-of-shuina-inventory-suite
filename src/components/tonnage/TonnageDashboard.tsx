@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Filter, RefreshCw } from "lucide-react";
-import { addMonths, format, getDaysInMonth, startOfMonth, subMonths } from "date-fns";
+import { Download, Filter, RefreshCw } from "lucide-react";
+import { format, getDaysInMonth, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
+import * as XLSX from "xlsx";
 import {
   Bar,
   BarChart,
   CartesianGrid,
   ComposedChart,
-  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -21,10 +21,13 @@ import {
   formatKg,
   formatTons,
   useTonnage,
+  type TripType,
 } from "@/hooks/useTonnage";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const ALL_VALUE = "__all__";
@@ -37,6 +40,7 @@ const TonnageDashboard = () => {
   const [filterDay, setFilterDay] = useState<string>(ALL_VALUE);
   const [filterDriverId, setFilterDriverId] = useState<string>(ALL_VALUE);
   const [filterTruckId, setFilterTruckId] = useState<string>(ALL_VALUE);
+  const [filterType, setFilterType] = useState<TripType | typeof ALL_VALUE>(ALL_VALUE);
 
   // Mapa userId → nombre, lo cargo desde profiles
   const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
@@ -64,9 +68,10 @@ const TonnageDashboard = () => {
       }
       if (filterDriverId !== ALL_VALUE && t.created_by_user_id !== filterDriverId) return false;
       if (filterTruckId !== ALL_VALUE && t.truck_id !== filterTruckId) return false;
+      if (filterType !== ALL_VALUE && (t.trip_type ?? "tolva") !== filterType) return false;
       return true;
     });
-  }, [trips, filterDay, filterDriverId, filterTruckId]);
+  }, [trips, filterDay, filterDriverId, filterTruckId, filterType]);
 
   const totalTrips = filteredTrips.length;
   const totalKg = filteredTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
@@ -114,6 +119,38 @@ const TonnageDashboard = () => {
 
   const monthIdx = currentMonth.getMonth();
   const year = currentMonth.getFullYear();
+
+  const exportMonthExcel = (mode: "tolva" | "all") => {
+    const source = trips.filter((t) => mode === "all" || (t.trip_type ?? "tolva") === "tolva");
+    if (source.length === 0) {
+      toast.error("No hay viajes para exportar en este mes");
+      return;
+    }
+    const monthName = format(currentMonth, "MMMM yy", { locale: es }).toUpperCase();
+    const truckList = trucks;
+    // Estructura solicitada: A1 vacío, A2 = mes, B2 = "Camiones", B3.. = índice 1..N
+    const aoa: any[][] = [];
+    aoa.push([]);
+    aoa.push([monthName, "Camiones"]);
+    aoa.push(["", ...truckList.map((_, i) => i + 1)]);
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const row: any[] = [day];
+      truckList.forEach((tr) => {
+        const dayTrips = source.filter((t) => t.truck_id === tr.id && new Date(t.trip_date).getDate() === day && new Date(t.trip_date).getMonth() === monthIdx);
+        const total = dayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
+        row.push(total > 0 ? total : "");
+      });
+      aoa.push(row);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, monthName);
+    const fileName = `Toneladas_${mode === "tolva" ? "TOLVA" : "TODOS"}_${format(currentMonth, "yyyy-MM")}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    toast.success("Excel descargado");
+  };
 
   return (
     <div className="space-y-4">
@@ -166,12 +203,33 @@ const TonnageDashboard = () => {
             </SelectContent>
           </Select>
 
+          <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
+            <SelectTrigger className="w-32 h-9"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_VALUE}>Todos los tipos</SelectItem>
+              <SelectItem value="tolva">Tolva (facturable)</SelectItem>
+              <SelectItem value="acopio">Acopio</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" size="sm" variant="default" className="ml-auto gap-1.5">
+                <Download className="h-3.5 w-3.5" /> Exportar Excel
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportMonthExcel("tolva")}>Solo TOLVA (facturable)</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportMonthExcel("all")}>TODOS los viajes</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => { setFilterDay(ALL_VALUE); setFilterDriverId(ALL_VALUE); setFilterTruckId(ALL_VALUE); }}
-            className="text-destructive border-destructive/40 hover:bg-destructive/5 ml-auto"
+            onClick={() => { setFilterDay(ALL_VALUE); setFilterDriverId(ALL_VALUE); setFilterTruckId(ALL_VALUE); setFilterType(ALL_VALUE); }}
+            className="text-destructive border-destructive/40 hover:bg-destructive/5"
           >
             Borrar filtros
           </Button>
