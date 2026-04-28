@@ -165,13 +165,15 @@ const AdminAlbaranesView = () => {
   }, [user]);
 
   // ============ FORM ============
-  const openCreate = () => {
+  const openCreate = async () => {
     setEditingId(null);
-    setForm(emptyForm);
     setPhotoFile(null);
     setPhotoPreview(null);
     setPhotoPathToKeep(null);
     setDialogOpen(true);
+    // Pedir el siguiente nº disponible al servidor
+    const { data: nextNumber } = await db.rpc("next_delivery_note_number");
+    setForm({ ...emptyForm, order_number: nextNumber ? String(nextNumber) : "" });
   };
 
   const openEdit = (note: DeliveryNote) => {
@@ -213,10 +215,7 @@ const AdminAlbaranesView = () => {
 
   const save = async () => {
     if (!user) return;
-    if (!form.order_number.trim()) {
-      toast.error("Falta el número de pedido");
-      return;
-    }
+    // El nº puede estar vacío: el trigger SQL lo rellena con auto-numeración.
     setSaving(true);
 
     // Subir foto nueva si la hay
