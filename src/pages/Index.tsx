@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, UserCircle } from "lucide-react";
+import { useUIMode } from "@/hooks/useUIMode";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardView from "@/components/DashboardView";
 import Fichajes from "@/pages/Fichajes";
@@ -56,6 +57,7 @@ const Index = () => {
     return stored === "worker" || stored === "admin" ? (stored as WorkspaceMode) : null;
   });
   const { canViewAdmin, isAdmin, profile, role, signOut } = useAuth();
+  const { isSimple } = useUIMode();
 
   // Si pierde permisos admin mientras estaba en admin, vuelve al selector
   useEffect(() => {
@@ -72,17 +74,24 @@ const Index = () => {
 
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
+    const workerSimpleSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage"];
     const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes", "account"];
     const adminSections: AppSection[] = role === "admin"
       ? ["admin", "fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"];
-    const allowed = workspaceMode === "admin" && canViewAdmin ? adminSections : workerSections;
+    const isAdminWorkspace = workspaceMode === "admin" && canViewAdmin;
+    // Vista sencilla solo aplica al trabajador. El admin siempre ve todo.
+    const allowed = isAdminWorkspace
+      ? adminSections
+      : isSimple
+      ? workerSimpleSections
+      : workerSections;
     return sections.filter((section) => {
       const sectionWorkspace = section.workspace ?? "worker";
       const matchesWorkspace = workspaceMode === "admin" ? sectionWorkspace === "admin" : sectionWorkspace === "worker";
       return matchesWorkspace && allowed.includes(section.key) && (!section.adminOnly || canViewAdmin);
     });
-  }, [canViewAdmin, role, workspaceMode]);
+  }, [canViewAdmin, role, workspaceMode, isSimple]);
 
   useEffect(() => {
     if (!visibleSections.length) return;
