@@ -26,6 +26,7 @@ const TonnageMyTrips = () => {
   const today = useMemo(() => new Date(), []);
   const { trucks, zones, trips, loading, updateTrip, deleteTrip } = useTonnage(today);
   const todayStr = format(today, "yyyy-MM-dd");
+  const [typeFilter, setTypeFilter] = useState<TripType | typeof ALL>(ALL);
 
   const [editTrip, setEditTrip] = useState<TonnageTrip | null>(null);
   const [editForm, setEditForm] = useState({
@@ -38,6 +39,7 @@ const TonnageMyTrips = () => {
     truck_id: "",
     load_zone_id: "",
     unload_zone_id: "",
+    trip_type: "tolva" as TripType,
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -45,14 +47,17 @@ const TonnageMyTrips = () => {
     () =>
       trips
         .filter((t) => t.trip_date === todayStr)
+        .filter((t) => typeFilter === ALL || t.trip_type === typeFilter)
         .sort((a, b) => (b.trip_time || "").localeCompare(a.trip_time || "") || b.created_at.localeCompare(a.created_at)),
-    [trips, todayStr],
+    [trips, todayStr, typeFilter],
   );
 
   const myTodayTrips = useMemo(
     () => todayTrips.filter((t) => (t.driver_user_id ?? t.created_by_user_id) === user?.id),
     [todayTrips, user],
   );
+
+  const tolvaCount = todayTrips.filter((t) => t.trip_type === "tolva").length;
 
   // Cargar nombres de conductores (perfiles) para los viajes de hoy
   const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
