@@ -30,7 +30,7 @@ interface ReportItem { id: string; description: string; started_at: string; ende
 interface HighlightItem { id: string; title: string; summary: string | null; category: string; highlight_date: string; }
 
 const DashboardView = ({ onNavigate }: DashboardViewProps) => {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const db = supabase as any;
   const { reminders } = useSmartReminders();
   const { isSimple } = useUIMode();
