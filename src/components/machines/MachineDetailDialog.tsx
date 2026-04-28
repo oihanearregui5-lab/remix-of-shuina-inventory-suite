@@ -315,78 +315,89 @@ const MachineDetailDialog = ({ open, machine, onOpenChange, canEdit = false, onS
 
               {/* TAB TÉCNICO */}
               <TabsContent value="tecnico" className="space-y-4 pt-4">
-                {!machine.technical ? (
-                  <p className="text-sm text-muted-foreground">Sin datos técnicos registrados.</p>
-                ) : (
-                  <>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <TechRow
-                        icon={ShieldCheck}
-                        label="ITV — última"
-                        value={formatDate(machine.technical.itvLast)}
-                      />
-                      <TechRow
-                        icon={ShieldCheck}
-                        label="ITV — próxima"
-                        value={formatDate(machine.technical.itvNext)}
-                        hint={dateBadge(machine.technical.itvNext)}
-                      />
-                      <TechRow
-                        icon={Droplet}
-                        label="Aceite motor — última"
-                        value={
+                <div className="flex items-center justify-end gap-2">
+                  {canEdit && !editing && (
+                    <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="gap-1">
+                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    </Button>
+                  )}
+                  {canEdit && editing && (
+                    <>
+                      <Button size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={saving} className="gap-1">
+                        <X className="h-3.5 w-3.5" /> Cancelar
+                      </Button>
+                      <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
+                        <Save className="h-3.5 w-3.5" /> {saving ? "Guardando…" : "Guardar"}
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {!editing ? (
+                  !machine.technical ? (
+                    <p className="text-sm text-muted-foreground">Sin datos técnicos registrados.</p>
+                  ) : (
+                    <>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <TechRow icon={ShieldCheck} label="ITV — última" value={formatDate(machine.technical.itvLast)} />
+                        <TechRow icon={ShieldCheck} label="ITV — próxima" value={formatDate(machine.technical.itvNext)} hint={dateBadge(machine.technical.itvNext)} />
+                        <TechRow icon={Droplet} label="Aceite motor — última" value={
                           machine.technical.oilLastDate
                             ? `${formatDate(machine.technical.oilLastDate)}${machine.technical.oilLastHours ? ` · ${machine.technical.oilLastHours}h` : ""}`
                             : "—"
-                        }
-                      />
-                      <TechRow
-                        icon={Gauge}
-                        label="Próximo cambio aceite"
-                        value={machine.technical.oilNextHours ? `${machine.technical.oilNextHours}h` : "—"}
-                      />
-                      <TechRow
-                        icon={Droplet}
-                        label="Aceite hidráulico"
-                        value={formatDate(machine.technical.hydraulicOilLast)}
-                      />
-                      <TechRow
-                        icon={Fuel}
-                        label="Filtro combustible"
-                        value={formatDate(machine.technical.fuelFilterLast)}
-                      />
-                      <TechRow
-                        icon={Wrench}
-                        label="Filtro de aire"
-                        value={formatDate(machine.technical.airFilterLast)}
-                      />
-                      <TechRow
-                        icon={Droplet}
-                        label="Refrigerante"
-                        value={formatDate(machine.technical.coolantLast)}
-                      />
-                      <TechRow
-                        icon={CircleGauge}
-                        label="Neumáticos — última revisión"
-                        value={formatDate(machine.technical.tiresLastCheck)}
-                      />
-                      <TechRow
-                        icon={ShieldCheck}
-                        label="Seguro — vence"
-                        value={formatDate(machine.technical.insuranceExpiry)}
-                        hint={dateBadge(machine.technical.insuranceExpiry)}
+                        } />
+                        <TechRow icon={Gauge} label="Próximo cambio aceite" value={machine.technical.oilNextHours ? `${machine.technical.oilNextHours}h` : "—"} />
+                        <TechRow icon={Droplet} label="Aceite hidráulico" value={formatDate(machine.technical.hydraulicOilLast)} />
+                        <TechRow icon={Fuel} label="Filtro combustible" value={formatDate(machine.technical.fuelFilterLast)} />
+                        <TechRow icon={Wrench} label="Filtro de aire" value={formatDate(machine.technical.airFilterLast)} />
+                        <TechRow icon={Droplet} label="Refrigerante" value={formatDate(machine.technical.coolantLast)} />
+                        <TechRow icon={CircleGauge} label="Neumáticos — última revisión" value={formatDate(machine.technical.tiresLastCheck)} />
+                        <TechRow icon={ShieldCheck} label="Seguro — vence" value={formatDate(machine.technical.insuranceExpiry)} hint={dateBadge(machine.technical.insuranceExpiry)} />
+                      </div>
+
+                      {machine.technical.notes && (
+                        <div className="rounded-lg border border-border bg-card p-4">
+                          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                            <StickyNote className="h-4 w-4 text-primary" /> Observaciones técnicas
+                          </div>
+                          <p className="text-sm text-foreground whitespace-pre-line">{machine.technical.notes}</p>
+                        </div>
+                      )}
+                    </>
+                  )
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {[
+                      { key: "itv_last_date", label: "ITV — última", type: "date" },
+                      { key: "itv_next_date", label: "ITV — próxima", type: "date" },
+                      { key: "oil_last_date", label: "Aceite motor — última fecha", type: "date" },
+                      { key: "oil_last_hours", label: "Horas en último cambio", type: "number" },
+                      { key: "oil_next_hours", label: "Próximo cambio (horas)", type: "number" },
+                      { key: "hydraulic_oil_last_date", label: "Aceite hidráulico", type: "date" },
+                      { key: "fuel_filter_last_date", label: "Filtro combustible", type: "date" },
+                      { key: "air_filter_last_date", label: "Filtro de aire", type: "date" },
+                      { key: "coolant_last_date", label: "Refrigerante", type: "date" },
+                      { key: "tires_last_check_date", label: "Neumáticos", type: "date" },
+                      { key: "insurance_expiry_date", label: "Seguro — vence", type: "date" },
+                    ].map((field) => (
+                      <div key={field.key} className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">{field.label}</Label>
+                        <Input
+                          type={field.type}
+                          value={form[field.key] ?? ""}
+                          onChange={(e) => setForm((s) => ({ ...s, [field.key]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                    <div className="md:col-span-2 space-y-1">
+                      <Label className="text-xs text-muted-foreground">Observaciones técnicas</Label>
+                      <Textarea
+                        rows={3}
+                        value={form.technical_notes ?? ""}
+                        onChange={(e) => setForm((s) => ({ ...s, technical_notes: e.target.value }))}
                       />
                     </div>
-
-                    {machine.technical.notes && (
-                      <div className="rounded-lg border border-border bg-card p-4">
-                        <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                          <StickyNote className="h-4 w-4 text-primary" /> Observaciones técnicas
-                        </div>
-                        <p className="text-sm text-foreground whitespace-pre-line">{machine.technical.notes}</p>
-                      </div>
-                    )}
-                  </>
+                  </div>
                 )}
               </TabsContent>
 
