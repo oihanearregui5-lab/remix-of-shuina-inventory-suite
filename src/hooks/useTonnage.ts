@@ -173,6 +173,7 @@ export const useTonnage = (monthDate: Date) => {
         notes: input.notes?.trim() || null,
         created_by_user_id: user.id,
         driver_user_id: input.driver_user_id ?? user.id,
+        trip_type: input.trip_type ?? "tolva",
       });
       if (error) {
         toast.error("No se pudo guardar el viaje");
