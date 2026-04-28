@@ -168,7 +168,51 @@ const TechRow = ({
   </div>
 );
 
-const MachineDetailDialog = ({ open, machine, onOpenChange }: MachineDetailDialogProps) => {
+const MachineDetailDialog = ({ open, machine, onOpenChange, canEdit = false, onSaveTechnical }: MachineDetailDialogProps) => {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (machine?.technical) {
+      setForm({
+        itv_last_date: machine.technical.itvLast ?? "",
+        itv_next_date: machine.technical.itvNext ?? "",
+        oil_last_date: machine.technical.oilLastDate ?? "",
+        oil_last_hours: machine.technical.oilLastHours?.toString() ?? "",
+        oil_next_hours: machine.technical.oilNextHours?.toString() ?? "",
+        hydraulic_oil_last_date: machine.technical.hydraulicOilLast ?? "",
+        air_filter_last_date: machine.technical.airFilterLast ?? "",
+        fuel_filter_last_date: machine.technical.fuelFilterLast ?? "",
+        coolant_last_date: machine.technical.coolantLast ?? "",
+        tires_last_check_date: machine.technical.tiresLastCheck ?? "",
+        insurance_expiry_date: machine.technical.insuranceExpiry ?? "",
+        technical_notes: machine.technical.notes ?? "",
+      });
+    }
+    setEditing(false);
+  }, [machine?.id]);
+
+  const handleSave = async () => {
+    if (!machine || !onSaveTechnical) return;
+    setSaving(true);
+    try {
+      const patch: Record<string, string | number | null> = {};
+      const dateKeys = ["itv_last_date","itv_next_date","oil_last_date","hydraulic_oil_last_date","air_filter_last_date","fuel_filter_last_date","coolant_last_date","tires_last_check_date","insurance_expiry_date"];
+      for (const k of dateKeys) patch[k] = form[k]?.trim() ? form[k] : null;
+      patch.oil_last_hours = form.oil_last_hours?.trim() ? Number(form.oil_last_hours) : null;
+      patch.oil_next_hours = form.oil_next_hours?.trim() ? Number(form.oil_next_hours) : null;
+      patch.technical_notes = form.technical_notes?.trim() ? form.technical_notes : null;
+      await onSaveTechnical(machine.id, patch);
+      toast.success("Datos técnicos actualizados");
+      setEditing(false);
+    } catch (err: any) {
+      toast.error(err?.message ?? "No se pudo guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-border bg-background">
