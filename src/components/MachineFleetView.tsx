@@ -514,6 +514,26 @@ const MachineFleetView = () => {
                   </p>
                 )}
 
+                {(machine.itvExpiry.severity === "expired" || machine.itvExpiry.severity === "urgent" ||
+                  machine.insuranceExpiry.severity === "expired" || machine.insuranceExpiry.severity === "urgent") && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(machine.itvExpiry.severity === "expired" || machine.itvExpiry.severity === "urgent") && (
+                      <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                        machine.itvExpiry.severity === "expired" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/40 bg-warning/15 text-foreground")}>
+                        <AlertTriangle className="h-3 w-3" />
+                        ITV {machine.itvExpiry.severity === "expired" ? `vencida (${Math.abs(machine.itvExpiry.days!)}d)` : `en ${machine.itvExpiry.days}d`}
+                      </span>
+                    )}
+                    {(machine.insuranceExpiry.severity === "expired" || machine.insuranceExpiry.severity === "urgent") && (
+                      <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                        machine.insuranceExpiry.severity === "expired" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/40 bg-warning/15 text-foreground")}>
+                        <AlertTriangle className="h-3 w-3" />
+                        Seguro {machine.insuranceExpiry.severity === "expired" ? `vencido (${Math.abs(machine.insuranceExpiry.days!)}d)` : `en ${machine.insuranceExpiry.days}d`}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {machine.riskLevel === "critical" && (
                   <div className="flex items-center gap-1.5 text-xs font-medium text-destructive">
                     <AlertTriangle className="h-3.5 w-3.5" />
