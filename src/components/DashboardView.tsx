@@ -273,6 +273,9 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
         )}
       </section>
 
+      {/* Vencimientos técnicos — admin/secretaría, modo completo */}
+      {!isSimple && isAdmin && <MachineExpiriesWidget />}
+
       {/* Accesos rápidos compactos — solo modo completo */}
       {!isSimple && (
         <section className="grid grid-cols-2 gap-2 md:grid-cols-4">
