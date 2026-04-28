@@ -276,6 +276,13 @@ const MachineFleetView = () => {
         const riskLevel: "critical" | "attention" | "stable" =
           riskScore >= 6 ? "critical" : riskScore >= 3 ? "attention" : "stable";
 
+        const itvExpiry = evaluateExpiry(machine.itv_next_date);
+        const insuranceExpiry = evaluateExpiry(machine.insurance_expiry_date);
+        const worstSeverity: ExpirySeverity =
+          severityRank[itvExpiry.severity] >= severityRank[insuranceExpiry.severity]
+            ? itvExpiry.severity
+            : insuranceExpiry.severity;
+
         return {
           ...machine,
           visual: machine.photo_url || resolveMachineImage(machine) || null,
@@ -287,6 +294,9 @@ const MachineFleetView = () => {
           pendingServices,
           riskLevel,
           photoCount: photoCounts[machine.id] ?? 0,
+          itvExpiry,
+          insuranceExpiry,
+          worstSeverity,
         };
       }),
     [incidents, machines, notes, services, workReports, photoCounts],
