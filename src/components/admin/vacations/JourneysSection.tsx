@@ -280,12 +280,26 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
               <Button type="button" size="icon" variant="ghost" onClick={() => navigate(1)}><ChevronRight className="h-4 w-4" /></Button>
             </div>
             <Button type="button" variant="secondary" size="sm" onClick={() => setAnchorDate(new Date(data.year, new Date().getMonth(), new Date().getDate()))}>Hoy</Button>
+            <Button
+              type="button"
+              variant={editMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setEditMode((current) => !current)}
+            >
+              <Pencil className="h-4 w-4" /> {editMode ? "Saliendo edición" : "Editar planilla"}
+            </Button>
             <div className="ml-auto flex flex-wrap gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setPanelOpen((current) => !current)}>Panel</Button>
               <Button type="button" size="sm" onClick={exportMonth}><Download className="h-4 w-4" /> Exportar Excel</Button>
             </div>
           </div>
         </div>
+
+        {editMode ? (
+          <div className="border-b border-border bg-primary/10 px-5 py-3 text-sm font-semibold text-primary">
+            Modo edición activo · Pulsa cualquier turno para reasignar trabajador o vaciarlo.
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/30 px-5 py-4">
           <span className="mr-1 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Trabajadores</span>
@@ -299,9 +313,9 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
         </div>
 
         <div className="p-5">
-          {viewMode === "month" ? <MonthView data={data} monthGrid={monthGrid} currentMonth={currentMonth} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} summaryLabel={monthSummaryLabel} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} /> : null}
-          {viewMode === "week" ? <WeekView data={data} weekDays={weekDays} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} /> : null}
-          {viewMode === "day" ? <DayView data={data} anchorDate={anchorDate} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} /> : null}
+          {viewMode === "month" ? <MonthView data={data} monthGrid={monthGrid} currentMonth={currentMonth} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} summaryLabel={monthSummaryLabel} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} editMode={editMode} allWorkers={allWorkers} getOverride={getOverride} onAssign={setAssignment} onClear={clearAssignment} /> : null}
+          {viewMode === "week" ? <WeekView data={data} weekDays={weekDays} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} editMode={editMode} allWorkers={allWorkers} getOverride={getOverride} onAssign={setAssignment} onClear={clearAssignment} /> : null}
+          {viewMode === "day" ? <DayView data={data} anchorDate={anchorDate} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} editMode={editMode} allWorkers={allWorkers} getOverride={getOverride} onAssign={setAssignment} onClear={clearAssignment} /> : null}
           {viewMode === "year" ? <YearView data={data} year={anchorDate.getFullYear()} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} onSelectMonth={(monthDate) => { setAnchorDate(monthDate); setViewMode("month"); }} /> : null}
         </div>
 
