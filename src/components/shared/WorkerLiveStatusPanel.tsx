@@ -52,7 +52,7 @@ const WorkerLiveStatusPanel = ({
         <div className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">{items.length} personas</div>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 space-y-3">{/* contenido (envuelto por collapsed abajo) */}
         {loading ? (
           <div className="space-y-3">
             {[0, 1, 2].map((item) => <div key={item} className="h-16 animate-pulse rounded-xl bg-muted/60" />)}
