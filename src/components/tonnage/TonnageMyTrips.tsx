@@ -111,6 +111,7 @@ const TonnageMyTrips = () => {
       truck_id: trip.truck_id,
       load_zone_id: trip.load_zone_id || "",
       unload_zone_id: trip.unload_zone_id || "",
+      trip_type: (trip.trip_type ?? "tolva") as TripType,
     });
   };
 
@@ -129,6 +130,7 @@ const TonnageMyTrips = () => {
       qty_sulfatos: editForm.qty_sulfatos,
       load_zone_id: editForm.load_zone_id || null,
       unload_zone_id: editForm.unload_zone_id || null,
+      trip_type: editForm.trip_type,
     });
     setSavingEdit(false);
     if (ok) setEditTrip(null);
