@@ -5,6 +5,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Eye, 
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { useTranstubariData } from "@/hooks/useTranstubariData";
+import { useAuth } from "@/hooks/useAuth";
 import { getWorkerYearStats } from "@/lib/transtubari-parser";
 import type { HolidayItem, VacationSlotItem, VacationViewMode, WorkerItem, WorkerYearSummaryItem } from "./vacation-types";
 import { getMonthMatrix, toDateKey } from "./vacation-utils";
@@ -34,6 +35,7 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
   const [panelOpen, setPanelOpen] = useState(false);
   const [modalWorkerId, setModalWorkerId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const { canViewAdmin } = useAuth();
 
   const excelWorkers = data?.workers ?? [];
   const { resolveExcelWorker, resolveAppWorker, getDisplayWorker } = useWorkerLookups(excelWorkers, workers);
@@ -280,14 +282,17 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
               <Button type="button" size="icon" variant="ghost" onClick={() => navigate(1)}><ChevronRight className="h-4 w-4" /></Button>
             </div>
             <Button type="button" variant="secondary" size="sm" onClick={() => setAnchorDate(new Date(data.year, new Date().getMonth(), new Date().getDate()))}>Hoy</Button>
-            <Button
-              type="button"
-              variant={editMode ? "default" : "outline"}
-              size="sm"
-              onClick={() => setEditMode((current) => !current)}
-            >
-              <Pencil className="h-4 w-4" /> {editMode ? "Saliendo edición" : "Editar planilla"}
-            </Button>
+            {canViewAdmin && viewMode !== "year" ? (
+              <Button
+                type="button"
+                variant={editMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setEditMode((current) => !current)}
+                title={editMode ? "Salir del modo edición" : "Editar planilla — pulsa cualquier celda M/T/N para reasignar"}
+              >
+                <Pencil className="h-4 w-4" /> {editMode ? "Saliendo edición" : "Editar planilla"}
+              </Button>
+            ) : null}
             <div className="ml-auto flex flex-wrap gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setPanelOpen((current) => !current)}>Panel</Button>
               <Button type="button" size="sm" onClick={exportMonth}><Download className="h-4 w-4" /> Exportar Excel</Button>
