@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { addDays, eachDayOfInterval, endOfWeek, format, startOfWeek, startOfYear } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Eye, Loader2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Eye, Loader2, Pencil } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { useTranstubariData } from "@/hooks/useTranstubariData";
@@ -9,7 +9,8 @@ import { getWorkerYearStats } from "@/lib/transtubari-parser";
 import type { HolidayItem, VacationSlotItem, VacationViewMode, WorkerItem, WorkerYearSummaryItem } from "./vacation-types";
 import { getMonthMatrix, toDateKey } from "./vacation-utils";
 import { SHIFT_CODES } from "./journeys-constants";
-import { useWorkerLookups } from "./useWorkerLookups";
+import { useWorkerLookups, type DisplayWorker } from "./useWorkerLookups";
+import { useJourneyOverrides } from "./useJourneyOverrides";
 import DayView from "./views/DayView";
 import WeekView from "./views/WeekView";
 import MonthView from "./views/MonthView";
