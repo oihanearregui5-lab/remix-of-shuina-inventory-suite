@@ -120,6 +120,38 @@ const TonnageDashboard = () => {
   const monthIdx = currentMonth.getMonth();
   const year = currentMonth.getFullYear();
 
+  const exportMonthExcel = (mode: "tolva" | "all") => {
+    const source = trips.filter((t) => mode === "all" || (t.trip_type ?? "tolva") === "tolva");
+    if (source.length === 0) {
+      toast.error("No hay viajes para exportar en este mes");
+      return;
+    }
+    const monthName = format(currentMonth, "MMMM yy", { locale: es }).toUpperCase();
+    const truckList = trucks;
+    // Estructura solicitada: A1 vacío, A2 = mes, B2 = "Camiones", B3.. = índice 1..N
+    const aoa: any[][] = [];
+    aoa.push([]);
+    aoa.push([monthName, "Camiones"]);
+    aoa.push(["", ...truckList.map((_, i) => i + 1)]);
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const row: any[] = [day];
+      truckList.forEach((tr) => {
+        const dayTrips = source.filter((t) => t.truck_id === tr.id && new Date(t.trip_date).getDate() === day && new Date(t.trip_date).getMonth() === monthIdx);
+        const total = dayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
+        row.push(total > 0 ? total : "");
+      });
+      aoa.push(row);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, monthName);
+    const fileName = `Toneladas_${mode === "tolva" ? "TOLVA" : "TODOS"}_${format(currentMonth, "yyyy-MM")}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    toast.success("Excel descargado");
+  };
+
   return (
     <div className="space-y-4">
       {/* FILTROS */}
