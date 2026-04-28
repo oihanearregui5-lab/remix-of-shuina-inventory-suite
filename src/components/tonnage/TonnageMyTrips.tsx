@@ -165,16 +165,26 @@ const TonnageMyTrips = () => {
       </header>
 
       <section className="panel-surface p-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-sm font-semibold text-foreground">
+            <p className="text-sm font-semibold text-foreground capitalize">
               {format(today, "EEEE d 'de' MMMM", { locale: es })}
             </p>
-            <p className="text-xs text-muted-foreground">Más recientes primero · Pulsa el lápiz para editar</p>
+            <p className="text-xs text-muted-foreground">
+              {todayTrips.length} viaje{todayTrips.length !== 1 ? "s" : ""} · {tolvaCount} de tolva facturable{tolvaCount !== 1 ? "s" : ""}
+            </p>
           </div>
-          <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-            {todayTrips.length} total
-          </span>
+          <div className="flex items-center gap-1.5">
+            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
+              <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Todos</SelectItem>
+                <SelectItem value="tolva">Tolva</SelectItem>
+                <SelectItem value="acopio">Acopio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {loading ? (
@@ -210,6 +220,12 @@ const TonnageMyTrips = () => {
                         <p className="truncate text-sm font-semibold text-foreground">
                           {truck?.label ?? "Camión eliminado"}
                         </p>
+                        <span className={cn(
+                          "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                          (trip.trip_type ?? "tolva") === "tolva" ? "bg-success/15 text-success" : "bg-warning/20 text-foreground",
+                        )}>
+                          {trip.trip_type ?? "tolva"}
+                        </span>
                         {isMine && <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">· tú</span>}
                       </div>
                       {(() => {
