@@ -111,6 +111,23 @@ interface MachineAssetItem {
   status: MachineStatus;
   notes: string | null;
   photo_url?: string | null;
+  // Campos técnicos (Tanda 1 SQL)
+  itv_last_date?: string | null;
+  itv_next_date?: string | null;
+  oil_last_date?: string | null;
+  oil_last_hours?: number | null;
+  oil_next_hours?: number | null;
+  hydraulic_oil_last_date?: string | null;
+  air_filter_last_date?: string | null;
+  fuel_filter_last_date?: string | null;
+  coolant_last_date?: string | null;
+  tires_last_check_date?: string | null;
+  insurance_expiry_date?: string | null;
+  technical_notes?: string | null;
+  provider_name?: string | null;
+  provider_contact?: string | null;
+  provider_notes?: string | null;
+  next_inspection_date?: string | null;
 }
 
 interface MachineNoteItem { id: string; machine_id: string; note: string; is_highlight: boolean; created_at: string }
@@ -159,7 +176,7 @@ const MachineFleetView = () => {
   const fetchMachines = async () => {
     const { data, error } = await db
       .from("machine_assets")
-      .select("id, display_name, asset_family, asset_code, license_plate, status, notes, photo_url")
+      .select("id, display_name, asset_family, asset_code, license_plate, status, notes, photo_url, itv_last_date, itv_next_date, oil_last_date, oil_last_hours, oil_next_hours, hydraulic_oil_last_date, air_filter_last_date, fuel_filter_last_date, coolant_last_date, tires_last_check_date, insurance_expiry_date, technical_notes, provider_name, provider_contact, provider_notes, next_inspection_date")
       .order("display_name");
     if (error) return toast.error("No se pudieron cargar las máquinas");
     setMachines((data ?? []) as MachineAssetItem[]);
@@ -305,10 +322,27 @@ const MachineFleetView = () => {
       family: machine.asset_family,
       status: machine.status === "inactive" ? "inspection" : machine.status,
       focus: [machine.asset_code || "Sin código", machine.asset_family],
-      provider: "Proveedor pendiente",
-      nextInspection: machine.serviceItems[0]?.due_date || "Sin revisión programada",
-      nextIvt: machine.incidentItems[0]?.due_date || "Sin ITV registrada",
+      provider: machine.provider_name || "Proveedor pendiente",
+      providerContact: machine.provider_contact || null,
+      providerNotes: machine.provider_notes || null,
+      generalNotes: machine.notes || null,
+      nextInspection: machine.next_inspection_date || machine.serviceItems[0]?.due_date || "Sin revisión programada",
+      nextIvt: machine.itv_next_date || "Sin ITV registrada",
       fluids: [],
+      technical: {
+        itvLast: machine.itv_last_date ?? null,
+        itvNext: machine.itv_next_date ?? null,
+        oilLastDate: machine.oil_last_date ?? null,
+        oilLastHours: machine.oil_last_hours ?? null,
+        oilNextHours: machine.oil_next_hours ?? null,
+        hydraulicOilLast: machine.hydraulic_oil_last_date ?? null,
+        airFilterLast: machine.air_filter_last_date ?? null,
+        fuelFilterLast: machine.fuel_filter_last_date ?? null,
+        coolantLast: machine.coolant_last_date ?? null,
+        tiresLastCheck: machine.tires_last_check_date ?? null,
+        insuranceExpiry: machine.insurance_expiry_date ?? null,
+        notes: machine.technical_notes ?? null,
+      },
       notes: machine.noteItems,
       priority: machine.riskLevel,
       serviceOverview: machine.serviceItems.slice(0, 4).map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.due_date })),
