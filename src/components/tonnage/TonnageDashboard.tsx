@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Filter, RefreshCw } from "lucide-react";
-import { addMonths, format, getDaysInMonth, startOfMonth, subMonths } from "date-fns";
+import { Download, Filter, RefreshCw } from "lucide-react";
+import { format, getDaysInMonth, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
+import * as XLSX from "xlsx";
 import {
   Bar,
   BarChart,
   CartesianGrid,
   ComposedChart,
-  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -21,10 +21,13 @@ import {
   formatKg,
   formatTons,
   useTonnage,
+  type TripType,
 } from "@/hooks/useTonnage";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const ALL_VALUE = "__all__";
@@ -37,6 +40,7 @@ const TonnageDashboard = () => {
   const [filterDay, setFilterDay] = useState<string>(ALL_VALUE);
   const [filterDriverId, setFilterDriverId] = useState<string>(ALL_VALUE);
   const [filterTruckId, setFilterTruckId] = useState<string>(ALL_VALUE);
+  const [filterType, setFilterType] = useState<TripType | typeof ALL_VALUE>(ALL_VALUE);
 
   // Mapa userId → nombre, lo cargo desde profiles
   const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
@@ -64,9 +68,10 @@ const TonnageDashboard = () => {
       }
       if (filterDriverId !== ALL_VALUE && t.created_by_user_id !== filterDriverId) return false;
       if (filterTruckId !== ALL_VALUE && t.truck_id !== filterTruckId) return false;
+      if (filterType !== ALL_VALUE && (t.trip_type ?? "tolva") !== filterType) return false;
       return true;
     });
-  }, [trips, filterDay, filterDriverId, filterTruckId]);
+  }, [trips, filterDay, filterDriverId, filterTruckId, filterType]);
 
   const totalTrips = filteredTrips.length;
   const totalKg = filteredTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
