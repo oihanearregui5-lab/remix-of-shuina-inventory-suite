@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Activity, Clock3, PauseCircle, UserRound } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Activity, ChevronDown, ChevronUp, Clock3, PauseCircle, UserRound } from "lucide-react";
 import type { WorkerLiveStatusItem } from "@/hooks/useWorkerLiveStatus";
 import { cn } from "@/lib/utils";
 
@@ -128,6 +128,7 @@ const WorkerLiveStatusPanel = ({
           </div>
         )}
       </div>
+      )}
     </section>
   );
 };
