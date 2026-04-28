@@ -1898,6 +1898,10 @@ export type Database = {
         Returns: boolean
       }
       can_manage_vacation_journeys: { Args: never; Returns: boolean }
+      clear_journey_assignment: {
+        Args: { p_journey_date: string; p_shift: string }
+        Returns: boolean
+      }
       count_request_days: {
         Args: { p_end: string; p_start: string }
         Returns: number
@@ -1937,6 +1941,16 @@ export type Database = {
         Returns: boolean
       }
       next_delivery_note_number: { Args: never; Returns: string }
+      set_journey_assignment: {
+        Args: {
+          p_badge_label?: string
+          p_color?: string
+          p_journey_date: string
+          p_shift: string
+          p_staff_member_id: string
+        }
+        Returns: string
+      }
       sync_current_user_staff_link: {
         Args: { _full_name?: string }
         Returns: undefined
