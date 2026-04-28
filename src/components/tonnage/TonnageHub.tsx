@@ -1,12 +1,14 @@
 import { lazy, Suspense, useState } from "react";
-import { BarChart3, Calendar, MapPin, Plus, Truck, ListChecks } from "lucide-react";
+import { BarChart3, Calendar, History, MapPin, Plus, Truck, ListChecks } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PageHeader from "@/components/shared/PageHeader";
+import TonnageQuickTripDialog from "@/components/tonnage/TonnageQuickTripDialog";
 
-// Las cargo lazy: la subpestaña que el usuario abra al entrar es la única que se carga.
-const TonnageRegisterTrip = lazy(() => import("@/components/tonnage/TonnageRegisterTrip"));
 const TonnageMyTrips = lazy(() => import("@/components/tonnage/TonnageMyTrips"));
+const TonnageHistory = lazy(() => import("@/components/tonnage/TonnageHistory"));
 const TonnageDashboard = lazy(() => import("@/components/tonnage/TonnageDashboard"));
 const TonnageZoneTracking = lazy(() => import("@/components/tonnage/TonnageZoneTracking"));
 const TonnageMonthlyTable = lazy(() => import("@/components/tonnage/TonnageMonthlyTable"));
@@ -21,10 +23,6 @@ const SubviewLoader = () => (
 );
 
 interface TonnageHubProps {
-  /**
-   * Si es true → muestra las pestañas de admin.
-   * Si es false → muestra solo "Registrar viaje" + "Mis viajes".
-   */
   asAdmin?: boolean;
 }
 
@@ -32,18 +30,18 @@ const TonnageHub = ({ asAdmin = false }: TonnageHubProps) => {
   const { canViewAdmin } = useAuth();
   const isAdminView = asAdmin && canViewAdmin;
 
-  // Pestaña inicial: el trabajador siempre arranca en "registrar"; el admin en "dashboard"
-  const [tab, setTab] = useState<string>(isAdminView ? "dashboard" : "registrar");
+  const [tab, setTab] = useState<string>(isAdminView ? "dashboard" : "hoy");
+  const [quickOpen, setQuickOpen] = useState(false);
 
   return (
     <div className="space-y-4 animate-fade-in">
       <PageHeader
         eyebrow="Viajes"
-        title={isAdminView ? "Panel de viajes" : "Mis viajes"}
+        title={isAdminView ? "Panel de viajes" : "Viajes del equipo"}
         description={
           isAdminView
             ? "Análisis, seguimiento por zona, tabla mensual y gestión de la flota."
-            : "Registra los viajes del día y consulta tu actividad."
+            : "Consulta los viajes del día y el histórico. Registra los tuyos al final del día."
         }
       />
 
@@ -65,11 +63,11 @@ const TonnageHub = ({ asAdmin = false }: TonnageHubProps) => {
           </TabsList>
         ) : (
           <TabsList className="!grid w-full grid-cols-3 h-auto">
-            <TabsTrigger value="registrar" className="gap-2 py-2.5">
-              <Plus className="h-4 w-4" /> Registrar
+            <TabsTrigger value="hoy" className="gap-2 py-2.5">
+              <ListChecks className="h-4 w-4" /> Viajes del día
             </TabsTrigger>
-            <TabsTrigger value="mis-viajes" className="gap-2 py-2.5">
-              <ListChecks className="h-4 w-4" /> Mis viajes
+            <TabsTrigger value="historial" className="gap-2 py-2.5">
+              <History className="h-4 w-4" /> Historial
             </TabsTrigger>
             <TabsTrigger value="camiones" className="gap-2 py-2.5">
               <Truck className="h-4 w-4" /> Camiones
@@ -78,14 +76,13 @@ const TonnageHub = ({ asAdmin = false }: TonnageHubProps) => {
         )}
 
         <Suspense fallback={<SubviewLoader />}>
-          {/* Trabajador */}
           {!isAdminView && (
             <>
-              <TabsContent value="registrar" className="mt-0">
-                <TonnageRegisterTrip />
-              </TabsContent>
-              <TabsContent value="mis-viajes" className="mt-0">
+              <TabsContent value="hoy" className="mt-0">
                 <TonnageMyTrips />
+              </TabsContent>
+              <TabsContent value="historial" className="mt-0">
+                <TonnageHistory />
               </TabsContent>
               <TabsContent value="camiones" className="mt-0">
                 <TonnageTrucksManager />
@@ -93,7 +90,6 @@ const TonnageHub = ({ asAdmin = false }: TonnageHubProps) => {
             </>
           )}
 
-          {/* Admin */}
           {isAdminView && (
             <>
               <TabsContent value="dashboard" className="mt-0">
@@ -112,6 +108,27 @@ const TonnageHub = ({ asAdmin = false }: TonnageHubProps) => {
           )}
         </Suspense>
       </Tabs>
+
+      {/* FAB Nuevo viaje (solo trabajador) */}
+      {!isAdminView && (
+        <Button
+          onClick={() => setQuickOpen(true)}
+          size="lg"
+          className="fixed bottom-20 right-4 z-40 h-14 rounded-full px-5 shadow-xl bg-success text-white hover:bg-success/90 md:bottom-6"
+        >
+          <Plus className="h-5 w-5" />
+          Nuevo viaje
+        </Button>
+      )}
+
+      <Dialog open={quickOpen} onOpenChange={setQuickOpen}>
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Registrar viaje</DialogTitle>
+          </DialogHeader>
+          <TonnageQuickTripDialog onClose={() => setQuickOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
