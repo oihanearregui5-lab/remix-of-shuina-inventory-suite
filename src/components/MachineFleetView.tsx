@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { buildMachineUsageSummary, formatHoursCompact, type MachineUsageReport } from "@/lib/machine-usage";
+import { evaluateExpiry, severityRank, type ExpirySeverity } from "@/lib/machine-expiry";
 import { cn } from "@/lib/utils";
 import baneraTisvolImage from "@/assets/banera-tisvol-r6823bdp.jpg";
 import camionicoNissanImage from "@/assets/camionico-nissan-3971bkd.jpg";
@@ -275,6 +276,13 @@ const MachineFleetView = () => {
         const riskLevel: "critical" | "attention" | "stable" =
           riskScore >= 6 ? "critical" : riskScore >= 3 ? "attention" : "stable";
 
+        const itvExpiry = evaluateExpiry(machine.itv_next_date);
+        const insuranceExpiry = evaluateExpiry(machine.insurance_expiry_date);
+        const worstSeverity: ExpirySeverity =
+          severityRank[itvExpiry.severity] >= severityRank[insuranceExpiry.severity]
+            ? itvExpiry.severity
+            : insuranceExpiry.severity;
+
         return {
           ...machine,
           visual: machine.photo_url || resolveMachineImage(machine) || null,
@@ -286,6 +294,9 @@ const MachineFleetView = () => {
           pendingServices,
           riskLevel,
           photoCount: photoCounts[machine.id] ?? 0,
+          itvExpiry,
+          insuranceExpiry,
+          worstSeverity,
         };
       }),
     [incidents, machines, notes, services, workReports, photoCounts],
@@ -503,6 +514,26 @@ const MachineFleetView = () => {
                   </p>
                 )}
 
+                {(machine.itvExpiry.severity === "expired" || machine.itvExpiry.severity === "urgent" ||
+                  machine.insuranceExpiry.severity === "expired" || machine.insuranceExpiry.severity === "urgent") && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(machine.itvExpiry.severity === "expired" || machine.itvExpiry.severity === "urgent") && (
+                      <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                        machine.itvExpiry.severity === "expired" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/40 bg-warning/15 text-foreground")}>
+                        <AlertTriangle className="h-3 w-3" />
+                        ITV {machine.itvExpiry.severity === "expired" ? `vencida (${Math.abs(machine.itvExpiry.days!)}d)` : `en ${machine.itvExpiry.days}d`}
+                      </span>
+                    )}
+                    {(machine.insuranceExpiry.severity === "expired" || machine.insuranceExpiry.severity === "urgent") && (
+                      <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                        machine.insuranceExpiry.severity === "expired" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/40 bg-warning/15 text-foreground")}>
+                        <AlertTriangle className="h-3 w-3" />
+                        Seguro {machine.insuranceExpiry.severity === "expired" ? `vencido (${Math.abs(machine.insuranceExpiry.days!)}d)` : `en ${machine.insuranceExpiry.days}d`}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {machine.riskLevel === "critical" && (
                   <div className="flex items-center gap-1.5 text-xs font-medium text-destructive">
                     <AlertTriangle className="h-3.5 w-3.5" />
@@ -539,7 +570,39 @@ const MachineFleetView = () => {
       )}
 
       {/* Detalle */}
-      <MachineDetailDialog open={Boolean(selectedMachine)} machine={selectedMachine} onOpenChange={(open) => !open && setSelectedMachine(null)} />
+      <MachineDetailDialog
+        open={Boolean(selectedMachine)}
+        machine={selectedMachine}
+        onOpenChange={(open) => !open && setSelectedMachine(null)}
+        canEdit={isAdmin}
+        onSaveTechnical={async (machineId, patch) => {
+          const { error } = await db.from("machine_assets").update(patch).eq("id", machineId);
+          if (error) throw error;
+          await fetchMachines();
+          // refrescar el dialog con nuevos datos
+          setSelectedMachine((current) => {
+            if (!current || current.id !== machineId) return current;
+            return {
+              ...current,
+              technical: {
+                ...current.technical!,
+                itvLast: (patch.itv_last_date as string) ?? null,
+                itvNext: (patch.itv_next_date as string) ?? null,
+                oilLastDate: (patch.oil_last_date as string) ?? null,
+                oilLastHours: (patch.oil_last_hours as number) ?? null,
+                oilNextHours: (patch.oil_next_hours as number) ?? null,
+                hydraulicOilLast: (patch.hydraulic_oil_last_date as string) ?? null,
+                airFilterLast: (patch.air_filter_last_date as string) ?? null,
+                fuelFilterLast: (patch.fuel_filter_last_date as string) ?? null,
+                coolantLast: (patch.coolant_last_date as string) ?? null,
+                tiresLastCheck: (patch.tires_last_check_date as string) ?? null,
+                insuranceExpiry: (patch.insurance_expiry_date as string) ?? null,
+                notes: (patch.technical_notes as string) ?? null,
+              },
+            };
+          });
+        }}
+      />
 
       {/* Fotos */}
       <MachinePhotosDialog

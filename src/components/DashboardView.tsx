@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
+import MachineExpiriesWidget from "@/components/dashboard/MachineExpiriesWidget";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
 import { useClockEntry } from "@/hooks/useClockEntry";
 import { useUIMode } from "@/hooks/useUIMode";
@@ -30,7 +31,7 @@ interface ReportItem { id: string; description: string; started_at: string; ende
 interface HighlightItem { id: string; title: string; summary: string | null; category: string; highlight_date: string; }
 
 const DashboardView = ({ onNavigate }: DashboardViewProps) => {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const db = supabase as any;
   const { reminders } = useSmartReminders();
   const { isSimple } = useUIMode();
@@ -271,6 +272,9 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
           </div>
         )}
       </section>
+
+      {/* Vencimientos técnicos — admin/secretaría, modo completo */}
+      {!isSimple && isAdmin && <MachineExpiriesWidget />}
 
       {/* Accesos rápidos compactos — solo modo completo */}
       {!isSimple && (
