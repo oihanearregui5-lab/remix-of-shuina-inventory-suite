@@ -111,6 +111,23 @@ interface MachineAssetItem {
   status: MachineStatus;
   notes: string | null;
   photo_url?: string | null;
+  // Campos técnicos (Tanda 1 SQL)
+  itv_last_date?: string | null;
+  itv_next_date?: string | null;
+  oil_last_date?: string | null;
+  oil_last_hours?: number | null;
+  oil_next_hours?: number | null;
+  hydraulic_oil_last_date?: string | null;
+  air_filter_last_date?: string | null;
+  fuel_filter_last_date?: string | null;
+  coolant_last_date?: string | null;
+  tires_last_check_date?: string | null;
+  insurance_expiry_date?: string | null;
+  technical_notes?: string | null;
+  provider_name?: string | null;
+  provider_contact?: string | null;
+  provider_notes?: string | null;
+  next_inspection_date?: string | null;
 }
 
 interface MachineNoteItem { id: string; machine_id: string; note: string; is_highlight: boolean; created_at: string }
