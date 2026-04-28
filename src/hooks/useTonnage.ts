@@ -201,7 +201,7 @@ export const useTonnage = (monthDate: Date) => {
       if (changes.unload_zone_id !== undefined) payload.unload_zone_id = changes.unload_zone_id || null;
       if (changes.notes !== undefined) payload.notes = changes.notes?.trim() || null;
       if (changes.driver_user_id !== undefined) payload.driver_user_id = changes.driver_user_id;
-
+      if (changes.trip_type !== undefined) payload.trip_type = changes.trip_type;
       const { error } = await db.from("tonnage_trips").update(payload).eq("id", tripId);
       if (error) {
         toast.error("No se pudo actualizar el viaje");
