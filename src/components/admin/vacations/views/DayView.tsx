@@ -5,6 +5,8 @@ import { SHIFT_CODES, SHIFT_HOURS, SHIFT_TITLES, getShiftsFor } from "../journey
 import { toDateKey } from "../vacation-utils";
 import ShiftPill from "../ShiftPill";
 import type { DisplayWorker } from "../useWorkerLookups";
+import type { JourneyOverride } from "../useJourneyOverrides";
+import type { ShiftCode } from "../journeys-constants";
 
 interface Props {
   data: TranstubariData;
@@ -13,9 +15,14 @@ interface Props {
   selectedWorkerId: string | null;
   getDisplayWorker: (workerId: string | null | undefined) => DisplayWorker | null;
   onClickWorker: (workerId: string) => void;
+  editMode?: boolean;
+  allWorkers?: DisplayWorker[];
+  getOverride?: (date: string, shift: ShiftCode) => JourneyOverride | null;
+  onAssign?: (date: string, shift: ShiftCode, staffMemberId: string, color?: string | null) => Promise<void>;
+  onClear?: (date: string, shift: ShiftCode) => Promise<void>;
 }
 
-const DayView = ({ data, anchorDate, holidaysByDate, selectedWorkerId, getDisplayWorker, onClickWorker }: Props) => {
+const DayView = ({ data, anchorDate, holidaysByDate, selectedWorkerId, getDisplayWorker, onClickWorker, editMode, allWorkers, getOverride, onAssign, onClear }: Props) => {
   const holiday = holidaysByDate.get(toDateKey(anchorDate));
 
   return (
@@ -42,6 +49,12 @@ const DayView = ({ data, anchorDate, holidaysByDate, selectedWorkerId, getDispla
                 selectedWorkerId={selectedWorkerId}
                 getDisplayWorker={getDisplayWorker}
                 onClickWorker={onClickWorker}
+                date={anchorDate}
+                editMode={editMode}
+                override={getOverride?.(toDateKey(anchorDate), code) ?? null}
+                allWorkers={allWorkers}
+                onAssign={onAssign}
+                onClear={onClear}
               />
             </div>
           </div>
