@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { buildMachineUsageSummary, formatHoursCompact, type MachineUsageReport } from "@/lib/machine-usage";
+import { evaluateExpiry, severityRank, type ExpirySeverity } from "@/lib/machine-expiry";
 import { cn } from "@/lib/utils";
 import baneraTisvolImage from "@/assets/banera-tisvol-r6823bdp.jpg";
 import camionicoNissanImage from "@/assets/camionico-nissan-3971bkd.jpg";
