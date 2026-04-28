@@ -43,7 +43,12 @@ const StaffHubView = () => {
   useEffect(() => { if (!user) return; void Promise.all([fetchRequests(), fetchShifts(), fetchStaff(), fetchAllowances()]); }, [user, isAdmin, calendarMonth]);
 
   const fetchRequests = async () => {
-    const { data, error } = await db.from("vacation_requests").select("id, request_type, start_date, end_date, status, reason, admin_response, created_at, requester_user_id, reviewed_at, reviewed_by_user_id, staff_member_id").order("created_at", { ascending: false }).limit(50);
+    let query = db.from("vacation_requests").select("id, request_type, start_date, end_date, status, reason, admin_response, created_at, requester_user_id, reviewed_at, reviewed_by_user_id, staff_member_id");
+    // Trabajador solo ve sus propias solicitudes (calendario 100% personal)
+    if (!isAdmin && user) {
+      query = query.eq("requester_user_id", user.id);
+    }
+    const { data, error } = await query.order("created_at", { ascending: false }).limit(50);
     if (error) return toast.error("No se pudieron cargar las solicitudes");
     setRequests((data ?? []) as VacationRequestItem[]);
   };

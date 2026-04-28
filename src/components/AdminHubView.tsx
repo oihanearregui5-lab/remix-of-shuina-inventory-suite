@@ -15,6 +15,7 @@ import ExcelVacationPlanner from "@/components/admin/ExcelVacationPlanner";
 import WorkerLiveStatusPanel from "@/components/shared/WorkerLiveStatusPanel";
 import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
 import WorkerProfileDialog from "@/components/staff/WorkerProfileDialog";
+import { cn } from "@/lib/utils";
 
 interface AdminMetrics {
   openTasks: number;
@@ -27,7 +28,7 @@ interface AdminMetrics {
   messagesToday: number;
 }
 interface DailyHighlight { id: string; title: string; summary: string | null; category: string }
-interface VacationReviewItem { id: string; request_type: string; start_date: string; end_date: string; reason: string | null; requester_user_id: string; requester_name?: string | null }
+interface VacationReviewItem { id: string; request_type: string; start_date: string; end_date: string; reason: string | null; requester_user_id: string; requester_name?: string | null; status?: string; admin_response?: string | null }
 interface CompanyCalendarDay { id: string; calendar_date: string; title: string; day_type: string; color_tag: string | null; notes: string | null }
 
 const excelVacationLegend = ["ADRIAN", "AITOR", "ANDRIY", "FRAN", "HAMID", "JUAN", "LYUBEN", "MANUEL", "MISAEL", "NELO", "OLEK", "RAQUEL", "SILVIO"];
@@ -57,7 +58,7 @@ const AdminHubView = () => {
       supabase.from("machine_service_records").select("id", { count: "exact", head: true }).neq("status", "completed"),
       supabase.from("time_entries").select("id", { count: "exact", head: true }).is("clock_out", null),
       supabase.from("daily_highlights").select("id, title, summary, category").order("highlight_date", { ascending: false }).limit(4),
-      supabase.from("vacation_requests").select("id, request_type, start_date, end_date, reason, requester_user_id").eq("status", "pending").order("created_at", { ascending: true }).limit(8),
+      supabase.from("vacation_requests").select("id, request_type, start_date, end_date, reason, requester_user_id, status, admin_response").order("created_at", { ascending: false }).limit(20),
       supabase.from("work_reports").select("id", { count: "exact", head: true }).is("ended_at", null),
       supabase.from("chat_channels").select("id", { count: "exact", head: true }),
       supabase.from("chat_messages").select("id", { count: "exact", head: true }).gte("created_at", todayStart.toISOString()),
@@ -68,7 +69,7 @@ const AdminHubView = () => {
       serviceItems: serviceRes.count ?? 0,
       activeClockings: clockingsRes.count ?? 0,
       activeWorkReports: activeReportsRes.count ?? 0,
-      pendingVacations: vacationRes.data?.length ?? 0,
+      pendingVacations: (vacationRes.data ?? []).filter((r: any) => r.status === "pending").length,
       channels: channelsRes.count ?? 0,
       messagesToday: todayMessagesRes.count ?? 0,
     });
@@ -85,7 +86,9 @@ const AdminHubView = () => {
     setCalendarDays((data as CompanyCalendarDay[]) ?? []);
   };
 
-  const pendingCount = useMemo(() => pendingRequests.length, [pendingRequests]);
+  const pendingCount = useMemo(() => pendingRequests.filter((r) => r.status === "pending" || !r.status).length, [pendingRequests]);
+  const onlyPending = useMemo(() => pendingRequests.filter((r) => r.status === "pending" || !r.status), [pendingRequests]);
+  const recentReviewed = useMemo(() => pendingRequests.filter((r) => r.status === "approved" || r.status === "rejected").slice(0, 6), [pendingRequests]);
   const calendarYear = selectedDate?.getFullYear() ?? new Date().getFullYear();
   const holidayDates = useMemo(() => NATIONAL_HOLIDAYS_BY_YEAR[calendarYear]?.map((item) => new Date(item.date)) ?? [], [calendarYear]);
   const closureDates = useMemo(() => buildClosureDates(calendarYear).map((item) => new Date(item)), [calendarYear]);
@@ -118,12 +121,18 @@ const AdminHubView = () => {
   // Solo mostramos items con datos reales; si todos están a cero, no enseñamos la sección
   const executivePulse = useMemo(() => executivePulseRaw.filter((item) => item.count > 0), [executivePulseRaw]);
 
-  const reviewVacationRequest = async (requestId: string, status: "approved" | "rejected") => {
+  const reviewVacationRequest = async (requestId: string, status: "approved" | "rejected" | "pending") => {
     const adminResponse = responseDrafts[requestId]?.trim() || null;
     const currentUser = (await supabase.auth.getUser()).data.user;
-    const { error } = await supabase.from("vacation_requests").update({ status, admin_response: adminResponse, reviewed_at: new Date().toISOString(), reviewed_by_user_id: currentUser?.id ?? null }).eq("id", requestId);
-    if (error) return toast.error("No se pudo revisar la solicitud");
-    toast.success(status === "approved" ? "Solicitud aceptada" : "Solicitud declinada");
+    const updatePayload = {
+      status,
+      admin_response: status === "pending" ? null : adminResponse,
+      reviewed_at: status === "pending" ? null : new Date().toISOString(),
+      reviewed_by_user_id: status === "pending" ? null : currentUser?.id ?? null,
+    } as const;
+    const { error } = await supabase.from("vacation_requests").update(updatePayload).eq("id", requestId);
+    if (error) return toast.error("No se pudo actualizar la solicitud");
+    toast.success(status === "approved" ? "Solicitud aceptada" : status === "rejected" ? "Solicitud declinada" : "Vuelve a pendiente");
     setResponseDrafts((current) => ({ ...current, [requestId]: "" }));
     void loadMetrics();
   };
@@ -174,7 +183,7 @@ const AdminHubView = () => {
         <section className="panel-surface p-4">
           <div className="mb-4 flex items-center justify-between gap-3"><div className="flex items-center gap-2"><CalendarRange className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Solicitudes pendientes</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">{pendingCount} pendientes</span></div>
           <div className="space-y-3">
-            {pendingRequests.map((request) => (
+            {onlyPending.map((request) => (
               <article key={request.id} className="rounded-xl border border-border bg-background p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -191,8 +200,40 @@ const AdminHubView = () => {
                 </div>
               </article>
             ))}
-            {pendingRequests.length === 0 && <div className="rounded-xl bg-muted px-4 py-6 text-sm text-muted-foreground">No hay solicitudes pendientes de revisión.</div>}
+            {onlyPending.length === 0 && <div className="rounded-xl bg-muted px-4 py-6 text-sm text-muted-foreground">No hay solicitudes pendientes de revisión.</div>}
           </div>
+
+          {recentReviewed.length > 0 && (
+            <div className="mt-5 border-t border-border pt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Solicitudes recientes (editables)</p>
+              <div className="space-y-2">
+                {recentReviewed.map((request) => {
+                  const isApproved = request.status === "approved";
+                  return (
+                    <article key={request.id} className="rounded-xl border border-border bg-background px-3 py-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">{request.requester_name ?? "Trabajador"}</p>
+                          <p className="text-xs text-muted-foreground">{request.request_type} · {request.start_date} → {request.end_date}</p>
+                        </div>
+                        <span className={cn(
+                          "rounded-full px-2 py-0.5 text-[11px] font-semibold flex-none",
+                          isApproved ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
+                        )}>
+                          {isApproved ? "Aceptada" : "Declinada"}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {!isApproved && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => void reviewVacationRequest(request.id, "approved")}>Aceptar</Button>}
+                        {isApproved && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => void reviewVacationRequest(request.id, "rejected")}>Declinar</Button>}
+                        <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={() => void reviewVacationRequest(request.id, "pending")}>Volver a pendiente</Button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </section>
 
         <div className="space-y-3">

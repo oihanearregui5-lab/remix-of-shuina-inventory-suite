@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Activity, Clock3, PauseCircle, UserRound } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Activity, ChevronDown, ChevronUp, Clock3, PauseCircle, UserRound } from "lucide-react";
 import type { WorkerLiveStatusItem } from "@/hooks/useWorkerLiveStatus";
 import { cn } from "@/lib/utils";
 
@@ -39,19 +39,56 @@ const WorkerLiveStatusPanel = ({
 
   const handleInteract = (id: string) => onSelectWorker?.(id);
 
+  // Colapsable: por defecto colapsado si todos están fuera. Se persiste la decisión del usuario.
+  const allOff = useMemo(() => items.length > 0 && items.every((i) => i.presence === "off"), [items]);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const stored = window.localStorage.getItem("transtubari-team-status-collapsed");
+    if (stored === "1") return true;
+    if (stored === "0") return false;
+    return false; // sin preferencia: empieza expandido en primer render, useEffect ajusta
+  });
+  useEffect(() => {
+    // Si nunca eligió, sincroniza con allOff (colapsa cuando no hay nadie activo)
+    const stored = typeof window !== "undefined" ? window.localStorage.getItem("transtubari-team-status-collapsed") : null;
+    if (stored === null && allOff) setCollapsed(true);
+  }, [allOff]);
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      if (typeof window !== "undefined") window.localStorage.setItem("transtubari-team-status-collapsed", next ? "1" : "0");
+      return next;
+    });
+  };
+
+  const activeCount = items.filter((i) => i.presence === "working").length;
+
   return (
     <section className="panel-surface p-4 md:p-5">
-      <div className="flex items-start justify-between gap-3">
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        className="flex w-full items-start justify-between gap-3 text-left"
+      >
         <div>
           <div className="flex items-center gap-2">
             <UserRound className="h-4 w-4 text-primary" />
             <h2 className="text-base font-semibold text-foreground">{title}</h2>
+            {activeCount > 0 && (
+              <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-destructive animate-pulse">
+                {activeCount} activo{activeCount !== 1 ? "s" : ""}
+              </span>
+            )}
           </div>
-          {!compact ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+          {!compact && !collapsed ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
         </div>
-        <div className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">{items.length} personas</div>
-      </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">{items.length} personas</span>
+          {collapsed ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronUp className="h-4 w-4 text-muted-foreground" />}
+        </div>
+      </button>
 
+      {collapsed ? null : (
       <div className="mt-4 space-y-3">
         {loading ? (
           <div className="space-y-3">
@@ -128,6 +165,7 @@ const WorkerLiveStatusPanel = ({
           </div>
         )}
       </div>
+      )}
     </section>
   );
 };

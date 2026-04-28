@@ -165,13 +165,15 @@ const AdminAlbaranesView = () => {
   }, [user]);
 
   // ============ FORM ============
-  const openCreate = () => {
+  const openCreate = async () => {
     setEditingId(null);
-    setForm(emptyForm);
     setPhotoFile(null);
     setPhotoPreview(null);
     setPhotoPathToKeep(null);
     setDialogOpen(true);
+    // Pedir el siguiente nº disponible al servidor
+    const { data: nextNumber } = await db.rpc("next_delivery_note_number");
+    setForm({ ...emptyForm, order_number: nextNumber ? String(nextNumber) : "" });
   };
 
   const openEdit = (note: DeliveryNote) => {
@@ -213,10 +215,7 @@ const AdminAlbaranesView = () => {
 
   const save = async () => {
     if (!user) return;
-    if (!form.order_number.trim()) {
-      toast.error("Falta el número de pedido");
-      return;
-    }
+    // El nº puede estar vacío: el trigger SQL lo rellena con auto-numeración.
     setSaving(true);
 
     // Subir foto nueva si la hay
@@ -469,7 +468,7 @@ const AdminAlbaranesView = () => {
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{format(new Date(note.delivery_date), "d MMM yyyy", { locale: es })}</span>
-                    {note.amount !== null && <span className="font-semibold text-foreground">{note.amount.toFixed(2)} €</span>}
+                    {canViewAdmin && note.amount !== null && <span className="font-semibold text-foreground">{note.amount.toFixed(2)} €</span>}
                   </div>
 
                   {note.notes && (
@@ -557,8 +556,8 @@ const AdminAlbaranesView = () => {
               </div>
             )}
 
-            {/* Fecha e importe */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Fecha (e importe solo admin) */}
+            <div className={canViewAdmin ? "grid grid-cols-2 gap-2" : ""}>
               <div className="space-y-1.5">
                 <Label>Fecha</Label>
                 <Input
@@ -567,16 +566,18 @@ const AdminAlbaranesView = () => {
                   onChange={(e) => setForm((f) => ({ ...f, delivery_date: e.target.value }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label>Importe (€)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="Opcional"
-                  value={form.amount}
-                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                />
-              </div>
+              {canViewAdmin && (
+                <div className="space-y-1.5">
+                  <Label>Importe (€)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Opcional"
+                    value={form.amount}
+                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Observaciones */}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Download, Calendar, Clock } from "lucide-react";
+import { Users, Download, Calendar, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -30,6 +30,16 @@ const AdminFichajes = () => {
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [entries, setEntries] = useState<EntryWithProfile[]>([]);
   const [staffColors, setStaffColors] = useState<Map<string, { color: string; staffId: string }>>(new Map());
+  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
+
+  const toggleEmployee = (userId: string) => {
+    setExpandedEmployees((current) => {
+      const next = new Set(current);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
@@ -301,7 +311,7 @@ const AdminFichajes = () => {
         </section>
       </div>
 
-      {/* By employee */}
+      {/* By employee — agrupados como carpetas individuales por trabajador */}
       {Object.entries(byEmployee).map(([userId, { name, entries: empEntries }]) => {
         const totalMins = empEntries.reduce(
           (sum, e) => sum + (e.clock_out ? differenceInMinutes(new Date(e.clock_out), new Date(e.clock_in)) : 0),
@@ -309,45 +319,55 @@ const AdminFichajes = () => {
         );
         const staffInfo = staffColors.get(userId);
         const color = staffInfo?.color || "#4F5A7A";
+        const isExpanded = expandedEmployees.has(userId);
         return (
-          <div key={userId} className="mb-6">
-            <div
-              className="mb-3 flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 cursor-pointer hover:bg-muted/30"
+          <div key={userId} className="mb-3">
+            <button
+              type="button"
+              onClick={() => toggleEmployee(userId)}
+              className="w-full flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors"
               style={{ borderLeft: `4px solid ${color}` }}
-              onDoubleClick={() => staffInfo && setSelectedWorkerId(staffInfo.staffId)}
-              title={staffInfo ? "Doble clic para ver ficha completa" : undefined}
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                if (staffInfo) setSelectedWorkerId(staffInfo.staffId);
+              }}
+              title={staffInfo ? "Clic para abrir/cerrar · doble clic para ver ficha" : "Clic para abrir/cerrar"}
             >
               <div className="flex items-center gap-3">
+                {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
                 <h3 className="font-semibold text-foreground">{name}</h3>
+                <span className="text-xs text-muted-foreground">({empEntries.length} fichajes)</span>
               </div>
               <span className="text-sm font-medium text-primary">
                 {Math.floor(totalMins / 60)}h {totalMins % 60}m total
               </span>
-            </div>
-            <div className="space-y-2">
-              {empEntries.map((e) => (
-                <div key={e.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between shadow-sm">
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(e.clock_in), "EEEE d MMM", { locale: es })}
-                    </p>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-foreground font-medium text-sm">
-                        {format(new Date(e.clock_in), "HH:mm")}
-                      </span>
-                      <span className="text-muted-foreground text-xs">→</span>
-                      <span className="text-foreground font-medium text-sm">
-                        {e.clock_out ? format(new Date(e.clock_out), "HH:mm") : "En curso"}
-                      </span>
+            </button>
+            {isExpanded && (
+              <div className="mt-2 space-y-2 pl-2">
+                {empEntries.map((e) => (
+                  <div key={e.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between shadow-sm">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(e.clock_in), "EEEE d MMM", { locale: es })}
+                      </p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-foreground font-medium text-sm">
+                          {format(new Date(e.clock_in), "HH:mm")}
+                        </span>
+                        <span className="text-muted-foreground text-xs">→</span>
+                        <span className="text-foreground font-medium text-sm">
+                          {e.clock_out ? format(new Date(e.clock_out), "HH:mm") : "En curso"}
+                        </span>
+                      </div>
                     </div>
+                    <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
+                      {formatDuration(e.clock_in, e.clock_out)}
+                    </span>
                   </div>
-                  <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
-                    {formatDuration(e.clock_in, e.clock_out)}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
