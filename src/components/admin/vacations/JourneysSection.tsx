@@ -58,6 +58,36 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
     return eachDayOfInterval({ start: startOfYear(new Date(anchorDate.getFullYear(), 0, 1)), end: new Date(anchorDate.getFullYear(), 11, 31) });
   }, [anchorDate, monthGrid, viewMode, weekDays]);
 
+  const { getOverride, setAssignment, clearAssignment } = useJourneyOverrides(visibleDates);
+
+  const allWorkers: DisplayWorker[] = useMemo(() => {
+    const map = new Map<string, DisplayWorker>();
+    excelWorkers.forEach((w) => {
+      map.set(w.id, {
+        id: w.id,
+        name: w.name,
+        initials: w.initials,
+        color: w.color,
+        defaultShift: w.defaultShift,
+        appWorkerId: null,
+      });
+    });
+    workers.forEach((w) => {
+      if (!map.has(w.id)) {
+        map.set(w.id, {
+          id: w.id,
+          name: w.display_name,
+          initials: w.display_name.slice(0, 2).toUpperCase(),
+          color: w.color_hex,
+          defaultShift: w.shift_default,
+          appWorkerId: w.id,
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [excelWorkers, workers]);
+
+
   const monthReading = useMemo(() => {
     if (!data) return [];
     const counts = new Map<string, { assignments: number; nights: number; special: number }>();
