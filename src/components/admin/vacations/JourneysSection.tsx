@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { addDays, eachDayOfInterval, endOfWeek, format, startOfWeek, startOfYear } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Eye, Loader2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Eye, Loader2, Pencil } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { useTranstubariData } from "@/hooks/useTranstubariData";
@@ -9,7 +9,8 @@ import { getWorkerYearStats } from "@/lib/transtubari-parser";
 import type { HolidayItem, VacationSlotItem, VacationViewMode, WorkerItem, WorkerYearSummaryItem } from "./vacation-types";
 import { getMonthMatrix, toDateKey } from "./vacation-utils";
 import { SHIFT_CODES } from "./journeys-constants";
-import { useWorkerLookups } from "./useWorkerLookups";
+import { useWorkerLookups, type DisplayWorker } from "./useWorkerLookups";
+import { useJourneyOverrides } from "./useJourneyOverrides";
 import DayView from "./views/DayView";
 import WeekView from "./views/WeekView";
 import MonthView from "./views/MonthView";
@@ -32,6 +33,7 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [modalWorkerId, setModalWorkerId] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   const excelWorkers = data?.workers ?? [];
   const { resolveExcelWorker, resolveAppWorker, getDisplayWorker } = useWorkerLookups(excelWorkers, workers);
@@ -55,6 +57,36 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
     if (viewMode === "month") return monthGrid.flat();
     return eachDayOfInterval({ start: startOfYear(new Date(anchorDate.getFullYear(), 0, 1)), end: new Date(anchorDate.getFullYear(), 11, 31) });
   }, [anchorDate, monthGrid, viewMode, weekDays]);
+
+  const { getOverride, setAssignment, clearAssignment } = useJourneyOverrides(visibleDates);
+
+  const allWorkers: DisplayWorker[] = useMemo(() => {
+    const map = new Map<string, DisplayWorker>();
+    excelWorkers.forEach((w) => {
+      map.set(w.id, {
+        id: w.id,
+        name: w.name,
+        initials: w.initials,
+        color: w.color,
+        defaultShift: w.defaultShift,
+        appWorkerId: null,
+      });
+    });
+    workers.forEach((w) => {
+      if (!map.has(w.id)) {
+        map.set(w.id, {
+          id: w.id,
+          name: w.display_name,
+          initials: w.display_name.slice(0, 2).toUpperCase(),
+          color: w.color_hex,
+          defaultShift: w.shift_default,
+          appWorkerId: w.id,
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [excelWorkers, workers]);
+
 
   const monthReading = useMemo(() => {
     if (!data) return [];
@@ -248,12 +280,26 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
               <Button type="button" size="icon" variant="ghost" onClick={() => navigate(1)}><ChevronRight className="h-4 w-4" /></Button>
             </div>
             <Button type="button" variant="secondary" size="sm" onClick={() => setAnchorDate(new Date(data.year, new Date().getMonth(), new Date().getDate()))}>Hoy</Button>
+            <Button
+              type="button"
+              variant={editMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setEditMode((current) => !current)}
+            >
+              <Pencil className="h-4 w-4" /> {editMode ? "Saliendo edición" : "Editar planilla"}
+            </Button>
             <div className="ml-auto flex flex-wrap gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setPanelOpen((current) => !current)}>Panel</Button>
               <Button type="button" size="sm" onClick={exportMonth}><Download className="h-4 w-4" /> Exportar Excel</Button>
             </div>
           </div>
         </div>
+
+        {editMode ? (
+          <div className="border-b border-border bg-primary/10 px-5 py-3 text-sm font-semibold text-primary">
+            Modo edición activo · Pulsa cualquier turno para reasignar trabajador o vaciarlo.
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/30 px-5 py-4">
           <span className="mr-1 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Trabajadores</span>
@@ -267,9 +313,9 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
         </div>
 
         <div className="p-5">
-          {viewMode === "month" ? <MonthView data={data} monthGrid={monthGrid} currentMonth={currentMonth} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} summaryLabel={monthSummaryLabel} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} /> : null}
-          {viewMode === "week" ? <WeekView data={data} weekDays={weekDays} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} /> : null}
-          {viewMode === "day" ? <DayView data={data} anchorDate={anchorDate} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} /> : null}
+          {viewMode === "month" ? <MonthView data={data} monthGrid={monthGrid} currentMonth={currentMonth} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} summaryLabel={monthSummaryLabel} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} editMode={editMode} allWorkers={allWorkers} getOverride={getOverride} onAssign={setAssignment} onClear={clearAssignment} /> : null}
+          {viewMode === "week" ? <WeekView data={data} weekDays={weekDays} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} editMode={editMode} allWorkers={allWorkers} getOverride={getOverride} onAssign={setAssignment} onClear={clearAssignment} /> : null}
+          {viewMode === "day" ? <DayView data={data} anchorDate={anchorDate} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} getDisplayWorker={getDisplayWorker} onClickWorker={openWorker} editMode={editMode} allWorkers={allWorkers} getOverride={getOverride} onAssign={setAssignment} onClear={clearAssignment} /> : null}
           {viewMode === "year" ? <YearView data={data} year={anchorDate.getFullYear()} holidaysByDate={holidaysByDate} selectedWorkerId={selectedWorkerId} onSelectMonth={(monthDate) => { setAnchorDate(monthDate); setViewMode("month"); }} /> : null}
         </div>
 

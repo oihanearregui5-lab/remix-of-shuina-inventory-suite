@@ -6,6 +6,8 @@ import { SHIFT_CODES, SHIFT_HOURS, SHIFT_TITLES, getShiftsFor } from "../journey
 import { toDateKey } from "../vacation-utils";
 import ShiftPill from "../ShiftPill";
 import type { DisplayWorker } from "../useWorkerLookups";
+import type { JourneyOverride } from "../useJourneyOverrides";
+import type { ShiftCode } from "../journeys-constants";
 
 interface Props {
   data: TranstubariData;
@@ -14,9 +16,14 @@ interface Props {
   selectedWorkerId: string | null;
   getDisplayWorker: (workerId: string | null | undefined) => DisplayWorker | null;
   onClickWorker: (workerId: string) => void;
+  editMode?: boolean;
+  allWorkers?: DisplayWorker[];
+  getOverride?: (date: string, shift: ShiftCode) => JourneyOverride | null;
+  onAssign?: (date: string, shift: ShiftCode, staffMemberId: string, color?: string | null) => Promise<void>;
+  onClear?: (date: string, shift: ShiftCode) => Promise<void>;
 }
 
-const WeekView = ({ data, weekDays, holidaysByDate, selectedWorkerId, getDisplayWorker, onClickWorker }: Props) => {
+const WeekView = ({ data, weekDays, holidaysByDate, selectedWorkerId, getDisplayWorker, onClickWorker, editMode, allWorkers, getOverride, onAssign, onClear }: Props) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <div className="grid min-w-[980px]" style={{ gridTemplateColumns: "90px repeat(7, minmax(0, 1fr))" }}>
@@ -60,6 +67,12 @@ const WeekView = ({ data, weekDays, holidaysByDate, selectedWorkerId, getDisplay
                   selectedWorkerId={selectedWorkerId}
                   getDisplayWorker={getDisplayWorker}
                   onClickWorker={onClickWorker}
+                  date={date}
+                  editMode={editMode}
+                  override={getOverride?.(toDateKey(date), code) ?? null}
+                  allWorkers={allWorkers}
+                  onAssign={onAssign}
+                  onClear={onClear}
                 />
               </div>
             ))}

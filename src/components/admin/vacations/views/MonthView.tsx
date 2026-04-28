@@ -6,6 +6,8 @@ import { SHIFT_CODES, WEEKDAYS_SHORT, getShiftsFor } from "../journeys-constants
 import { toDateKey } from "../vacation-utils";
 import ShiftPill from "../ShiftPill";
 import type { DisplayWorker } from "../useWorkerLookups";
+import type { JourneyOverride } from "../useJourneyOverrides";
+import type { ShiftCode } from "../journeys-constants";
 
 interface Props {
   data: TranstubariData;
@@ -16,9 +18,14 @@ interface Props {
   summaryLabel: string;
   getDisplayWorker: (workerId: string | null | undefined) => DisplayWorker | null;
   onClickWorker: (workerId: string) => void;
+  editMode?: boolean;
+  allWorkers?: DisplayWorker[];
+  getOverride?: (date: string, shift: ShiftCode) => JourneyOverride | null;
+  onAssign?: (date: string, shift: ShiftCode, staffMemberId: string, color?: string | null) => Promise<void>;
+  onClear?: (date: string, shift: ShiftCode) => Promise<void>;
 }
 
-const MonthView = ({ data, monthGrid, currentMonth, holidaysByDate, selectedWorkerId, summaryLabel, getDisplayWorker, onClickWorker }: Props) => {
+const MonthView = ({ data, monthGrid, currentMonth, holidaysByDate, selectedWorkerId, summaryLabel, getDisplayWorker, onClickWorker, editMode, allWorkers, getOverride, onAssign, onClear }: Props) => {
   return (
     <div className="space-y-3 rounded-xl border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-3">
@@ -67,6 +74,12 @@ const MonthView = ({ data, monthGrid, currentMonth, holidaysByDate, selectedWork
                         selectedWorkerId={selectedWorkerId}
                         getDisplayWorker={getDisplayWorker}
                         onClickWorker={onClickWorker}
+                        date={date}
+                        editMode={editMode}
+                        override={getOverride?.(key, code) ?? null}
+                        allWorkers={allWorkers}
+                        onAssign={onAssign}
+                        onClear={onClear}
                       />
                     </div>
                   ))}
