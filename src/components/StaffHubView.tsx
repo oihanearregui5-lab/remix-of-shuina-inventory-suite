@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { addDays, eachDayOfInterval, endOfMonth, format, getYear, isSameDay, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, Clock3, Edit3, Send, SunMedium, Sunset } from "lucide-react";
+import { CalendarDays, Clock3, Send, SunMedium, Sunset } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import PageHeader from "@/components/shared/PageHeader";
