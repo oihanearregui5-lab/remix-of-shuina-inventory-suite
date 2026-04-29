@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar, Filter, Truck } from "lucide-react";
+import { Calendar, Filter, Minus, Package, Plus, Truck } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
 import { useTonnage, formatKg, type TripType } from "@/hooks/useTonnage";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const ALL = "__all__";
