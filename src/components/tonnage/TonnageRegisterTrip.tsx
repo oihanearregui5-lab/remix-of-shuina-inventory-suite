@@ -140,13 +140,13 @@ const TonnageRegisterTrip = () => {
 
   const validationError = useMemo(() => {
     if (!truckId) return "Elige un camión";
-    if (!driverUserId) return "Indica el conductor";
+    if (!driverKey) return "Indica el conductor";
     if (!weightKg || weightKg < WEIGHT_MIN || weightKg > WEIGHT_MAX) return `Peso entre ${WEIGHT_MIN} y ${WEIGHT_MAX} kg`;
     if (!tripTime) return "Indica la hora";
     if (!loadZoneId) return "Falta la zona de carga";
     if (!unloadZoneId) return "Falta la zona de descarga";
     return null;
-  }, [truckId, driverUserId, weightKg, tripTime, loadZoneId, unloadZoneId]);
+  }, [truckId, driverKey, weightKg, tripTime, loadZoneId, unloadZoneId]);
 
   const handleSubmit = async () => {
     if (validationError) {
@@ -161,7 +161,9 @@ const TonnageRegisterTrip = () => {
       weight_kg: weightKg,
       load_zone_id: loadZoneId || null,
       unload_zone_id: unloadZoneId || null,
-      driver_user_id: driverUserId || null,
+      driver_user_id: selectedDriver?.user_id ?? null,
+      driver_staff_id: selectedDriver?.staff_id ?? null,
+      driver_name_snapshot: selectedDriver?.full_name ?? null,
       trip_type: tripType,
     });
     setSaving(false);
