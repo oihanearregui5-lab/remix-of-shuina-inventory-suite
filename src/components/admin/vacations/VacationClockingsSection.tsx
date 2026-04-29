@@ -15,10 +15,13 @@ interface Props {
 
 const VacationClockingsSection = ({ rows, workers }: Props) => {
   const today = format(new Date(), "yyyy-MM-dd");
-  const [workerFilter, setWorkerFilter] = useState("all");
+  const [workerFilter, setWorkerFilter] = useState<string>("");
   const [fromDate, setFromDate] = useState(today.slice(0, 8) + "01");
   const [toDate, setToDate] = useState(today);
   const [sourceFilter, setSourceFilter] = useState("all");
+
+  // Folder-mode: if no worker selected yet, show one folder per worker
+  const showFolders = workerFilter === "";
 
   const filteredRows = useMemo(() => rows.filter((row) => {
     const clockDate = row.clock_in.slice(0, 10);
