@@ -6,12 +6,9 @@ import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
   useDeleteHoliday,
-  useDeleteVacationSlot,
   useHolidays,
   useRecentTimeEntries,
   useSaveHoliday,
-  useSaveVacationSlot,
-  useUpdateWorker,
   useVacationSlots,
   useWorkerYearSummaries,
   useWorkers,
@@ -19,7 +16,6 @@ import {
 import VacationClockingsSection from "./vacations/VacationClockingsSection";
 import VacationGeneralCalendarSection from "./vacations/VacationGeneralCalendarSection";
 import JourneysSection from "./vacations/JourneysSection";
-import VacationGridSection from "./vacations/VacationGridSection";
 import WorkerProfilesSection from "./vacations/WorkerProfilesSection";
 import type { FichajeRow } from "./vacations/vacation-types";
 
@@ -44,9 +40,6 @@ const VacationsJourneysView = () => {
 
   const saveHolidayMutation = useSaveHoliday();
   const deleteHolidayMutation = useDeleteHoliday();
-  const saveSlotMutation = useSaveVacationSlot();
-  const deleteSlotMutation = useDeleteVacationSlot();
-  const updateWorkerMutation = useUpdateWorker();
 
   useEffect(() => {
     if (workersError || holidaysError || slotsError || summariesError || entriesError) {
@@ -91,37 +84,7 @@ const VacationsJourneysView = () => {
     }
   };
 
-  const saveVacationSlot = async (payload: { worker_id: string; date: string; shift: "dia" | "tarde" | "noche"; id?: string }) => {
-    const existing = vacationSlots.find((slot) => slot.worker_id === payload.worker_id && slot.date === payload.date && slot.shift === payload.shift);
-    if (existing) {
-      toast.success("La franja ya estaba asignada");
-      return;
-    }
-    try {
-      await saveSlotMutation.mutateAsync(payload);
-      toast.success("Vacaciones actualizadas");
-    } catch {
-      toast.error("No se pudo guardar la franja");
-    }
-  };
 
-  const deleteVacationSlot = async (slotId: string) => {
-    try {
-      await deleteSlotMutation.mutateAsync(slotId);
-      toast.success("Franja liberada");
-    } catch {
-      toast.error("No se pudo quitar la franja");
-    }
-  };
-
-  const updateWorker = async (workerId: string, payload: { display_name: string; color_hex: string }) => {
-    try {
-      await updateWorkerMutation.mutateAsync({ workerId, ...payload });
-      toast.success("Trabajador actualizado");
-    } catch {
-      toast.error("No se pudo actualizar el trabajador");
-    }
-  };
 
   return (
     <div className="space-y-5 animate-fade-in">

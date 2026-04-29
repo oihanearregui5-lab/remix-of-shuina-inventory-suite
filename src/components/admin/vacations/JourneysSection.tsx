@@ -30,7 +30,7 @@ interface Props {
 const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWorkerProfile }: Props) => {
   const { data, loading, error } = useTranstubariData();
   const [viewMode, setViewMode] = useState<VacationViewMode>("month");
-  const [anchorDate, setAnchorDate] = useState(() => new Date(2026, 3, 23));
+  const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [modalWorkerId, setModalWorkerId] = useState<string | null>(null);

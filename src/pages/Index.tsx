@@ -78,7 +78,7 @@ const Index = () => {
     if (!workspaceMode) return [];
     const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"];
     const adminSections: AppSection[] = role === "admin"
-      ? ["admin", "fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff"]
+      ? ["fichajes", "admin", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"];
     const isAdminWorkspace = workspaceMode === "admin" && canViewAdmin;
     // Vista sencilla y completa muestran las mismas secciones; solo cambia la densidad del contenido.
@@ -108,7 +108,7 @@ const Index = () => {
     if (mode === "admin" && !canViewAdmin) return;
     setWorkspaceMode(mode);
     if (typeof window !== "undefined") window.sessionStorage.setItem(WORKSPACE_KEY, mode);
-    setCurrentSection(mode === "admin" ? (role === "admin" ? "admin" : "fichajes") : "dashboard");
+    setCurrentSection(mode === "admin" ? "fichajes" : "dashboard");
     setMobileMenuOpen(false);
   };
 
