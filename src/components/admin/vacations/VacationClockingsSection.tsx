@@ -88,28 +88,52 @@ const VacationClockingsSection = ({ rows, workers }: Props) => {
   };
 
   const workerStats = useMemo(() => {
+    const todayStr = format(new Date(), "yyyy-MM-dd");
     return workers.map((worker) => {
       const wrows = rows.filter((r) => r.worker_id === worker.id);
+      const openToday = wrows.some((r) => r.clock_in.slice(0, 10) === todayStr && !r.clock_out);
       return {
         id: worker.id,
         name: worker.display_name,
         records: wrows.length,
         hours: wrows.reduce((s, r) => s + r.hours, 0),
         last: wrows[0]?.clock_in ?? null,
+        openToday,
       };
     });
   }, [rows, workers]);
+
+  const visibleFolders = useMemo(() => {
+    const q = folderSearch.trim().toLowerCase();
+    const filtered = q ? workerStats.filter((w) => w.name.toLowerCase().includes(q)) : workerStats;
+    return [...filtered].sort((a, b) => {
+      if (!!b.last !== !!a.last) return b.last ? 1 : -1;
+      if (a.last && b.last) return b.last.localeCompare(a.last);
+      return a.name.localeCompare(b.name);
+    });
+  }, [workerStats, folderSearch]);
 
   if (showFolders) {
     return (
       <div className="space-y-4">
         <div className="rounded-lg border border-border bg-card p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Folder className="h-4 w-4 text-primary" /> Carpetas de fichajes por trabajador
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Folder className="h-4 w-4 text-primary" /> Carpetas de fichajes por trabajador
+            </div>
+            <div className="relative w-full max-w-xs">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={folderSearch} onChange={(e) => setFolderSearch(e.target.value)} placeholder="Buscar trabajador…" className="pl-8" />
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {workerStats.map((w) => (
-              <button key={w.id} type="button" onClick={() => setWorkerFilter(w.id)} className="group flex flex-col gap-2 rounded-lg border border-border bg-background p-4 text-left transition hover:border-primary hover:bg-accent">
+            {visibleFolders.map((w) => (
+              <button key={w.id} type="button" onClick={() => setWorkerFilter(w.id)} className="group relative flex flex-col gap-2 rounded-lg border border-border bg-background p-4 text-left transition hover:border-primary hover:bg-accent">
+                {w.openToday ? (
+                  <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground">
+                    <CircleDot className="h-3 w-3" /> abierto hoy
+                  </span>
+                ) : null}
                 <div className="flex items-center gap-2">
                   <Folder className="h-5 w-5 text-primary" />
                   <span className="font-semibold text-foreground">{w.name}</span>
@@ -122,6 +146,11 @@ const VacationClockingsSection = ({ rows, workers }: Props) => {
                 )}
               </button>
             ))}
+            {visibleFolders.length === 0 ? (
+              <div className="col-span-full rounded-lg border border-dashed border-border bg-background p-6 text-center text-sm text-muted-foreground">
+                No hay trabajadores que coincidan con "{folderSearch}".
+              </div>
+            ) : null}
             <button type="button" onClick={() => setWorkerFilter("all")} className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background p-4 text-sm text-muted-foreground transition hover:border-primary hover:text-foreground">
               <Users2 className="h-5 w-5" /> Ver todos
             </button>
