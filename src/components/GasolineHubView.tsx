@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { buildGasolineAlerts, getFuelUnitPrice, parseFuelNumber, validateFuelDraft } from "@/lib/gasoline-alerts";
@@ -56,6 +58,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
   const [selectedCardId, setSelectedCardId] = useState<string>(creditCards[0].id);
   const [draft, setDraft] = useState<GasolineRecord>(() => emptyForm(creditCards[0].id));
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [cardsOpen, setCardsOpen] = useState<boolean>(isAdminView);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
