@@ -76,10 +76,28 @@ const Index = () => {
 
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
-    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"];
-    const adminSections: AppSection[] = role === "admin"
+    // Orden unificado: secciones comunes primero, exclusivas al final, mismo orden en ambos workspaces.
+    const unifiedOrder: AppSection[] = [
+      "dashboard",      // worker
+      "admin",          // admin
+      "fichajes",       // admin
+      "workReports",    // ambos
+      "tasks",          // worker
+      "chat",           // worker
+      "tonnage",        // ambos
+      "notes",          // worker
+      "machines",       // ambos
+      "gasoline",       // ambos
+      "staff",          // ambos
+      "vacations",      // admin
+      "albaranes",      // ambos
+    ];
+    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+    const adminAllowed = new Set<AppSection>(role === "admin"
       ? ["fichajes", "admin", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff"]
-      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"];
+      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
+    const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
+    const allowed = unifiedOrder.filter((k) => allowedSet.has(k));
     const isAdminWorkspace = workspaceMode === "admin" && canViewAdmin;
     // Vista sencilla y completa muestran las mismas secciones; solo cambia la densidad del contenido.
     const allowed = isAdminWorkspace ? adminSections : workerSections;
