@@ -220,26 +220,47 @@ const TonnageHistory = () => {
         )}
       </section>
 
-      {/* Materiales del día (resumen por material para añadir al final del día) */}
+      {/* Materiales del día — entrada manual al final de la jornada */}
       <section className="panel-surface p-4">
-        <div className="mb-3">
-          <p className="text-sm font-semibold text-foreground">Materiales del día</p>
-          <p className="text-xs text-muted-foreground">
-            Total transportado por material · súmalo a tu reporte de fin de jornada
-          </p>
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Materiales del día</p>
+            <p className="text-xs text-muted-foreground">
+              Apunta las cantidades al final del día (compartido por todo el equipo)
+            </p>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          {(["arenas", "tortas", "sulfatos"] as const).map((mat) => (
-            <div key={mat} className="rounded-xl border border-border bg-muted/30 p-3 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {mat === "arenas" ? "Arenas" : mat === "tortas" ? "Tortas" : "Sulfatos"}
-              </p>
-              <p className="mt-1 text-lg font-bold text-foreground">
-                {formatKg(materialTotals[mat])}
-                <span className="ml-1 text-[10px] font-normal text-muted-foreground">kg</span>
-              </p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {MAT_FIELDS.map((f) => (
+            <div key={f.key}>
+              <Label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {f.label}
+              </Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="any"
+                placeholder="0"
+                value={materials[f.key]}
+                disabled={matLoading}
+                onChange={(e) => {
+                  setMaterials((m) => ({ ...m, [f.key]: e.target.value }));
+                  setMatDirty(true);
+                }}
+                className="h-11 text-base font-semibold"
+              />
             </div>
           ))}
+        </div>
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            onClick={() => void saveMaterials()}
+            disabled={matSaving || matLoading || !matDirty}
+            className="h-10 px-5"
+          >
+            {matSaving ? "Guardando…" : matDirty ? "Guardar materiales" : "Guardado"}
+          </Button>
         </div>
       </section>
     </div>
