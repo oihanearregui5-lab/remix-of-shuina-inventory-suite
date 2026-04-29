@@ -140,9 +140,7 @@ const VacationsJourneysView = () => {
 
       {activeSection === "clockings" ? <VacationClockingsSection rows={clockingRows} workers={workers} /> : null}
       {activeSection === "general" ? <VacationGeneralCalendarSection holidays={holidays} onSaveHoliday={saveHoliday} onDeleteHoliday={deleteHoliday} /> : null}
-      {activeSection === "vacations" ? <VacationGridSection workers={workers} holidays={holidays} vacationSlots={vacationSlots} onSaveVacationSlot={saveVacationSlot} onDeleteVacationSlot={deleteVacationSlot} onUpdateWorker={updateWorker} /> : null}
       {activeSection === "excel" ? <JourneysSection workers={workers} holidays={holidays} vacationSlots={vacationSlots} summaries={summaries} onOpenWorkerProfile={(workerId) => { setSelectedWorkerId(workerId); setActiveSection("workers"); }} /> : null}
-      {activeSection === "grid" ? <JourneysGrid /> : null}
       {activeSection === "workers" ? <WorkerProfilesSection workers={workers} summaries={summaries} vacationSlots={vacationSlots} holidays={holidays} selectedWorkerId={selectedWorkerId} onSelectedWorkerChange={setSelectedWorkerId} /> : null}
     </div>
   );
