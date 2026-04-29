@@ -255,26 +255,121 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
 
       <section className="panel-surface p-2 sm:p-3">
         {!isAdminView && (
-          <Collapsible open={cardsOpen} onOpenChange={setCardsOpen}>
-            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted/40 px-3 py-3 text-left transition-colors hover:bg-muted/60">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <CreditCard className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Tarjetas</p>
-                  <p className="text-[11px] text-muted-foreground">{creditCards.length} disponibles · pulsa para elegir</p>
-                </div>
+          <div>
+            <div className="mb-3 flex items-center gap-3 px-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <CreditCard className="h-5 w-5" />
               </div>
-              <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", cardsOpen && "rotate-180")} />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2">
-              {renderCardsAccordion()}
-            </CollapsibleContent>
-          </Collapsible>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Tarjetas</p>
+                <p className="text-[11px] text-muted-foreground">{creditCards.length} disponibles · pulsa una para abrir</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+              {cardSummaries.map((card) => (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => { setSelectedCardId(card.id); setOpenCardId(card.id); }}
+                  className="group flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/25 text-secondary-foreground">
+                    <CreditCard className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">{card.alias}</p>
+                    <p className="truncate font-mono text-[10px] text-muted-foreground">{card.masked.slice(-9)}</p>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{card.entries} mov. · {card.lastDate ?? "sin uso"}</p>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         {isAdminView && renderCardsAccordion()}
       </section>
+
+      {!isAdminView && openCardId && (() => {
+        const card = cardSummaries.find((c) => c.id === openCardId);
+        if (!card) return null;
+        const cardRecords = records
+          .filter((r) => r.cardId === card.id)
+          .sort((a, b) => b.date.localeCompare(a.date));
+        const monthPrefix = new Date().toISOString().slice(0, 7);
+        const monthCount = cardRecords.filter((r) => r.date.startsWith(monthPrefix)).length;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-primary/35 px-4 py-8 backdrop-blur-sm"
+            onClick={(event) => { if (event.target === event.currentTarget) setOpenCardId(null); }}
+          >
+            <div className="w-full max-w-4xl overflow-hidden rounded-2xl bg-card shadow-2xl">
+              <div
+                className="grid gap-4 border-b border-border px-6 py-6 md:grid-cols-[auto_1fr_auto] md:items-center"
+                style={{ background: `linear-gradient(120deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 180%)` }}
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white/20 text-white">
+                  <CreditCard className="h-7 w-7" />
+                </div>
+                <div>
+                  <h4 className="text-2xl font-extrabold text-white">{card.alias}</h4>
+                  <p className="mt-1 font-mono text-sm text-white/80">{card.masked}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setEditingId(null);
+                      setSelectedCardId(card.id);
+                      setDraft(emptyForm(card.id));
+                      setOpenCardId(null);
+                      setTimeout(() => document.getElementById("gas-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+                    }}
+                  >
+                    <Fuel className="h-4 w-4" /> Registrar repostaje
+                  </Button>
+                  <Button variant="ghost" className="text-white hover:bg-white/10" onClick={() => setOpenCardId(null)}>Cerrar</Button>
+                </div>
+              </div>
+
+              <div className="space-y-4 px-6 py-5">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Movimientos</p>
+                    <p className="mt-1 text-xl font-bold text-foreground">{card.entries}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Este mes</p>
+                    <p className="mt-1 text-xl font-bold text-foreground">{monthCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Último uso</p>
+                    <p className="mt-1 text-xl font-bold text-foreground">{card.lastDate ?? "—"}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-foreground">Historial</p>
+                  {cardRecords.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground">Sin movimientos todavía.</p>
+                  ) : (
+                    <ul className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+                      {cardRecords.map((record) => (
+                        <li key={record.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">{record.station || "Sin gasolinera"}</p>
+                            <p className="text-[11px] text-muted-foreground">{record.date}{record.vehicle ? ` · ${record.vehicle}` : ""}</p>
+                          </div>
+                          <span className="flex-none text-[11px] text-muted-foreground">{record.station ? "✓" : ""}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {isAdminView && selectedCardAlerts.length > 0 ? (
         <section className="panel-surface p-4">
