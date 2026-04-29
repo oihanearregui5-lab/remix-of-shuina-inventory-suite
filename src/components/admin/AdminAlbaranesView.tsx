@@ -100,7 +100,7 @@ const BUCKET = "delivery-notes";
 // COMPONENTE
 // ============================================================
 const AdminAlbaranesView = () => {
-  const { user, canViewAdmin } = useAuth();
+  const { user, canViewAdmin, isAdmin } = useAuth();
   const db = supabase as any;
   const [notes, setNotes] = useState<DeliveryNote[]>([]);
   const [machines, setMachines] = useState<MachineOption[]>([]);
