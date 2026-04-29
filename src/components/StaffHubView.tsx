@@ -11,6 +11,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MyJourneyView from "@/components/staff/MyJourneyView";
 import { toast } from "sonner";
 
 interface VacationRequestItem extends StaffRequestDialogItem { requester_user_id?: string; reviewed_at?: string | null; reviewed_by_user_id?: string | null; staff_member_id?: string | null }
