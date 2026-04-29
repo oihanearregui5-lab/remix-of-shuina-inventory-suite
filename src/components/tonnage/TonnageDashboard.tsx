@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, Filter, RefreshCw } from "lucide-react";
 import { format, getDaysInMonth, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx-js-style";
 import {
   Bar,
   BarChart,
@@ -126,75 +126,129 @@ const TonnageDashboard = () => {
       toast.error("No hay viajes para exportar en este mes");
       return;
     }
-    const monthName = MONTHS[monthIdx].toUpperCase();
+
+    // Camiones reales activos ordenados por truck_number
+    const orderedTrucks = [...trucks]
+      .filter((t) => t.is_active !== false)
+      .sort((a, b) => (a.truck_number ?? 0) - (b.truck_number ?? 0));
+    if (orderedTrucks.length === 0) {
+      toast.error("No hay camiones configurados");
+      return;
+    }
+    const numTrucks = orderedTrucks.length;
+
+    const monthName = MONTHS[monthIdx];
+    const monthUpper = monthName.toUpperCase();
     const yearShort = String(year).slice(-2);
-    const sheetName = `${monthName} ${yearShort}`;
+    const sheetName = `${monthUpper} ${yearShort}`;
 
-    // Construye matriz tipo plantilla:
-    // Fila 1: vacía
-    // Fila 2: [mes, "Camiones", ...vacios..., "Nº VIAJES", "Peso medio"]
-    // Fila 3: ["", 1, 2, 3, ..., N, "TOTAL", "MEDIA"]
-    // Filas 4..34: día | pesos por viaje | nº viajes | total | media
-    // Fila 35: "Total" | ... | SUM(viajes) | SUM(total) | SUM(media)
-    const MAX_TRIPS_PER_DAY = 41;
+    // Estilos reutilizables
+    const FONT = { name: "Arial", sz: 10 };
+    const FONT_BOLD = { name: "Arial", sz: 10, bold: true };
+    const ALIGN_CENTER = { horizontal: "center", vertical: "center", wrapText: true };
+    const BORDER_THIN = { style: "thin", color: { rgb: "000000" } };
+    const BORDER_MEDIUM = { style: "medium", color: { rgb: "000000" } };
+
+    const lastTruckColIdx = 1 + numTrucks - 1; // A=0, B=1, ..., último camión
+    const lastTruckColLetter = XLSX.utils.encode_col(lastTruckColIdx);
+
+    // Construye matriz: A=día, B..= camiones
     const aoa: any[][] = [];
-    aoa.push([]);
-    const headerRow2: any[] = [MONTHS[monthIdx], "Camiones"];
-    for (let i = 0; i < MAX_TRIPS_PER_DAY - 1; i++) headerRow2.push(null);
-    headerRow2.push("Nº VIAJES", "Peso medio");
-    aoa.push(headerRow2);
+    aoa.push([]); // Fila 1 vacía
 
-    const headerRow3: any[] = [null];
-    for (let i = 1; i <= MAX_TRIPS_PER_DAY; i++) headerRow3.push(i);
-    headerRow3.push(null, "TOTAL", "MEDIA");
-    aoa.push(headerRow3);
+    // Fila 2: [mes, "Camiones", null, null, ...]
+    const row2: any[] = [monthName, "Camiones"];
+    for (let i = 2; i < 1 + numTrucks; i++) row2.push(null);
+    aoa.push(row2);
 
-    const lastDay = daysInMonth;
-    const totalsCol = MAX_TRIPS_PER_DAY + 2; // índice columna 'TOTAL'
-    const avgCol = MAX_TRIPS_PER_DAY + 3;
-    const countCol = MAX_TRIPS_PER_DAY + 1;
+    // Fila 3: [null, 1, 2, 3, ..., N]
+    const row3: any[] = [null];
+    for (let i = 1; i <= numTrucks; i++) row3.push(i);
+    aoa.push(row3);
 
-    for (let day = 1; day <= lastDay; day++) {
-      const dayTrips = source
-        .filter((t) => {
-          const d = new Date(t.trip_date);
-          return d.getDate() === day && d.getMonth() === monthIdx && d.getFullYear() === year;
-        })
-        .sort((a, b) => (a.trip_time || "").localeCompare(b.trip_time || ""));
-
+    // Filas 4..: día + pesos por camión
+    for (let day = 1; day <= daysInMonth; day++) {
       const row: any[] = [day];
-      for (let i = 0; i < MAX_TRIPS_PER_DAY; i++) {
-        row.push(dayTrips[i] ? Number(dayTrips[i].weight_kg) : null);
+      for (const truck of orderedTrucks) {
+        const trip = source.find((t) => {
+          const d = new Date(t.trip_date);
+          return d.getDate() === day && d.getMonth() === monthIdx && d.getFullYear() === year && t.truck_id === truck.id;
+        });
+        row.push(trip ? Number(trip.weight_kg) : null);
       }
-      // Nº viajes
-      row.push(dayTrips.length || null);
-      // Total kg
-      const total = dayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
-      row.push(total > 0 ? total : null);
-      // Media
-      row.push(dayTrips.length > 0 ? Math.round(total / dayTrips.length) : null);
       aoa.push(row);
     }
 
-    // Fila Totales
+    // Fila Total
     const totalRow: any[] = ["Total"];
-    for (let i = 0; i < MAX_TRIPS_PER_DAY; i++) totalRow.push(null);
-    const sumCount = source.filter((t) => {
-      const d = new Date(t.trip_date);
-      return d.getMonth() === monthIdx && d.getFullYear() === year;
-    }).length;
-    const sumKg = source
-      .filter((t) => {
-        const d = new Date(t.trip_date);
-        return d.getMonth() === monthIdx && d.getFullYear() === year;
-      })
-      .reduce((acc, t) => acc + Number(t.weight_kg), 0);
-    totalRow.push(sumCount, sumKg, sumCount > 0 ? Math.round(sumKg / sumCount) : null);
+    for (let i = 0; i < numTrucks; i++) totalRow.push(null);
     aoa.push(totalRow);
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    // Ajustar ancho columnas
-    ws["!cols"] = [{ wch: 5 }, ...Array(MAX_TRIPS_PER_DAY).fill({ wch: 8 }), { wch: 10 }, { wch: 12 }, { wch: 10 }];
+
+    // Anchos
+    ws["!cols"] = [
+      { wch: 9.14 },
+      { wch: 11.28 },
+      ...Array(Math.max(0, numTrucks - 1)).fill({ wch: 13 }),
+    ];
+
+    // Alturas: fila 1 =15.75, filas 2 y 3 = 28.5
+    ws["!rows"] = [
+      { hpt: 15.75 },
+      { hpt: 28.5 },
+      { hpt: 28.5 },
+    ];
+
+    // Merge B2:lastTruckCol2
+    ws["!merges"] = [
+      { s: { r: 1, c: 1 }, e: { r: 1, c: lastTruckColIdx } },
+    ];
+
+    const lastDataRow = 3 + daysInMonth; // 0-indexed último día
+    const totalRowIdx = lastDataRow + 1;
+
+    // Aplicar estilos celda a celda
+    const setCell = (r: number, c: number, style: any) => {
+      const ref = XLSX.utils.encode_cell({ r, c });
+      if (!ws[ref]) ws[ref] = { t: "z", v: null };
+      ws[ref].s = { ...(ws[ref].s || {}), ...style };
+    };
+
+    // Fila 2: A2 (mes) y B2 (Camiones merged)
+    setCell(1, 0, { font: FONT_BOLD, alignment: ALIGN_CENTER });
+    setCell(1, 1, {
+      font: FONT_BOLD,
+      alignment: ALIGN_CENTER,
+      border: { top: BORDER_MEDIUM, left: BORDER_MEDIUM },
+    });
+
+    // Fila 3: números de camión
+    for (let c = 1; c <= lastTruckColIdx; c++) {
+      const border: any = {};
+      if (c === 1) border.left = BORDER_MEDIUM;
+      setCell(2, c, { font: FONT_BOLD, alignment: ALIGN_CENTER, border });
+    }
+    // A3 vacía sin estilo
+
+    // Filas de días
+    for (let day = 1; day <= daysInMonth; day++) {
+      const r = 2 + day; // fila 4 = índice 3 = day 1
+      // Columna A: día
+      setCell(r, 0, { font: FONT, alignment: ALIGN_CENTER });
+      for (let c = 1; c <= lastTruckColIdx; c++) {
+        const border: any = {
+          top: BORDER_THIN,
+          right: BORDER_THIN,
+          bottom: BORDER_THIN,
+          left: c === 1 ? BORDER_MEDIUM : BORDER_THIN,
+        };
+        setCell(r, c, { font: FONT, alignment: ALIGN_CENTER, border });
+      }
+    }
+
+    // Fila Total
+    setCell(totalRowIdx, 0, { font: FONT_BOLD, alignment: ALIGN_CENTER });
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
