@@ -3,6 +3,7 @@ import { format, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { Calendar, Filter, Minus, Package, Plus, Truck } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
+import { useAuth } from "@/hooks/useAuth";
 import { useTonnage, formatKg, type TripType } from "@/hooks/useTonnage";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,11 +16,22 @@ import { cn } from "@/lib/utils";
 const ALL = "__all__";
 
 const TonnageHistory = () => {
-  const [filterDate, setFilterDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+  const { user } = useAuth();
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const [filterDate, setFilterDate] = useState<string>(todayStr);
   const monthDate = useMemo(() => startOfMonth(new Date(filterDate + "T00:00")), [filterDate]);
   const { trucks, trips, loading } = useTonnage(monthDate);
   const [typeFilter, setTypeFilter] = useState<TripType | typeof ALL>(ALL);
   const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
+
+  const isToday = filterDate === todayStr;
+  const todayTrips = useMemo(() => trips.filter((t) => t.trip_date === todayStr), [trips, todayStr]);
+  const myTodayTrips = useMemo(
+    () => todayTrips.filter((t) => (t.driver_user_id ?? t.created_by_user_id) === user?.id),
+    [todayTrips, user?.id],
+  );
+  const todayTotalKg = todayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
+  const myTotalKg = myTodayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
 
   const dayTrips = useMemo(
     () => trips
@@ -95,6 +107,28 @@ const TonnageHistory = () => {
 
   return (
     <div className="space-y-3">
+      {isToday && (
+        <header className="grid grid-cols-2 gap-3">
+          <div className="panel-surface p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Mi aportación hoy</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">
+              {formatKg(myTotalKg)} <span className="text-sm font-normal text-muted-foreground">kg</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {myTodayTrips.length} viaje{myTodayTrips.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div className="panel-surface p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Total del equipo hoy</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">
+              {formatKg(todayTotalKg)} <span className="text-sm font-normal text-muted-foreground">kg</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {todayTrips.length} viaje{todayTrips.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </header>
+      )}
       <section className="panel-surface flex flex-wrap items-end gap-3 p-4">
         <div className="flex-1 min-w-[180px]">
           <Label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
