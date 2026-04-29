@@ -125,19 +125,6 @@ const AppShell = <T extends string>({
             </button>
           )}
         </div>
-        {isCollapsedDesktop && showCollapseToggle && (
-          <div className="mt-2 flex justify-center">
-            <button
-              type="button"
-              onClick={toggleCollapsed}
-              aria-label="Expandir menú"
-              title="Expandir menú"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
       </div>
 
       <div className={cn("min-h-0 flex-1 overflow-y-auto py-4", isCollapsedDesktop ? "px-2" : "px-3")}>
