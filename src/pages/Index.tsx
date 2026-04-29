@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, UserCircle } from "lucide-react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale } from "lucide-react";
 import { useUIMode } from "@/hooks/useUIMode";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavPreferences, applyNavPrefs } from "@/hooks/useNavPreferences";
 import DashboardView from "@/components/DashboardView";
 import Fichajes from "@/pages/Fichajes";
 const AdminFichajes = lazy(() => import("@/pages/AdminFichajes"));
