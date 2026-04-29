@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, Filter, RefreshCw } from "lucide-react";
 import { format, getDaysInMonth, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx-js-style";
 import {
   Bar,
   BarChart,
