@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import * as XLSX from "xlsx";
-import { Download, Filter, Users2 } from "lucide-react";
+import { Download, Filter, Users2, Folder, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,10 +15,13 @@ interface Props {
 
 const VacationClockingsSection = ({ rows, workers }: Props) => {
   const today = format(new Date(), "yyyy-MM-dd");
-  const [workerFilter, setWorkerFilter] = useState("all");
+  const [workerFilter, setWorkerFilter] = useState<string>("");
   const [fromDate, setFromDate] = useState(today.slice(0, 8) + "01");
   const [toDate, setToDate] = useState(today);
   const [sourceFilter, setSourceFilter] = useState("all");
+
+  // Folder-mode: if no worker selected yet, show one folder per worker
+  const showFolders = workerFilter === "";
 
   const filteredRows = useMemo(() => rows.filter((row) => {
     const clockDate = row.clock_in.slice(0, 10);
@@ -83,8 +86,60 @@ const VacationClockingsSection = ({ rows, workers }: Props) => {
     XLSX.writeFile(workbook, `Fichajes_${label}_${safeFrom}_a_${safeTo}.xlsx`);
   };
 
+  const workerStats = useMemo(() => {
+    return workers.map((worker) => {
+      const wrows = rows.filter((r) => r.worker_id === worker.id);
+      return {
+        id: worker.id,
+        name: worker.display_name,
+        records: wrows.length,
+        hours: wrows.reduce((s, r) => s + r.hours, 0),
+        last: wrows[0]?.clock_in ?? null,
+      };
+    });
+  }, [rows, workers]);
+
+  if (showFolders) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Folder className="h-4 w-4 text-primary" /> Carpetas de fichajes por trabajador
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {workerStats.map((w) => (
+              <button key={w.id} type="button" onClick={() => setWorkerFilter(w.id)} className="group flex flex-col gap-2 rounded-lg border border-border bg-background p-4 text-left transition hover:border-primary hover:bg-accent">
+                <div className="flex items-center gap-2">
+                  <Folder className="h-5 w-5 text-primary" />
+                  <span className="font-semibold text-foreground">{w.name}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">{w.records} fichajes · {formatHours(w.hours)}</div>
+                {w.last ? (
+                  <div className="text-xs text-muted-foreground">Último: {format(new Date(w.last), "dd/MM/yyyy HH:mm")}</div>
+                ) : (
+                  <div className="text-xs text-muted-foreground">Sin fichajes registrados</div>
+                )}
+              </button>
+            ))}
+            <button type="button" onClick={() => setWorkerFilter("all")} className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background p-4 text-sm text-muted-foreground transition hover:border-primary hover:text-foreground">
+              <Users2 className="h-5 w-5" /> Ver todos
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Button variant="outline" size="sm" onClick={() => setWorkerFilter("")}>
+          <ArrowLeft className="h-4 w-4" /> Volver a carpetas
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          {workerFilter === "all" ? "Todos los trabajadores" : workers.find((w) => w.id === workerFilter)?.display_name}
+        </span>
+      </div>
       <div className="grid gap-3 xl:grid-cols-[1.4fr_0.6fr]">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border border-border bg-card p-4"><p className="text-sm text-muted-foreground">Total horas</p><p className="mt-2 text-2xl font-semibold text-foreground">{formatHours(totals.totalHours)}</p></div>
