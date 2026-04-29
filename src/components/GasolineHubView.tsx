@@ -171,51 +171,77 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
         actions={isAdminView ? <Button onClick={handleExport}><Download className="h-4 w-4" /> Exportar Excel</Button> : undefined}
       />
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {cardSummaries.map((card) => {
-          const isActive = card.id === selectedCardId;
-          return (
-            <button
-              key={card.id}
-              type="button"
-              onClick={() => {
-                setEditingId(null);
-                setSelectedCardId(card.id);
-              }}
-              className={cn(
-                "rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                isActive ? "border-primary bg-primary/5 shadow-[var(--shadow-soft)]" : "border-border bg-card hover:border-primary/30 hover:bg-muted/20",
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary/25 text-secondary-foreground">
-                  <CreditCard className="h-5 w-5" />
-                </div>
-                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{card.alias}</span>
-              </div>
-              <div className="mt-5 space-y-3">
-                <p className="text-lg font-semibold tracking-[0.12em] text-foreground">{card.masked}</p>
-                {isAdminView ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div className="rounded-xl bg-muted/45 px-3 py-2">
-                        <p>Movimientos</p>
-                        <p className="mt-1 text-sm font-semibold text-foreground">{card.entries}</p>
+      <section className="panel-surface p-2 sm:p-3">
+        <Accordion
+          type="single"
+          collapsible
+          value={selectedCardId}
+          onValueChange={(value) => {
+            if (!value) return;
+            setEditingId(null);
+            setSelectedCardId(value);
+          }}
+          className="divide-y divide-border"
+        >
+          {cardSummaries.map((card) => {
+            const monthPrefix = new Date().toISOString().slice(0, 7);
+            const monthEntries = records
+              .filter((record) => record.cardId === card.id && record.date.startsWith(monthPrefix));
+            const monthTotal = monthEntries.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+            const lastFive = records
+              .filter((record) => record.cardId === card.id)
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .slice(0, 5);
+            return (
+              <AccordionItem key={card.id} value={card.id} className="border-b-0">
+                <AccordionTrigger className="px-2 py-3 hover:no-underline">
+                  <div className="flex flex-1 items-center justify-between gap-3 pr-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-secondary/25 text-secondary-foreground">
+                        <CreditCard className="h-4 w-4" />
                       </div>
-                      <div className="rounded-xl bg-muted/45 px-3 py-2">
-                        <p>Total</p>
-                        <p className="mt-1 text-sm font-semibold text-foreground">{card.totalAmount.toFixed(2)} €</p>
+                      <div className="min-w-0 text-left">
+                        <p className="truncate text-sm font-semibold text-foreground">{card.alias} · <span className="font-mono text-xs text-muted-foreground">{card.masked.slice(-9)}</span></p>
+                        <p className="text-[11px] text-muted-foreground">{card.entries} mov. · {card.lastDate ?? "sin uso"}</p>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">{card.lastDate ? `Último uso · ${card.lastDate}` : "Sin registros todavía"}</p>
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Pulsa para registrar un repostaje con esta tarjeta.</p>
-                )}
-              </div>
-            </button>
-          );
-        })}
+                    <span className="flex-none rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-foreground">{monthTotal.toFixed(2)} € / mes</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-3 pb-3">
+                  <div className="space-y-3">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setEditingId(null);
+                        setSelectedCardId(card.id);
+                        setDraft(emptyForm(card.id));
+                        document.getElementById("gas-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                    >
+                      <Fuel className="h-4 w-4" /> Registrar repostaje
+                    </Button>
+                    {lastFive.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Sin movimientos todavía.</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {lastFive.map((record) => (
+                          <li key={record.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs">
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-foreground">{record.station || "Sin gasolinera"}</p>
+                              <p className="text-[11px] text-muted-foreground">{record.date}{record.vehicle ? ` · ${record.vehicle}` : ""}</p>
+                            </div>
+                            <span className="flex-none font-semibold text-foreground">{record.amount ? `${Number(record.amount).toFixed(2)} €` : "—"}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
       </section>
 
       {isAdminView && selectedCardAlerts.length > 0 ? (
