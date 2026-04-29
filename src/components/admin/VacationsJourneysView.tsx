@@ -40,9 +40,6 @@ const VacationsJourneysView = () => {
 
   const saveHolidayMutation = useSaveHoliday();
   const deleteHolidayMutation = useDeleteHoliday();
-  const saveSlotMutation = useSaveVacationSlot();
-  const deleteSlotMutation = useDeleteVacationSlot();
-  const updateWorkerMutation = useUpdateWorker();
 
   useEffect(() => {
     if (workersError || holidaysError || slotsError || summariesError || entriesError) {
