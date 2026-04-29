@@ -304,7 +304,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
         </Card>
         )}
 
-        <Card className="border-border/80 shadow-[var(--shadow-soft)]">
+        <Card id="gas-form" className="border-border/80 shadow-[var(--shadow-soft)] scroll-mt-24">
           <CardHeader className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-lg"><Fuel className="h-5 w-5 text-primary" /> {selectedCard.alias}</CardTitle>
             <p className="text-sm text-muted-foreground">Formulario compacto para añadir o corregir un gasto de forma rápida.</p>
