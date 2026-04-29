@@ -33,6 +33,11 @@ const AdminFichajes = () => {
   const [entries, setEntries] = useState<EntryWithProfile[]>([]);
   const [staffColors, setStaffColors] = useState<Map<string, { color: string; staffId: string }>>(new Map());
   const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
+  const [editEntry, setEditEntry] = useState<EntryWithProfile | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+
+  const openCreate = () => { setEditEntry(null); setEditOpen(true); };
+  const openEdit = (e: EntryWithProfile) => { setEditEntry(e); setEditOpen(true); };
 
   const toggleEmployee = (userId: string) => {
     setExpandedEmployees((current) => {
