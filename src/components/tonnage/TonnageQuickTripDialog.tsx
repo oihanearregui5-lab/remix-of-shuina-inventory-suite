@@ -1,45 +1,62 @@
 import { useEffect, useMemo, useState } from "react";
+import { Clock, MapPin, Plus, PlusCircle, Scale, Truck, User } from "lucide-react";
 import { format } from "date-fns";
-import { Clock, MapPin, Scale, Truck, User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useTonnage, type TripType } from "@/hooks/useTonnage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useUIMode } from "@/hooks/useUIMode";
+import { useTonnage, type TonnageMaterial, type TripType } from "@/hooks/useTonnage";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface DriverOption {
-  id: string;
-  name: string;
-  role: "principal" | "ocasional" | "otros";
-  linked_user_id: string | null;
+  user_id: string;
+  full_name: string;
 }
 
 interface Props {
   onClose: () => void;
 }
 
-const WEIGHT_MIN = 27500;
-const WEIGHT_MAX = 28900;
-const WEIGHT_STEP = 20;
-const WEIGHT_DEFAULT = 28500;
+const NEW_TRUCK_VALUE = "__create_new_truck__";
+
+const materialLabel: Record<TonnageMaterial, string> = {
+  arenas: "Arenas",
+  tortas: "Tortas",
+  sulfatos: "Sulfatos",
+};
+
+const materialTone: Record<TonnageMaterial, string> = {
+  arenas: "bg-warning/20 text-foreground",
+  tortas: "bg-primary/15 text-primary",
+  sulfatos: "bg-success/15 text-success",
+};
 
 const TonnageQuickTripDialog = ({ onClose }: Props) => {
+  const { isSimple } = useUIMode();
   const { user } = useAuth();
   const today = useMemo(() => new Date(), []);
-  const { trucks, zones, addTrip } = useTonnage(today);
+  const { trucks, zones, addTrip, reload } = useTonnage(today);
   const db = supabase as any;
 
-  const [drivers, setDrivers] = useState<DriverOption[]>([]);
-  const [driverId, setDriverId] = useState<string>("");
   const [truckId, setTruckId] = useState<string>("");
-  const [weight, setWeight] = useState<number>(WEIGHT_DEFAULT);
-  const [tripDateTime, setTripDateTime] = useState<string>(() => format(new Date(), "yyyy-MM-dd'T'HH:mm"));
-  const [tripType, setTripType] = useState<TripType | "">("");
+  const [driverUserId, setDriverUserId] = useState<string>("");
+  const [drivers, setDrivers] = useState<DriverOption[]>([]);
+  const [newTruckOpen, setNewTruckOpen] = useState(false);
+  const [newTruckForm, setNewTruckForm] = useState<{ truck_number: string; label: string; material: TonnageMaterial }>({
+    truck_number: "",
+    label: "",
+    material: "arenas",
+  });
+  const [creatingTruck, setCreatingTruck] = useState(false);
+
+  const [weightKg, setWeightKg] = useState<string>("");
+  const [tripTime, setTripTime] = useState<string>(() => format(new Date(), "HH:mm"));
+  const [tripType, setTripType] = useState<TripType>("tolva");
   const [loadZoneId, setLoadZoneId] = useState<string>("");
   const [unloadZoneId, setUnloadZoneId] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -48,31 +65,48 @@ const TonnageQuickTripDialog = ({ onClose }: Props) => {
     let cancelled = false;
     (async () => {
       const { data } = await db
-        .from("staff_directory")
-        .select("id, full_name, truck_driver_role, is_truck_driver, linked_user_id, active")
-        .eq("active", true);
+        .from("profiles")
+        .select("user_id, full_name")
+        .order("full_name", { ascending: true });
       if (cancelled) return;
-      const list: DriverOption[] = ((data ?? []) as any[]).map((s) => ({
-        id: s.id,
-        name: s.full_name,
-        role: s.is_truck_driver
-          ? (s.truck_driver_role === "principal" ? "principal" : "ocasional")
-          : "otros",
-        linked_user_id: s.linked_user_id,
-      }));
-      const drivers = list.filter((d) => d.role !== "otros");
-      drivers.sort((a, b) => {
-        if (a.role !== b.role) return a.role === "principal" ? -1 : 1;
-        return a.name.localeCompare(b.name);
-      });
-      setDrivers(drivers);
-
-      // Preseleccionar conductor si el user actual está vinculado a un staff camionero
-      const me = drivers.find((d) => d.linked_user_id === user?.id);
-      if (me) setDriverId(me.id);
+      const list = ((data ?? []) as DriverOption[]).filter((d) => (d.full_name || "").trim().length > 0);
+      setDrivers(list);
     })();
     return () => { cancelled = true; };
-  }, [db, user?.id]);
+  }, [db]);
+
+  useEffect(() => {
+    if (user?.id && !driverUserId) setDriverUserId(user.id);
+  }, [user?.id, driverUserId]);
+
+  const handleTruckChange = (value: string) => {
+    if (value === NEW_TRUCK_VALUE) { setNewTruckOpen(true); return; }
+    setTruckId(value);
+  };
+
+  const createNewTruck = async () => {
+    const num = parseInt(newTruckForm.truck_number, 10);
+    if (!newTruckForm.label.trim() || isNaN(num)) {
+      toast.error("Indica número y nombre del camión");
+      return;
+    }
+    setCreatingTruck(true);
+    const { data, error } = await db
+      .from("tonnage_trucks")
+      .insert({ truck_number: num, label: newTruckForm.label.trim(), material: newTruckForm.material, sort_order: num })
+      .select("id")
+      .single();
+    setCreatingTruck(false);
+    if (error || !data) { toast.error("No se pudo crear el camión"); return; }
+    toast.success("Camión creado");
+    await reload();
+    setTruckId(data.id);
+    setNewTruckOpen(false);
+    setNewTruckForm({ truck_number: "", label: "", material: "arenas" });
+  };
+
+  const selectedTruck = trucks.find((t) => t.id === truckId);
+  const todayStr = format(today, "yyyy-MM-dd");
 
   const loadZones = useMemo(
     () => zones.filter((z) => z.zone_type === "carga" || z.zone_type === "ambas"),
@@ -83,161 +117,186 @@ const TonnageQuickTripDialog = ({ onClose }: Props) => {
     [zones],
   );
 
-  const principal = drivers.filter((d) => d.role === "principal");
-  const ocasional = drivers.filter((d) => d.role === "ocasional");
+  const trucksByMaterial = useMemo(() => {
+    const result: Record<TonnageMaterial, typeof trucks> = { arenas: [], tortas: [], sulfatos: [] };
+    trucks.forEach((t) => result[t.material].push(t));
+    return result;
+  }, [trucks]);
 
-  const submit = async () => {
-    if (!driverId) return toast.error("Elige un conductor");
-    if (!truckId) return toast.error("Elige un camión");
-    if (!tripType) return toast.error("Marca ACOPIO o TOLVA");
-
-    const driver = drivers.find((d) => d.id === driverId);
-    const dt = new Date(tripDateTime);
-    const tripDate = format(dt, "yyyy-MM-dd");
-    const tripTime = format(dt, "HH:mm:ss");
-
+  const handleSubmit = async () => {
+    if (!truckId) { toast.error("Elige un camión"); return; }
+    const kg = parseFloat(weightKg.replace(",", "."));
+    if (isNaN(kg) || kg <= 0) { toast.error("Indica un peso válido en kg"); return; }
     setSaving(true);
     const ok = await addTrip({
       truck_id: truckId,
-      trip_date: tripDate,
-      trip_time: tripTime,
-      weight_kg: weight,
+      trip_date: todayStr,
+      trip_time: tripTime || null,
+      weight_kg: kg,
       load_zone_id: loadZoneId || null,
       unload_zone_id: unloadZoneId || null,
-      driver_user_id: driver?.linked_user_id ?? user?.id ?? null,
-      trip_type: tripType as TripType,
+      driver_user_id: driverUserId || null,
+      trip_type: tripType,
     });
     setSaving(false);
     if (ok) onClose();
   };
 
   return (
-    <div className="space-y-4 pt-2">
-      {/* Conductor */}
-      <div>
-        <Label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <User className="h-3.5 w-3.5" /> Conductor
+    <div className="space-y-3 pt-1">
+      {/* Camión */}
+      <section className="panel-surface p-3">
+        <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
+          <Truck className="h-4 w-4 text-primary" /> Camión
         </Label>
-        <Select value={driverId} onValueChange={setDriverId}>
-          <SelectTrigger className="h-11"><SelectValue placeholder="¿Quién conduce?" /></SelectTrigger>
+        <Select value={truckId} onValueChange={handleTruckChange}>
+          <SelectTrigger className="h-12 text-base"><SelectValue placeholder="Elige el camión" /></SelectTrigger>
           <SelectContent>
-            {principal.length > 0 && (
-              <>
-                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">Principales</div>
-                {principal.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-              </>
+            {(["arenas", "tortas", "sulfatos"] as TonnageMaterial[]).map((mat) =>
+              trucksByMaterial[mat].length > 0 ? (
+                <div key={mat}>
+                  <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {materialLabel[mat]}
+                  </div>
+                  {trucksByMaterial[mat].map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <span className="font-medium">#{t.truck_number}</span> · {t.label}
+                    </SelectItem>
+                  ))}
+                </div>
+              ) : null,
             )}
-            {ocasional.length > 0 && (
-              <>
-                <div className="mt-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ocasionales</div>
-                {ocasional.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-              </>
-            )}
+            <div className="my-1 border-t border-border" />
+            <SelectItem value={NEW_TRUCK_VALUE} className="font-semibold text-primary">
+              <span className="inline-flex items-center gap-2">
+                <PlusCircle className="h-4 w-4" /> Crear nuevo camión…
+              </span>
+            </SelectItem>
           </SelectContent>
         </Select>
-      </div>
+        {selectedTruck && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Material principal:{" "}
+            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", materialTone[selectedTruck.material])}>
+              {materialLabel[selectedTruck.material]}
+            </span>
+          </p>
+        )}
 
-      {/* Camión */}
-      <div>
-        <Label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <Truck className="h-3.5 w-3.5" /> Camión
+        <Dialog open={newTruckOpen} onOpenChange={setNewTruckOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Nuevo camión</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <Input type="number" placeholder="Nº" value={newTruckForm.truck_number} onChange={(e) => setNewTruckForm((f) => ({ ...f, truck_number: e.target.value }))} />
+                <Input placeholder="Nombre del camión" value={newTruckForm.label} onChange={(e) => setNewTruckForm((f) => ({ ...f, label: e.target.value }))} />
+              </div>
+              <Select value={newTruckForm.material} onValueChange={(v: TonnageMaterial) => setNewTruckForm((f) => ({ ...f, material: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="arenas">Arenas (material principal)</SelectItem>
+                  <SelectItem value="tortas">Tortas (material principal)</SelectItem>
+                  <SelectItem value="sulfatos">Sulfatos (material principal)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNewTruckOpen(false)}>Cancelar</Button>
+              <Button onClick={() => void createNewTruck()} disabled={creatingTruck}>
+                {creatingTruck ? "Creando…" : "Crear y seleccionar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </section>
+
+      {/* Conductor */}
+      <section className="panel-surface p-3">
+        <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
+          <User className="h-4 w-4 text-primary" /> Conductor
         </Label>
-        <Select value={truckId} onValueChange={setTruckId}>
-          <SelectTrigger className="h-11"><SelectValue placeholder="Matrícula" /></SelectTrigger>
+        <Select value={driverUserId} onValueChange={setDriverUserId}>
+          <SelectTrigger className="h-12 text-base"><SelectValue placeholder="¿Quién conduce?" /></SelectTrigger>
           <SelectContent>
-            {trucks.map((t) => (
-              <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+            {drivers.map((d) => (
+              <SelectItem key={d.user_id} value={d.user_id}>
+                {d.full_name}{d.user_id === user?.id ? " (tú)" : ""}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </section>
 
-      {/* Tipo de viaje */}
-      <div>
-        <Label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      {/* Tipo viaje */}
+      <section className="panel-surface p-3">
+        <Label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Tipo de viaje
         </Label>
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant={tripType === "acopio" ? "default" : "outline"}
-            className={cn("h-14 text-base font-bold", tripType === "acopio" && "bg-warning text-warning-foreground hover:bg-warning/90")}
-            onClick={() => setTripType("acopio")}
-          >
-            ACOPIO
-          </Button>
-          <Button
-            type="button"
-            variant={tripType === "tolva" ? "default" : "outline"}
-            className={cn("h-14 text-base font-bold", tripType === "tolva" && "bg-success text-white hover:bg-success/90")}
-            onClick={() => setTripType("tolva")}
-          >
-            TOLVA
-          </Button>
+          <Button type="button" variant={tripType === "acopio" ? "default" : "outline"}
+            className={cn("h-12 text-base font-bold", tripType === "acopio" && "bg-warning text-warning-foreground hover:bg-warning/90")}
+            onClick={() => setTripType("acopio")}>ACOPIO</Button>
+          <Button type="button" variant={tripType === "tolva" ? "default" : "outline"}
+            className={cn("h-12 text-base font-bold", tripType === "tolva" && "bg-success text-white hover:bg-success/90")}
+            onClick={() => setTripType("tolva")}>TOLVA</Button>
         </div>
         <p className="mt-1 text-[11px] text-muted-foreground">Solo los viajes de TOLVA son facturables.</p>
-      </div>
+      </section>
 
-      {/* Peso */}
-      <div>
-        <Label className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <Scale className="h-3.5 w-3.5" /> Peso · {weight.toLocaleString("es-ES")} kg
-        </Label>
-        <Slider
-          value={[weight]}
-          min={WEIGHT_MIN}
-          max={WEIGHT_MAX}
-          step={WEIGHT_STEP}
-          onValueChange={(v) => setWeight(v[0])}
-        />
-        <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
-          <span>{WEIGHT_MIN.toLocaleString("es-ES")}</span>
-          <span>{WEIGHT_MAX.toLocaleString("es-ES")}</span>
+      {/* Peso + hora */}
+      <section className="panel-surface p-3">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
+              <Scale className="h-4 w-4 text-primary" /> Peso (kg)
+            </Label>
+            <Input type="number" inputMode="decimal" step="10" min="0" placeholder="28500"
+              value={weightKg} onChange={(e) => setWeightKg(e.target.value)}
+              className="h-12 text-lg font-semibold" />
+          </div>
+          {!isSimple && (
+            <div>
+              <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
+                <Clock className="h-4 w-4 text-primary" /> Hora
+              </Label>
+              <Input type="time" value={tripTime} onChange={(e) => setTripTime(e.target.value)} className="h-12" />
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Fecha y hora */}
-      <div>
-        <Label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <Clock className="h-3.5 w-3.5" /> Fecha y hora
-        </Label>
-        <Input
-          type="datetime-local"
-          value={tripDateTime}
-          onChange={(e) => setTripDateTime(e.target.value)}
-          className="h-11"
-        />
-      </div>
+      </section>
 
       {/* Zonas */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" /> Carga
-          </Label>
-          <Select value={loadZoneId} onValueChange={setLoadZoneId}>
-            <SelectTrigger className="h-11"><SelectValue placeholder="—" /></SelectTrigger>
-            <SelectContent>
-              {loadZones.map((z) => <SelectItem key={z.id} value={z.id}>{z.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+      <section className="panel-surface p-3">
+        <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
+          <MapPin className="h-4 w-4 text-primary" /> Zonas
+        </Label>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <span className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Carga</span>
+            <Select value={loadZoneId} onValueChange={setLoadZoneId}>
+              <SelectTrigger className="h-11"><SelectValue placeholder="¿De dónde?" /></SelectTrigger>
+              <SelectContent>
+                {loadZones.map((z) => <SelectItem key={z.id} value={z.id}>{z.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <span className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Descarga</span>
+            <Select value={unloadZoneId} onValueChange={setUnloadZoneId}>
+              <SelectTrigger className="h-11"><SelectValue placeholder="¿Dónde?" /></SelectTrigger>
+              <SelectContent>
+                {unloadZones.map((z) => <SelectItem key={z.id} value={z.id}>{z.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div>
-          <Label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" /> Descarga
-          </Label>
-          <Select value={unloadZoneId} onValueChange={setUnloadZoneId}>
-            <SelectTrigger className="h-11"><SelectValue placeholder="—" /></SelectTrigger>
-            <SelectContent>
-              {unloadZones.map((z) => <SelectItem key={z.id} value={z.id}>{z.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      </section>
 
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-2 pt-1">
         <Button variant="outline" onClick={onClose} className="flex-1">Cancelar</Button>
-        <Button onClick={() => void submit()} disabled={saving} className="flex-1 bg-success text-white hover:bg-success/90">
+        <Button type="button" onClick={() => void handleSubmit()} disabled={!truckId || !weightKg || saving}
+          className="flex-1 bg-success text-white hover:bg-success/90 font-bold">
+          <Plus className="h-5 w-5" />
           {saving ? "Guardando…" : "Registrar"}
         </Button>
       </div>
