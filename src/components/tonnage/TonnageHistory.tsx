@@ -46,6 +46,53 @@ const TonnageHistory = () => {
   const totalKg = dayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
   const tolvaCount = dayTrips.filter((t) => t.trip_type === "tolva").length;
 
+  // ===== Materiales del día (totales editables al final del día) =====
+  // Las cantidades se almacenan en el PRIMER viaje del día como "snapshot diario".
+  const allDayTrips = useMemo(
+    () => trips
+      .filter((t) => t.trip_date === filterDate)
+      .sort((a, b) => (a.trip_time || "").localeCompare(b.trip_time || "")),
+    [trips, filterDate],
+  );
+  const anchorTrip = allDayTrips[0] ?? null;
+
+  const [matTortas, setMatTortas] = useState(0);
+  const [matArenasA, setMatArenasA] = useState(0);
+  const [matArenasB, setMatArenasB] = useState(0);
+  const [matSulfatos, setMatSulfatos] = useState(0);
+  const [savingMaterials, setSavingMaterials] = useState(false);
+
+  useEffect(() => {
+    setMatTortas(Number(anchorTrip?.qty_tortas || 0));
+    setMatArenasA(Number(anchorTrip?.qty_arenas_a || 0));
+    setMatArenasB(Number(anchorTrip?.qty_arenas_b || 0));
+    setMatSulfatos(Number(anchorTrip?.qty_sulfatos || 0));
+  }, [anchorTrip?.id]);
+
+  const saveMaterials = async () => {
+    if (!anchorTrip) {
+      toast.error("Aún no hay viajes registrados este día");
+      return;
+    }
+    setSavingMaterials(true);
+    const { error } = await (supabase as any)
+      .from("tonnage_trips")
+      .update({
+        qty_tortas: matTortas,
+        qty_arenas_a: matArenasA,
+        qty_arenas_b: matArenasB,
+        qty_sulfatos: matSulfatos,
+      })
+      .eq("id", anchorTrip.id);
+    setSavingMaterials(false);
+    if (error) {
+      toast.error("No se pudo guardar el resumen de materiales");
+      return;
+    }
+    toast.success("Materiales del día guardados");
+  };
+
+
   return (
     <div className="space-y-3">
       <section className="panel-surface flex flex-wrap items-end gap-3 p-4">
