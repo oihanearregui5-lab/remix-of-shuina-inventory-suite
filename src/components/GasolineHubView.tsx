@@ -233,7 +233,11 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
                               <p className="truncate font-medium text-foreground">{record.station || "Sin gasolinera"}</p>
                               <p className="text-[11px] text-muted-foreground">{record.date}{record.vehicle ? ` · ${record.vehicle}` : ""}</p>
                             </div>
-                            <span className="flex-none font-semibold text-foreground">{record.amount ? `${Number(record.amount).toFixed(2)} €` : "—"}</span>
+                            {isAdminView ? (
+                              <span className="flex-none font-semibold text-foreground">{record.amount ? `${Number(record.amount).toFixed(2)} €` : "—"}</span>
+                            ) : (
+                              <span className="flex-none text-[11px] text-muted-foreground">{record.station ? "✓" : ""}</span>
+                            )}
                           </li>
                         ))}
                       </ul>
