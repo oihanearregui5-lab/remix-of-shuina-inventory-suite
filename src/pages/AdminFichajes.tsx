@@ -430,9 +430,16 @@ const AdminFichajes = () => {
                         </span>
                       </div>
                     </div>
-                    <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
-                      {formatDuration(e.clock_in, e.clock_out)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
+                        {formatDuration(e.clock_in, e.clock_out)}
+                      </span>
+                      {isAdmin && (
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(e)} title="Editar fichaje">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
