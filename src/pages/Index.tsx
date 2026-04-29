@@ -76,23 +76,42 @@ const Index = () => {
 
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
-    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"];
-    const adminSections: AppSection[] = role === "admin"
+    // Orden unificado: secciones comunes primero, exclusivas al final, mismo orden en ambos workspaces.
+    const unifiedOrder: AppSection[] = [
+      "dashboard",      // worker
+      "admin",          // admin
+      "fichajes",       // admin
+      "workReports",    // ambos
+      "tasks",          // worker
+      "chat",           // worker
+      "tonnage",        // ambos
+      "notes",          // worker
+      "machines",       // ambos
+      "gasoline",       // ambos
+      "staff",          // ambos
+      "vacations",      // admin
+      "albaranes",      // ambos
+    ];
+    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+    const adminAllowed = new Set<AppSection>(role === "admin"
       ? ["fichajes", "admin", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff"]
-      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"];
-    const isAdminWorkspace = workspaceMode === "admin" && canViewAdmin;
-    // Vista sencilla y completa muestran las mismas secciones; solo cambia la densidad del contenido.
-    const allowed = isAdminWorkspace ? adminSections : workerSections;
+      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
+    const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
+    const allowed = unifiedOrder.filter((k) => allowedSet.has(k));
     const filtered = sections.filter((section) => {
       const sectionWorkspace = section.workspace ?? "worker";
       const matchesWorkspace = workspaceMode === "admin" ? sectionWorkspace === "admin" : sectionWorkspace === "worker";
       return matchesWorkspace && allowed.includes(section.key) && (!section.adminOnly || canViewAdmin);
     });
-    // Aplicar preferencias del usuario (oculto + orden).
-    const orderedKeys = applyNavPrefs(filtered.map((s) => s.key), navPrefs);
-    return orderedKeys
+    // Reordenar según el orden unificado para que worker y admin compartan secuencia.
+    const baseOrdered = allowed
       .map((k) => filtered.find((s) => s.key === k))
       .filter((s): s is typeof filtered[number] => Boolean(s));
+    // Aplicar preferencias del usuario (oculto + orden) sobre el orden unificado.
+    const orderedKeys = applyNavPrefs(baseOrdered.map((s) => s.key), navPrefs);
+    return orderedKeys
+      .map((k) => baseOrdered.find((s) => s.key === k))
+      .filter((s): s is typeof baseOrdered[number] => Boolean(s));
   }, [canViewAdmin, role, workspaceMode, isSimple, navPrefs]);
 
   useEffect(() => {
