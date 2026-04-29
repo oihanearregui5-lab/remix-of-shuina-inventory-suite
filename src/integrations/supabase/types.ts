@@ -1408,6 +1408,8 @@ export type Database = {
         Row: {
           created_at: string
           created_by_user_id: string | null
+          driver_name_snapshot: string | null
+          driver_staff_id: string | null
           driver_user_id: string | null
           id: string
           load_zone_id: string | null
@@ -1428,6 +1430,8 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by_user_id?: string | null
+          driver_name_snapshot?: string | null
+          driver_staff_id?: string | null
           driver_user_id?: string | null
           id?: string
           load_zone_id?: string | null
@@ -1448,6 +1452,8 @@ export type Database = {
         Update: {
           created_at?: string
           created_by_user_id?: string | null
+          driver_name_snapshot?: string | null
+          driver_staff_id?: string | null
           driver_user_id?: string | null
           id?: string
           load_zone_id?: string | null
@@ -1466,6 +1472,20 @@ export type Database = {
           weight_kg?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "tonnage_trips_driver_staff_id_fkey"
+            columns: ["driver_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tonnage_trips_driver_staff_id_fkey"
+            columns: ["driver_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tonnage_trips_load_zone_id_fkey"
             columns: ["load_zone_id"]
