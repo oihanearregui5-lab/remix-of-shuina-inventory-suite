@@ -6,12 +6,9 @@ import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
   useDeleteHoliday,
-  useDeleteVacationSlot,
   useHolidays,
   useRecentTimeEntries,
   useSaveHoliday,
-  useSaveVacationSlot,
-  useUpdateWorker,
   useVacationSlots,
   useWorkerYearSummaries,
   useWorkers,
@@ -19,7 +16,6 @@ import {
 import VacationClockingsSection from "./vacations/VacationClockingsSection";
 import VacationGeneralCalendarSection from "./vacations/VacationGeneralCalendarSection";
 import JourneysSection from "./vacations/JourneysSection";
-import VacationGridSection from "./vacations/VacationGridSection";
 import WorkerProfilesSection from "./vacations/WorkerProfilesSection";
 import type { FichajeRow } from "./vacations/vacation-types";
 
