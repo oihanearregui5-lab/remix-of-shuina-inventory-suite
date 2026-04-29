@@ -273,7 +273,7 @@ const AdminFichajes = () => {
             <Calendar className="w-5 h-5 text-info" />
             <span className="text-sm text-muted-foreground">Fichajes</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{entries.length}</p>
+          <p className="text-2xl font-bold text-foreground">{filteredEntries.length}</p>
         </div>
         <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
