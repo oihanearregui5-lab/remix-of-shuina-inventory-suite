@@ -21,6 +21,7 @@ export interface TonnageTruck {
   is_active: boolean;
   sort_order: number;
   notes: string | null;
+  default_driver_user_id: string | null;
 }
 
 export interface TonnageZone {
