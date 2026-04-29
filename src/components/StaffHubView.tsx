@@ -351,6 +351,8 @@ const StaffHubView = () => {
           </div>
         </section>
       </section>
+        </TabsContent>
+      </Tabs>
 
       <StaffRequestDetailDialog open={Boolean(selectedRequest)} request={selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)} />
     </div>
