@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Download, Calendar, Clock, ChevronDown, ChevronRight, Search, Filter } from "lucide-react";
+import { Users, Download, Calendar, Clock, ChevronDown, ChevronRight, Search, Filter, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +15,7 @@ import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
 import { formatMinutes, summarizeEntriesForRange } from "@/lib/time-balance";
 import FichajeStatusCard from "@/components/fichajes/FichajeStatusCard";
 import { useClockEntry } from "@/hooks/useClockEntry";
+import AdminTimeEntryDialog from "@/components/admin/AdminTimeEntryDialog";
 
 interface EntryWithProfile {
   id: string;
@@ -32,6 +33,11 @@ const AdminFichajes = () => {
   const [entries, setEntries] = useState<EntryWithProfile[]>([]);
   const [staffColors, setStaffColors] = useState<Map<string, { color: string; staffId: string }>>(new Map());
   const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
+  const [editEntry, setEditEntry] = useState<EntryWithProfile | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+
+  const openCreate = () => { setEditEntry(null); setEditOpen(true); };
+  const openEdit = (e: EntryWithProfile) => { setEditEntry(e); setEditOpen(true); };
 
   const toggleEmployee = (userId: string) => {
     setExpandedEmployees((current) => {
@@ -183,9 +189,16 @@ const AdminFichajes = () => {
           <h1 className="text-2xl font-bold text-foreground">Panel Admin — Fichajes</h1>
           <p className="text-muted-foreground mt-1">Control de horas de todos los empleados {isAdmin ? "con permisos de gestión" : "en modo visualización"}</p>
         </div>
-        <Button onClick={exportCSV} variant="outline" className="self-start">
-          <Download className="w-4 h-4 mr-2" /> Exportar CSV
-        </Button>
+        <div className="flex flex-wrap gap-2 self-start">
+          {isAdmin && (
+            <Button onClick={openCreate}>
+              <Plus className="w-4 h-4 mr-2" /> Nuevo fichaje
+            </Button>
+          )}
+          <Button onClick={exportCSV} variant="outline">
+            <Download className="w-4 h-4 mr-2" /> Exportar CSV
+          </Button>
+        </div>
       </div>
 
       {/* Fichaje propio del administrador */}
@@ -417,9 +430,16 @@ const AdminFichajes = () => {
                         </span>
                       </div>
                     </div>
-                    <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
-                      {formatDuration(e.clock_in, e.clock_out)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
+                        {formatDuration(e.clock_in, e.clock_out)}
+                      </span>
+                      {isAdmin && (
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(e)} title="Editar fichaje">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -431,6 +451,13 @@ const AdminFichajes = () => {
       {entries.length === 0 && !loading && (
         <p className="text-muted-foreground text-center py-8">No hay fichajes en el rango seleccionado</p>
       )}
+
+      <AdminTimeEntryDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        entry={editEntry ? { id: editEntry.id, user_id: editEntry.user_id, clock_in: editEntry.clock_in, clock_out: editEntry.clock_out, notes: null } : null}
+        onSaved={fetchEntries}
+      />
     </div>
   );
 };
