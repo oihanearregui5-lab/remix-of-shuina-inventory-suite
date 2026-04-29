@@ -36,6 +36,7 @@ interface MachineFull {
   tires_last_check_date: string | null;
   insurance_expiry_date: string | null;
   technical_notes: string | null;
+  watch_points: string[] | null;
 }
 
 interface IncidentRow {
