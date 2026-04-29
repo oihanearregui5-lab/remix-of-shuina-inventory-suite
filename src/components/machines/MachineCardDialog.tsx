@@ -157,7 +157,33 @@ const MachineCardDialog = ({ machineId, open, onOpenChange, onChanged }: Machine
     onChanged?.();
   };
 
-  const addIncident = async () => {
+  const saveNotesBlock = async () => {
+    if (!machine) return;
+    setSavingBlock(true);
+    const { error } = await db.from("machine_assets").update({ notes: notesDraft.trim() || null }).eq("id", machine.id);
+    setSavingBlock(false);
+    if (error) return toast.error("No se pudieron guardar las notas");
+    toast.success("Notas guardadas");
+    setEditingNotes(false);
+    void loadAll();
+    onChanged?.();
+  };
+
+  const saveWatchBlock = async () => {
+    if (!machine) return;
+    const points = watchDraft
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    setSavingBlock(true);
+    const { error } = await db.from("machine_assets").update({ watch_points: points }).eq("id", machine.id);
+    setSavingBlock(false);
+    if (error) return toast.error("No se pudieron guardar los puntos");
+    toast.success("Puntos a vigilar guardados");
+    setEditingWatch(false);
+    void loadAll();
+    onChanged?.();
+  };
     if (!machineId || !user) return;
     if (!newIncident.title.trim()) {
       toast.error("Indica un título para la avería");
