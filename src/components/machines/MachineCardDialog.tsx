@@ -461,9 +461,83 @@ const MachineCardDialog = ({ machineId, open, onOpenChange, onChanged }: Machine
                   <p className="text-xs whitespace-pre-wrap">{machine.technical_notes || "—"}</p>
                 )}
               </div>
-            </TabsContent>
 
-            {/* ===== TAB AVERÍAS ===== */}
+              {/* Notas generales (editable inline) */}
+              <div className="rounded-xl border border-border bg-muted/20 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <p className="text-xs font-semibold uppercase tracking-wider">Notas generales</p>
+                  </div>
+                  {canViewAdmin && (
+                    editingNotes ? (
+                      <div className="flex gap-1">
+                        <Button size="sm" onClick={() => void saveNotesBlock()} disabled={savingBlock}>
+                          {savingBlock ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Guardar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setEditingNotes(false); setNotesDraft(machine.notes ?? ""); }}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => setEditingNotes(true)}>
+                        <Pencil className="h-3 w-3" /> Editar
+                      </Button>
+                    )
+                  )}
+                </div>
+                {editingNotes ? (
+                  <Textarea value={notesDraft} onChange={(e) => setNotesDraft(e.target.value)} className="min-h-20" placeholder="Notas generales sobre la máquina" />
+                ) : (
+                  <p className="text-xs whitespace-pre-wrap">{machine.notes || "—"}</p>
+                )}
+              </div>
+
+              {/* Puntos a vigilar (editable inline) */}
+              <div className="rounded-xl border border-border bg-muted/20 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-primary" />
+                    <p className="text-xs font-semibold uppercase tracking-wider">Puntos a vigilar</p>
+                  </div>
+                  {canViewAdmin && (
+                    editingWatch ? (
+                      <div className="flex gap-1">
+                        <Button size="sm" onClick={() => void saveWatchBlock()} disabled={savingBlock}>
+                          {savingBlock ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Guardar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setEditingWatch(false); setWatchDraft((machine.watch_points ?? []).join("\n")); }}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => setEditingWatch(true)}>
+                        <Pencil className="h-3 w-3" /> Editar
+                      </Button>
+                    )
+                  )}
+                </div>
+                {editingWatch ? (
+                  <>
+                    <Textarea
+                      value={watchDraft}
+                      onChange={(e) => setWatchDraft(e.target.value)}
+                      className="min-h-20"
+                      placeholder="Un punto por línea&#10;Ej: Vigilar fuga aceite hidráulico&#10;Cambiar correas pronto"
+                    />
+                    <p className="mt-1 text-[10px] text-muted-foreground">Un punto por línea.</p>
+                  </>
+                ) : (
+                  (machine.watch_points && machine.watch_points.length > 0) ? (
+                    <ul className="list-disc space-y-1 pl-5 text-xs">
+                      {machine.watch_points.map((p, i) => <li key={i}>{p}</li>)}
+                    </ul>
+                  ) : (
+                    <p className="text-xs">—</p>
+                  )
+                )}
+              </div>
+            </TabsContent>
             <TabsContent value="averias" className="space-y-3 mt-0">
               {/* Formulario nueva avería (todos los autenticados) */}
               <div className="rounded-xl border-2 border-dashed border-destructive/30 bg-destructive/5 p-3">
