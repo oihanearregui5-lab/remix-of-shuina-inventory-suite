@@ -107,6 +107,28 @@ const TonnageHistory = () => {
 
   return (
     <div className="space-y-3">
+      {isToday && (
+        <header className="grid grid-cols-2 gap-3">
+          <div className="panel-surface p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Mi aportación hoy</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">
+              {formatKg(myTotalKg)} <span className="text-sm font-normal text-muted-foreground">kg</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {myTodayTrips.length} viaje{myTodayTrips.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div className="panel-surface p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Total del equipo hoy</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">
+              {formatKg(todayTotalKg)} <span className="text-sm font-normal text-muted-foreground">kg</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {todayTrips.length} viaje{todayTrips.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </header>
+      )}
       <section className="panel-surface flex flex-wrap items-end gap-3 p-4">
         <div className="flex-1 min-w-[180px]">
           <Label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
