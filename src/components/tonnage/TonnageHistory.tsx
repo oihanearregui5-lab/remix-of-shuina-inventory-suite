@@ -168,6 +168,29 @@ const TonnageHistory = () => {
           </ul>
         )}
       </section>
+
+      {/* Materiales del día (resumen por material para añadir al final del día) */}
+      <section className="panel-surface p-4">
+        <div className="mb-3">
+          <p className="text-sm font-semibold text-foreground">Materiales del día</p>
+          <p className="text-xs text-muted-foreground">
+            Total transportado por material · súmalo a tu reporte de fin de jornada
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {(["arenas", "tortas", "sulfatos"] as const).map((mat) => (
+            <div key={mat} className="rounded-xl border border-border bg-muted/30 p-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {mat === "arenas" ? "Arenas" : mat === "tortas" ? "Tortas" : "Sulfatos"}
+              </p>
+              <p className="mt-1 text-lg font-bold text-foreground">
+                {formatKg(materialTotals[mat])}
+                <span className="ml-1 text-[10px] font-normal text-muted-foreground">kg</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };
