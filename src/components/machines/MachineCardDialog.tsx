@@ -184,6 +184,8 @@ const MachineCardDialog = ({ machineId, open, onOpenChange, onChanged }: Machine
     void loadAll();
     onChanged?.();
   };
+
+  const addIncident = async () => {
     if (!machineId || !user) return;
     if (!newIncident.title.trim()) {
       toast.error("Indica un título para la avería");
