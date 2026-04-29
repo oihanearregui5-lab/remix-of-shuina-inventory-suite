@@ -624,6 +624,7 @@ export type Database = {
           technical_notes: string | null
           tires_last_check_date: string | null
           updated_at: string
+          watch_points: string[]
         }
         Insert: {
           air_filter_last_date?: string | null
@@ -653,6 +654,7 @@ export type Database = {
           technical_notes?: string | null
           tires_last_check_date?: string | null
           updated_at?: string
+          watch_points?: string[]
         }
         Update: {
           air_filter_last_date?: string | null
@@ -682,6 +684,7 @@ export type Database = {
           technical_notes?: string | null
           tires_last_check_date?: string | null
           updated_at?: string
+          watch_points?: string[]
         }
         Relationships: []
       }
