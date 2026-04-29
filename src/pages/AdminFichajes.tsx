@@ -45,6 +45,22 @@ const AdminFichajes = () => {
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "closed">("all");
+
+  const applyQuickRange = (mode: "today" | "week" | "month") => {
+    const now = new Date();
+    if (mode === "today") {
+      const d = format(now, "yyyy-MM-dd");
+      setDateFrom(d); setDateTo(d);
+    } else if (mode === "week") {
+      setDateFrom(format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"));
+      setDateTo(format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"));
+    } else {
+      setDateFrom(format(startOfMonth(now), "yyyy-MM-dd"));
+      setDateTo(format(endOfMonth(now), "yyyy-MM-dd"));
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
