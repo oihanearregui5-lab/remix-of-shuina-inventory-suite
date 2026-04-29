@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Download, Calendar, Clock, ChevronDown, ChevronRight } from "lucide-react";
+import { Users, Download, Calendar, Clock, ChevronDown, ChevronRight, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { format, differenceInMinutes, startOfMonth, endOfMonth } from "date-fns";
+import { format, differenceInMinutes, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import WorkerLiveStatusPanel from "@/components/shared/WorkerLiveStatusPanel";
 import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
