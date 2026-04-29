@@ -254,27 +254,36 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
       />
 
       <section className="panel-surface p-2 sm:p-3">
-        {!isAdminView && (
-          <div>
-            <div className="mb-3 flex items-center gap-3 px-1">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <CreditCard className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Tarjetas</p>
-                <p className="text-[11px] text-muted-foreground">{creditCards.length} disponibles · pulsa una para abrir</p>
-              </div>
+        <div>
+          <div className="mb-3 flex items-center gap-3 px-1">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <CreditCard className="h-5 w-5" />
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-              {cardSummaries.map((card) => (
+            <div>
+              <p className="text-sm font-semibold text-foreground">Tarjetas</p>
+              <p className="text-[11px] text-muted-foreground">{creditCards.length} disponibles · pulsa una para abrir</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {cardSummaries.map((card) => {
+              const monthPrefix = new Date().toISOString().slice(0, 7);
+              const monthTotal = records
+                .filter((r) => r.cardId === card.id && r.date.startsWith(monthPrefix))
+                .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+              return (
                 <button
                   key={card.id}
                   type="button"
                   onClick={() => { setSelectedCardId(card.id); setOpenCardId(card.id); }}
                   className="group flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/25 text-secondary-foreground">
-                    <CreditCard className="h-4 w-4" />
+                  <div className="flex w-full items-start justify-between gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/25 text-secondary-foreground">
+                      <CreditCard className="h-4 w-4" />
+                    </div>
+                    {isAdminView && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-foreground">{monthTotal.toFixed(2)} €</span>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{card.alias}</p>
@@ -282,21 +291,22 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
                   </div>
                   <p className="text-[10px] text-muted-foreground">{card.entries} mov. · {card.lastDate ?? "sin uso"}</p>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        )}
-        {isAdminView && renderCardsAccordion()}
+        </div>
       </section>
 
-      {!isAdminView && openCardId && (() => {
+      {openCardId && (() => {
         const card = cardSummaries.find((c) => c.id === openCardId);
         if (!card) return null;
         const cardRecords = records
           .filter((r) => r.cardId === card.id)
           .sort((a, b) => b.date.localeCompare(a.date));
         const monthPrefix = new Date().toISOString().slice(0, 7);
-        const monthCount = cardRecords.filter((r) => r.date.startsWith(monthPrefix)).length;
+        const monthEntries = cardRecords.filter((r) => r.date.startsWith(monthPrefix));
+        const monthCount = monthEntries.length;
+        const monthTotal = monthEntries.reduce((sum, r) => sum + Number(r.amount || 0), 0);
         return (
           <div
             className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-primary/35 px-4 py-8 backdrop-blur-sm"
@@ -332,7 +342,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
               </div>
 
               <div className="space-y-4 px-6 py-5">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                <div className={`grid grid-cols-2 gap-3 ${isAdminView ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
                   <div className="rounded-lg border border-border bg-muted/30 p-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Movimientos</p>
                     <p className="mt-1 text-xl font-bold text-foreground">{card.entries}</p>
@@ -345,6 +355,12 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Último uso</p>
                     <p className="mt-1 text-xl font-bold text-foreground">{card.lastDate ?? "—"}</p>
                   </div>
+                  {isAdminView && (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Importe mes</p>
+                      <p className="mt-1 text-xl font-bold text-foreground">{monthTotal.toFixed(2)} €</p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -359,7 +375,11 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
                             <p className="truncate font-medium text-foreground">{record.station || "Sin gasolinera"}</p>
                             <p className="text-[11px] text-muted-foreground">{record.date}{record.vehicle ? ` · ${record.vehicle}` : ""}</p>
                           </div>
-                          <span className="flex-none text-[11px] text-muted-foreground">{record.station ? "✓" : ""}</span>
+                          {isAdminView ? (
+                            <span className="flex-none font-semibold text-foreground">{record.amount ? `${Number(record.amount).toFixed(2)} €` : "—"}</span>
+                          ) : (
+                            <span className="flex-none text-[11px] text-muted-foreground">{record.station ? "✓" : ""}</span>
+                          )}
                         </li>
                       ))}
                     </ul>
