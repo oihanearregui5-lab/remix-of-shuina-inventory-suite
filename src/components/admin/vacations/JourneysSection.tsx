@@ -262,11 +262,7 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
             </div>
           </div>
 
-          <div className="grid gap-2 rounded-xl border border-border bg-background p-2 md:grid-cols-5">
-            {["Fichajes", "Calendario general", "Vacaciones", "Jornadas", "Ficha por trabajador"].map((label) => (
-              <div key={label} className={label === "Jornadas" ? "flex items-center justify-center rounded-lg bg-primary px-3 py-3 text-sm font-medium text-primary-foreground" : "flex items-center justify-center rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground"}>{label}</div>
-            ))}
-          </div>
+          {/* Barra informativa eliminada: no era interactiva */}
         </div>
 
         <div className="border-b border-border px-5 py-4">

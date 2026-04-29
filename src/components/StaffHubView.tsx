@@ -234,25 +234,7 @@ const StaffHubView = () => {
             </div>
           </section>
 
-          {isAdmin && (
-            <section className="panel-surface p-4">
-              <div className="mb-4 flex items-center gap-2"><Edit3 className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Saldos por trabajador</p></div>
-              <div className="space-y-3">
-                <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar trabajador" /></SelectTrigger>
-                  <SelectContent>{staff.map((person) => <SelectItem key={person.id} value={person.id}>{person.full_name}</SelectItem>)}</SelectContent>
-                </Select>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input value={allowanceDraft.vacation_days_base} onChange={(e) => setAllowanceDraft((current) => ({ ...current, vacation_days_base: e.target.value }))} placeholder="Vacaciones base" />
-                  <Input value={allowanceDraft.personal_days_base} onChange={(e) => setAllowanceDraft((current) => ({ ...current, personal_days_base: e.target.value }))} placeholder="Asuntos propios base" />
-                  <Input value={allowanceDraft.vacation_adjustment_days} onChange={(e) => setAllowanceDraft((current) => ({ ...current, vacation_adjustment_days: e.target.value }))} placeholder="Ajuste vacaciones" />
-                  <Input value={allowanceDraft.personal_adjustment_days} onChange={(e) => setAllowanceDraft((current) => ({ ...current, personal_adjustment_days: e.target.value }))} placeholder="Ajuste asuntos propios" />
-                </div>
-                <Textarea value={allowanceDraft.notes} onChange={(e) => setAllowanceDraft((current) => ({ ...current, notes: e.target.value }))} placeholder="Notas internas" className="min-h-20" />
-                <Button onClick={() => void saveAllowance()}>Guardar saldo</Button>
-              </div>
-            </section>
-          )}
+          {/* Sección "Saldos por trabajador" eliminada por petición del cliente */}
 
           <section className="panel-surface p-4">
             <div className="mb-4 flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary" /><p className="font-semibold text-foreground">Historial de solicitudes</p></div>
