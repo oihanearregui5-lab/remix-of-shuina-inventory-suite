@@ -12,8 +12,12 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface DriverOption {
-  user_id: string;
+  /** Identificador compuesto: "user:<uuid>" si tiene cuenta, "staff:<uuid>" si solo está en directorio */
+  key: string;
+  staff_id: string;
+  user_id: string | null;
   full_name: string;
+  role: "principal" | "ocasional" | null;
 }
 
 const WEIGHT_MIN = 27500;
