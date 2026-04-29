@@ -319,13 +319,13 @@ const WorkReportsHubView = ({ isAdminView = false }: WorkReportsHubViewProps) =>
 
       {!isAdminView && !isSimple ? <SmartRemindersPanel reminders={reminders.filter((reminder) => reminder.section === "workReports" || reminder.section === "fichajes")} compact /> : null}
 
-      <section className="grid gap-3 md:grid-cols-3">
+      <section className="grid gap-3 md:grid-cols-3 hide-on-simple">
         <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Estado actual</p><p className="mt-2 text-lg font-semibold text-foreground">{activeReport ? "En curso" : "Sin parte activo"}</p></div>
         <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Historial</p><p className="mt-2 text-lg font-semibold text-foreground">{completedReports.length} cerrados</p><p className="mt-1 text-sm text-muted-foreground">{formatWorkHours(totalHoursClosed)} acumuladas</p></div>
         <div className="panel-surface p-4"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Media</p><p className="mt-2 text-lg font-semibold text-foreground">{formatWorkHours(averageHoursClosed)}</p><p className="mt-1 text-sm text-muted-foreground">Objetivo {EXPECTED_DAILY_HOURS} h/día</p></div>
       </section>
 
-      <section className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
+      <section className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr] hide-on-simple">
         <div className="panel-surface p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
