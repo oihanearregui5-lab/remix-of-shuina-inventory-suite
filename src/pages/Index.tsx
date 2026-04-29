@@ -98,19 +98,20 @@ const Index = () => {
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
     const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
     const allowed = unifiedOrder.filter((k) => allowedSet.has(k));
-    const isAdminWorkspace = workspaceMode === "admin" && canViewAdmin;
-    // Vista sencilla y completa muestran las mismas secciones; solo cambia la densidad del contenido.
-    const allowed = isAdminWorkspace ? adminSections : workerSections;
     const filtered = sections.filter((section) => {
       const sectionWorkspace = section.workspace ?? "worker";
       const matchesWorkspace = workspaceMode === "admin" ? sectionWorkspace === "admin" : sectionWorkspace === "worker";
       return matchesWorkspace && allowed.includes(section.key) && (!section.adminOnly || canViewAdmin);
     });
-    // Aplicar preferencias del usuario (oculto + orden).
-    const orderedKeys = applyNavPrefs(filtered.map((s) => s.key), navPrefs);
-    return orderedKeys
+    // Reordenar según el orden unificado para que worker y admin compartan secuencia.
+    const baseOrdered = allowed
       .map((k) => filtered.find((s) => s.key === k))
       .filter((s): s is typeof filtered[number] => Boolean(s));
+    // Aplicar preferencias del usuario (oculto + orden) sobre el orden unificado.
+    const orderedKeys = applyNavPrefs(baseOrdered.map((s) => s.key), navPrefs);
+    return orderedKeys
+      .map((k) => baseOrdered.find((s) => s.key === k))
+      .filter((s): s is typeof baseOrdered[number] => Boolean(s));
   }, [canViewAdmin, role, workspaceMode, isSimple, navPrefs]);
 
   useEffect(() => {
