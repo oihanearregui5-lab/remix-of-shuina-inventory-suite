@@ -203,14 +203,25 @@ const TonnageRegisterTrip = () => {
         <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
           <User className="h-4 w-4 text-primary" /> Conductor <span className="text-destructive">*</span>
         </Label>
-        <Select value={driverUserId} onValueChange={(v) => { setDriverUserId(v); setAutoSelectedTruck(false); }}>
+        <Select value={driverKey} onValueChange={(v) => { setDriverKey(v); setAutoSelectedTruck(false); }}>
           <SelectTrigger className="h-12 text-base"><SelectValue placeholder="¿Quién conduce?" /></SelectTrigger>
           <SelectContent>
-            {drivers.map((d) => (
-              <SelectItem key={d.user_id} value={d.user_id}>
-                {d.full_name}{d.user_id === user?.id ? " (tú)" : ""}
-              </SelectItem>
-            ))}
+            {(["principal", "ocasional"] as const).map((role) => {
+              const list = drivers.filter((d) => (d.role ?? "principal") === role);
+              if (list.length === 0) return null;
+              return (
+                <div key={role}>
+                  <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {role === "principal" ? "Camioneros titulares" : "Camioneros ocasionales"}
+                  </div>
+                  {list.map((d) => (
+                    <SelectItem key={d.key} value={d.key}>
+                      {d.full_name}{d.user_id && d.user_id === user?.id ? " (tú)" : ""}
+                    </SelectItem>
+                  ))}
+                </div>
+              );
+            })}
           </SelectContent>
         </Select>
       </section>
