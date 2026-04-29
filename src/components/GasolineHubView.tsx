@@ -342,7 +342,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
               </div>
 
               <div className="space-y-4 px-6 py-5">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                <div className={`grid grid-cols-2 gap-3 ${isAdminView ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
                   <div className="rounded-lg border border-border bg-muted/30 p-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Movimientos</p>
                     <p className="mt-1 text-xl font-bold text-foreground">{card.entries}</p>
@@ -355,6 +355,12 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Último uso</p>
                     <p className="mt-1 text-xl font-bold text-foreground">{card.lastDate ?? "—"}</p>
                   </div>
+                  {isAdminView && (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Importe mes</p>
+                      <p className="mt-1 text-xl font-bold text-foreground">{monthTotal.toFixed(2)} €</p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
