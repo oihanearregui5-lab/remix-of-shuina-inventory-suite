@@ -11,6 +11,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MyJourneyView from "@/components/staff/MyJourneyView";
 import { toast } from "sonner";
 
 interface VacationRequestItem extends StaffRequestDialogItem { requester_user_id?: string; reviewed_at?: string | null; reviewed_by_user_id?: string | null; staff_member_id?: string | null }
@@ -133,6 +135,18 @@ const StaffHubView = () => {
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader eyebrow="Personal" title="Turnos, vacaciones y ausencias" description="Vista móvil clara, calendario en español y saldos visibles para cada trabajador." />
+
+      <Tabs defaultValue="journey" className="w-full">
+        <TabsList>
+          <TabsTrigger value="journey">Mi jornada</TabsTrigger>
+          <TabsTrigger value="requests">Solicitudes</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="journey" className="mt-4">
+          <MyJourneyView />
+        </TabsContent>
+
+        <TabsContent value="requests" className="mt-4 space-y-5">
       <section className="grid gap-3 md:grid-cols-3">
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Vacaciones restantes</p><p className="mt-2 text-3xl font-bold text-foreground">{Math.max(0, (myAllowance?.vacation_days_base ?? 30) + (myAllowance?.vacation_adjustment_days ?? 0) - approvedVacationDays)}</p></div>
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Asuntos propios restantes</p><p className="mt-2 text-3xl font-bold text-foreground">{Math.max(0, (myAllowance?.personal_days_base ?? 2) + (myAllowance?.personal_adjustment_days ?? 0) - approvedPersonalDays)}</p></div>
@@ -334,6 +348,8 @@ const StaffHubView = () => {
           </div>
         </section>
       </section>
+        </TabsContent>
+      </Tabs>
 
       <StaffRequestDetailDialog open={Boolean(selectedRequest)} request={selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)} />
     </div>
