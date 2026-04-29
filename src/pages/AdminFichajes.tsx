@@ -15,6 +15,7 @@ import HoursBalancePanel from "@/components/shared/HoursBalancePanel";
 import { formatMinutes, summarizeEntriesForRange } from "@/lib/time-balance";
 import FichajeStatusCard from "@/components/fichajes/FichajeStatusCard";
 import { useClockEntry } from "@/hooks/useClockEntry";
+import AdminTimeEntryDialog from "@/components/admin/AdminTimeEntryDialog";
 
 interface EntryWithProfile {
   id: string;
