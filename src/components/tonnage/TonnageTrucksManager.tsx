@@ -31,11 +31,21 @@ const TonnageTrucksManager = () => {
   const { trucks, zones, reload } = useTonnage(new Date());
   const db = supabase as any;
 
+  // Conductores disponibles para asignar
+  const [drivers, setDrivers] = useState<Array<{ user_id: string; full_name: string }>>([]);
+  useEffect(() => {
+    (async () => {
+      const { data } = await db.from("profiles").select("user_id, full_name").order("full_name");
+      setDrivers(((data ?? []) as Array<{ user_id: string; full_name: string }>).filter((d) => (d.full_name || "").trim()));
+    })();
+  }, [db]);
+
   // ============ CAMIONES ============
-  const [truckForm, setTruckForm] = useState<{ truck_number: string; label: string; material: TonnageMaterial }>({
+  const [truckForm, setTruckForm] = useState<{ truck_number: string; label: string; material: TonnageMaterial; default_driver_user_id: string }>({
     truck_number: "",
     label: "",
     material: "arenas",
+    default_driver_user_id: "",
   });
   const [editingTruckId, setEditingTruckId] = useState<string | null>(null);
   const [savingTruck, setSavingTruck] = useState(false);
@@ -46,7 +56,7 @@ const TonnageTrucksManager = () => {
     const load = async () => {
       const { data } = await db
         .from("tonnage_trucks")
-        .select("id, truck_number, label, material, is_active, sort_order, notes")
+        .select("id, truck_number, label, material, is_active, sort_order, notes, default_driver_user_id")
         .order("sort_order", { ascending: true });
       setAllTrucks((data ?? []) as typeof trucks);
     };
@@ -54,12 +64,17 @@ const TonnageTrucksManager = () => {
   }, [trucks, db]);
 
   const resetTruckForm = () => {
-    setTruckForm({ truck_number: "", label: "", material: "arenas" });
+    setTruckForm({ truck_number: "", label: "", material: "arenas", default_driver_user_id: "" });
     setEditingTruckId(null);
   };
 
   const startEditTruck = (truck: typeof trucks[0]) => {
-    setTruckForm({ truck_number: String(truck.truck_number), label: truck.label, material: truck.material });
+    setTruckForm({
+      truck_number: String(truck.truck_number),
+      label: truck.label,
+      material: truck.material,
+      default_driver_user_id: truck.default_driver_user_id ?? "",
+    });
     setEditingTruckId(truck.id);
   };
 
@@ -75,6 +90,7 @@ const TonnageTrucksManager = () => {
       label: truckForm.label.trim(),
       material: truckForm.material,
       sort_order: num,
+      default_driver_user_id: truckForm.default_driver_user_id || null,
     };
     const { error } = editingTruckId
       ? await db.from("tonnage_trucks").update(payload).eq("id", editingTruckId)
@@ -86,6 +102,14 @@ const TonnageTrucksManager = () => {
     }
     toast.success(editingTruckId ? "Camión actualizado" : "Camión creado");
     resetTruckForm();
+    void reload();
+  };
+
+  const deleteTruck = async (truck: typeof trucks[0]) => {
+    if (!confirm(`¿Eliminar definitivamente el camión "${truck.label}"? Si tiene viajes asociados, se borrarán también.`)) return;
+    const { error } = await db.from("tonnage_trucks").delete().eq("id", truck.id);
+    if (error) return toast.error("No se pudo eliminar (revisa dependencias)");
+    toast.success("Camión eliminado");
     void reload();
   };
 
