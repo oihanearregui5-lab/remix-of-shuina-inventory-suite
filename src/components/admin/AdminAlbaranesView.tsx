@@ -468,7 +468,7 @@ const AdminAlbaranesView = () => {
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{format(new Date(note.delivery_date), "d MMM yyyy", { locale: es })}</span>
-                    {canViewAdmin && note.amount !== null && <span className="font-semibold text-foreground">{note.amount.toFixed(2)} €</span>}
+                    {isAdmin && note.amount !== null && <span className="font-semibold text-foreground">{note.amount.toFixed(2)} €</span>}
                   </div>
 
                   {note.notes && (
