@@ -329,7 +329,7 @@ const AdminAlbaranesView = () => {
     link.download = `albaranes_${format(new Date(), "yyyy-MM-dd")}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    toast.success("CSV exportado");
+    toast.success(`CSV exportado (${filtered.length} albaranes)`);
   };
 
   return (
