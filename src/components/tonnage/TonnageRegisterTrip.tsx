@@ -38,7 +38,7 @@ const TonnageRegisterTrip = () => {
   const db = supabase as any;
 
   const [truckId, setTruckId] = useState<string>("");
-  const [driverUserId, setDriverUserId] = useState<string>("");
+  const [driverKey, setDriverKey] = useState<string>("");
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
   const [autoSelectedTruck, setAutoSelectedTruck] = useState(false);
 
@@ -49,35 +49,53 @@ const TonnageRegisterTrip = () => {
   const [unloadZoneId, setUnloadZoneId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
-  // Cargar lista de conductores (perfiles)
+  // Cargar lista de camioneros desde el directorio de personal
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data } = await db
-        .from("profiles")
-        .select("user_id, full_name")
+        .from("staff_directory")
+        .select("id, full_name, linked_user_id, truck_driver_role, is_truck_driver, active")
+        .eq("is_truck_driver", true)
+        .eq("active", true)
+        .order("truck_driver_role", { ascending: true })
         .order("full_name", { ascending: true });
       if (cancelled) return;
-      const list = ((data ?? []) as DriverOption[]).filter((d) => (d.full_name || "").trim().length > 0);
+      const list: DriverOption[] = ((data ?? []) as any[])
+        .filter((d) => (d.full_name || "").trim().length > 0)
+        .map((d) => ({
+          key: d.linked_user_id ? `user:${d.linked_user_id}` : `staff:${d.id}`,
+          staff_id: d.id,
+          user_id: d.linked_user_id ?? null,
+          full_name: d.full_name,
+          role: d.truck_driver_role ?? null,
+        }));
       setDrivers(list);
     })();
     return () => { cancelled = true; };
   }, [db]);
 
-  // Conductor por defecto = usuario actual
+  const selectedDriver = useMemo(
+    () => drivers.find((d) => d.key === driverKey) ?? null,
+    [drivers, driverKey],
+  );
+
+  // Conductor por defecto = usuario actual si está en la lista
   useEffect(() => {
-    if (user?.id && !driverUserId) setDriverUserId(user.id);
-  }, [user?.id, driverUserId]);
+    if (driverKey || !user?.id || drivers.length === 0) return;
+    const me = drivers.find((d) => d.user_id === user.id);
+    if (me) setDriverKey(me.key);
+  }, [user?.id, driverKey, drivers]);
 
   // Camión por defecto = el asignado al conductor seleccionado (si existe)
   useEffect(() => {
-    if (autoSelectedTruck || !driverUserId || trucks.length === 0) return;
-    const myTruck = trucks.find((t) => t.default_driver_user_id === driverUserId);
+    if (autoSelectedTruck || !selectedDriver?.user_id || trucks.length === 0) return;
+    const myTruck = trucks.find((t) => t.default_driver_user_id === selectedDriver.user_id);
     if (myTruck) {
       setTruckId(myTruck.id);
       setAutoSelectedTruck(true);
     }
-  }, [trucks, driverUserId, autoSelectedTruck]);
+  }, [trucks, selectedDriver, autoSelectedTruck]);
 
   // Actualizar la hora cada minuto para mantenerla "automática" hasta que el usuario la edite
   const [autoTime, setAutoTime] = useState(true);
