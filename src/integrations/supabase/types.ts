@@ -1492,6 +1492,7 @@ export type Database = {
       tonnage_trucks: {
         Row: {
           created_at: string
+          default_driver_user_id: string | null
           id: string
           is_active: boolean
           label: string
@@ -1504,6 +1505,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_driver_user_id?: string | null
           id?: string
           is_active?: boolean
           label: string
@@ -1516,6 +1518,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_driver_user_id?: string | null
           id?: string
           is_active?: boolean
           label?: string

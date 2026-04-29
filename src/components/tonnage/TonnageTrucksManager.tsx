@@ -31,11 +31,21 @@ const TonnageTrucksManager = () => {
   const { trucks, zones, reload } = useTonnage(new Date());
   const db = supabase as any;
 
+  // Conductores disponibles para asignar
+  const [drivers, setDrivers] = useState<Array<{ user_id: string; full_name: string }>>([]);
+  useEffect(() => {
+    (async () => {
+      const { data } = await db.from("profiles").select("user_id, full_name").order("full_name");
+      setDrivers(((data ?? []) as Array<{ user_id: string; full_name: string }>).filter((d) => (d.full_name || "").trim()));
+    })();
+  }, [db]);
+
   // ============ CAMIONES ============
-  const [truckForm, setTruckForm] = useState<{ truck_number: string; label: string; material: TonnageMaterial }>({
+  const [truckForm, setTruckForm] = useState<{ truck_number: string; label: string; material: TonnageMaterial; default_driver_user_id: string }>({
     truck_number: "",
     label: "",
     material: "arenas",
+    default_driver_user_id: "",
   });
   const [editingTruckId, setEditingTruckId] = useState<string | null>(null);
   const [savingTruck, setSavingTruck] = useState(false);
@@ -46,7 +56,7 @@ const TonnageTrucksManager = () => {
     const load = async () => {
       const { data } = await db
         .from("tonnage_trucks")
-        .select("id, truck_number, label, material, is_active, sort_order, notes")
+        .select("id, truck_number, label, material, is_active, sort_order, notes, default_driver_user_id")
         .order("sort_order", { ascending: true });
       setAllTrucks((data ?? []) as typeof trucks);
     };
@@ -54,12 +64,17 @@ const TonnageTrucksManager = () => {
   }, [trucks, db]);
 
   const resetTruckForm = () => {
-    setTruckForm({ truck_number: "", label: "", material: "arenas" });
+    setTruckForm({ truck_number: "", label: "", material: "arenas", default_driver_user_id: "" });
     setEditingTruckId(null);
   };
 
   const startEditTruck = (truck: typeof trucks[0]) => {
-    setTruckForm({ truck_number: String(truck.truck_number), label: truck.label, material: truck.material });
+    setTruckForm({
+      truck_number: String(truck.truck_number),
+      label: truck.label,
+      material: truck.material,
+      default_driver_user_id: truck.default_driver_user_id ?? "",
+    });
     setEditingTruckId(truck.id);
   };
 
@@ -75,6 +90,7 @@ const TonnageTrucksManager = () => {
       label: truckForm.label.trim(),
       material: truckForm.material,
       sort_order: num,
+      default_driver_user_id: truckForm.default_driver_user_id || null,
     };
     const { error } = editingTruckId
       ? await db.from("tonnage_trucks").update(payload).eq("id", editingTruckId)
@@ -86,6 +102,14 @@ const TonnageTrucksManager = () => {
     }
     toast.success(editingTruckId ? "Camión actualizado" : "Camión creado");
     resetTruckForm();
+    void reload();
+  };
+
+  const deleteTruck = async (truck: typeof trucks[0]) => {
+    if (!confirm(`¿Eliminar definitivamente el camión "${truck.label}"? Si tiene viajes asociados, se borrarán también.`)) return;
+    const { error } = await db.from("tonnage_trucks").delete().eq("id", truck.id);
+    if (error) return toast.error("No se pudo eliminar (revisa dependencias)");
+    toast.success("Camión eliminado");
     void reload();
   };
 
@@ -175,6 +199,24 @@ const TonnageTrucksManager = () => {
               <SelectItem value="sulfatos">Sulfatos (material principal)</SelectItem>
             </SelectContent>
           </Select>
+          <div>
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Conductor titular (opcional)</Label>
+            <Select
+              value={truckForm.default_driver_user_id || "__none__"}
+              onValueChange={(v) => setTruckForm((f) => ({ ...f, default_driver_user_id: v === "__none__" ? "" : v }))}
+            >
+              <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Sin asignar</SelectItem>
+                {drivers.map((d) => (
+                  <SelectItem key={d.user_id} value={d.user_id}>{d.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Cuando este conductor entre a Viajes, este camión se preselecciona automáticamente.
+            </p>
+          </div>
           <div className="flex gap-2">
             <Button className="flex-1" onClick={() => void saveTruck()} disabled={savingTruck}>
               {editingTruckId ? "Guardar cambios" : "Crear camión"}
@@ -190,23 +232,33 @@ const TonnageTrucksManager = () => {
             <p className="p-4 text-center text-sm text-muted-foreground">No hay camiones aún</p>
           ) : (
             <ul className="divide-y divide-border">
-              {allTrucks.map((t) => (
-                <li key={t.id} className={cn("flex items-center gap-2 p-2", !t.is_active && "opacity-50")}>
-                  <div className={cn("flex h-9 w-9 flex-none items-center justify-center rounded-lg text-xs font-bold", materialBg[t.material])}>
-                    #{t.truck_number}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{t.label}</p>
-                    <p className="text-xs text-muted-foreground">{materialLabel[t.material]}</p>
-                  </div>
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => startEditTruck(t)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => void toggleTruckActive(t)}>
-                    {t.is_active ? "Desactivar" : "Activar"}
-                  </Button>
-                </li>
-              ))}
+              {allTrucks.map((t) => {
+                const driverName = t.default_driver_user_id
+                  ? drivers.find((d) => d.user_id === t.default_driver_user_id)?.full_name
+                  : null;
+                return (
+                  <li key={t.id} className={cn("flex items-center gap-2 p-2", !t.is_active && "opacity-50")}>
+                    <div className={cn("flex h-9 w-9 flex-none items-center justify-center rounded-lg text-xs font-bold", materialBg[t.material])}>
+                      #{t.truck_number}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{t.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {materialLabel[t.material]}{driverName ? ` · ${driverName}` : ""}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => startEditTruck(t)} title="Editar">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => void toggleTruckActive(t)}>
+                      {t.is_active ? "Desactivar" : "Activar"}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => void deleteTruck(t)} title="Eliminar">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

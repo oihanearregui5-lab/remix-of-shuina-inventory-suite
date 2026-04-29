@@ -1,0 +1,2 @@
+ALTER TABLE public.tonnage_trucks ADD COLUMN IF NOT EXISTS default_driver_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_tonnage_trucks_default_driver ON public.tonnage_trucks(default_driver_user_id);

@@ -21,6 +21,7 @@ export interface TonnageTruck {
   is_active: boolean;
   sort_order: number;
   notes: string | null;
+  default_driver_user_id: string | null;
 }
 
 export interface TonnageZone {
@@ -89,7 +90,7 @@ export const useTonnage = (monthDate: Date) => {
   const loadTrucks = useCallback(async () => {
     const { data, error } = await db
       .from("tonnage_trucks")
-      .select("id, truck_number, label, material, is_active, sort_order, notes")
+      .select("id, truck_number, label, material, is_active, sort_order, notes, default_driver_user_id")
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("truck_number", { ascending: true });

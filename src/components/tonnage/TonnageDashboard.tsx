@@ -126,27 +126,78 @@ const TonnageDashboard = () => {
       toast.error("No hay viajes para exportar en este mes");
       return;
     }
-    const monthName = format(currentMonth, "MMMM yy", { locale: es }).toUpperCase();
-    const truckList = trucks;
-    // Estructura solicitada: A1 vacío, A2 = mes, B2 = "Camiones", B3.. = índice 1..N
+    const monthName = MONTHS[monthIdx].toUpperCase();
+    const yearShort = String(year).slice(-2);
+    const sheetName = `${monthName} ${yearShort}`;
+
+    // Construye matriz tipo plantilla:
+    // Fila 1: vacía
+    // Fila 2: [mes, "Camiones", ...vacios..., "Nº VIAJES", "Peso medio"]
+    // Fila 3: ["", 1, 2, 3, ..., N, "TOTAL", "MEDIA"]
+    // Filas 4..34: día | pesos por viaje | nº viajes | total | media
+    // Fila 35: "Total" | ... | SUM(viajes) | SUM(total) | SUM(media)
+    const MAX_TRIPS_PER_DAY = 41;
     const aoa: any[][] = [];
     aoa.push([]);
-    aoa.push([monthName, "Camiones"]);
-    aoa.push(["", ...truckList.map((_, i) => i + 1)]);
+    const headerRow2: any[] = [MONTHS[monthIdx], "Camiones"];
+    for (let i = 0; i < MAX_TRIPS_PER_DAY - 1; i++) headerRow2.push(null);
+    headerRow2.push("Nº VIAJES", "Peso medio");
+    aoa.push(headerRow2);
 
-    for (let day = 1; day <= daysInMonth; day++) {
+    const headerRow3: any[] = [null];
+    for (let i = 1; i <= MAX_TRIPS_PER_DAY; i++) headerRow3.push(i);
+    headerRow3.push(null, "TOTAL", "MEDIA");
+    aoa.push(headerRow3);
+
+    const lastDay = daysInMonth;
+    const totalsCol = MAX_TRIPS_PER_DAY + 2; // índice columna 'TOTAL'
+    const avgCol = MAX_TRIPS_PER_DAY + 3;
+    const countCol = MAX_TRIPS_PER_DAY + 1;
+
+    for (let day = 1; day <= lastDay; day++) {
+      const dayTrips = source
+        .filter((t) => {
+          const d = new Date(t.trip_date);
+          return d.getDate() === day && d.getMonth() === monthIdx && d.getFullYear() === year;
+        })
+        .sort((a, b) => (a.trip_time || "").localeCompare(b.trip_time || ""));
+
       const row: any[] = [day];
-      truckList.forEach((tr) => {
-        const dayTrips = source.filter((t) => t.truck_id === tr.id && new Date(t.trip_date).getDate() === day && new Date(t.trip_date).getMonth() === monthIdx);
-        const total = dayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
-        row.push(total > 0 ? total : "");
-      });
+      for (let i = 0; i < MAX_TRIPS_PER_DAY; i++) {
+        row.push(dayTrips[i] ? Number(dayTrips[i].weight_kg) : null);
+      }
+      // Nº viajes
+      row.push(dayTrips.length || null);
+      // Total kg
+      const total = dayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
+      row.push(total > 0 ? total : null);
+      // Media
+      row.push(dayTrips.length > 0 ? Math.round(total / dayTrips.length) : null);
       aoa.push(row);
     }
 
+    // Fila Totales
+    const totalRow: any[] = ["Total"];
+    for (let i = 0; i < MAX_TRIPS_PER_DAY; i++) totalRow.push(null);
+    const sumCount = source.filter((t) => {
+      const d = new Date(t.trip_date);
+      return d.getMonth() === monthIdx && d.getFullYear() === year;
+    }).length;
+    const sumKg = source
+      .filter((t) => {
+        const d = new Date(t.trip_date);
+        return d.getMonth() === monthIdx && d.getFullYear() === year;
+      })
+      .reduce((acc, t) => acc + Number(t.weight_kg), 0);
+    totalRow.push(sumCount, sumKg, sumCount > 0 ? Math.round(sumKg / sumCount) : null);
+    aoa.push(totalRow);
+
     const ws = XLSX.utils.aoa_to_sheet(aoa);
+    // Ajustar ancho columnas
+    ws["!cols"] = [{ wch: 5 }, ...Array(MAX_TRIPS_PER_DAY).fill({ wch: 8 }), { wch: 10 }, { wch: 12 }, { wch: 10 }];
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, monthName);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
     const fileName = `Toneladas_${mode === "tolva" ? "TOLVA" : "TODOS"}_${format(currentMonth, "yyyy-MM")}.xlsx`;
     XLSX.writeFile(wb, fileName);
     toast.success("Excel descargado");
