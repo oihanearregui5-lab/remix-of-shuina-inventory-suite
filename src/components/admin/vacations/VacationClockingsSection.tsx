@@ -140,6 +140,9 @@ const VacationClockingsSection = ({ rows, workers }: Props) => {
           {workerFilter === "all" ? "Todos los trabajadores" : workers.find((w) => w.id === workerFilter)?.display_name}
         </span>
       </div>
+      <div className="grid gap-3 xl:grid-cols-[1.4fr_0.6fr]">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border border-border bg-card p-4"><p className="text-sm text-muted-foreground">Total horas</p><p className="mt-2 text-2xl font-semibold text-foreground">{formatHours(totals.totalHours)}</p></div>
           <div className="rounded-lg border border-border bg-card p-4"><p className="text-sm text-muted-foreground">Registros</p><p className="mt-2 text-2xl font-semibold text-foreground">{totals.records}</p></div>
           <div className="rounded-lg border border-border bg-card p-4"><p className="text-sm text-muted-foreground">Trabajadores</p><p className="mt-2 text-2xl font-semibold text-foreground">{totals.workers}</p></div>
           <div className="rounded-lg border border-border bg-card p-4"><p className="text-sm text-muted-foreground">Periodo</p><p className="mt-2 text-sm font-semibold text-foreground">{fromDate} → {toDate}</p></div>
