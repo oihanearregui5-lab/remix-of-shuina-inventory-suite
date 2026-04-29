@@ -356,7 +356,7 @@ const AdminAlbaranesView = () => {
 
       {/* KPIs solo para admin */}
       {canViewAdmin && (
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section className={`grid grid-cols-2 gap-3 ${isAdmin ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
         <div className="panel-surface p-4">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Albaranes</p>
           <p className="mt-1 text-2xl font-bold">{kpis.total}</p>
@@ -369,10 +369,12 @@ const AdminAlbaranesView = () => {
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Destino máquina</p>
           <p className="mt-1 text-2xl font-bold">{kpis.machineCount}</p>
         </div>
-        <div className="panel-surface p-4">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Importe total</p>
-          <p className="mt-1 text-2xl font-bold">{kpis.totalAmount.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
-        </div>
+        {isAdmin && (
+          <div className="panel-surface p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Importe total</p>
+            <p className="mt-1 text-2xl font-bold">{kpis.totalAmount.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
+          </div>
+        )}
       </section>
       )}
 
