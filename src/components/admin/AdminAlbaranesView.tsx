@@ -342,7 +342,7 @@ const AdminAlbaranesView = () => {
           : "Sube las facturas y albaranes de las compras que hagas para la empresa."}
         actions={
           <div className="flex gap-2">
-            {canViewAdmin && (
+            {isAdmin && (
               <Button variant="outline" onClick={exportCSV}>
                 <Download className="h-4 w-4" /> Exportar
               </Button>
