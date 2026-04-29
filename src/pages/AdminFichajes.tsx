@@ -222,14 +222,40 @@ const AdminFichajes = () => {
       </section>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Desde</label>
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40" />
+      <div className="panel-surface p-3 sm:p-4 mb-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_160px_1fr_180px]">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Desde</label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Hasta</label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1"><Search className="h-3 w-3" /> Buscar trabajador</label>
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nombre…" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1"><Filter className="h-3 w-3" /> Estado</label>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="open">En curso</SelectItem>
+                <SelectItem value="closed">Cerrados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Hasta</label>
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => applyQuickRange("today")}>Hoy</Button>
+          <Button size="sm" variant="outline" onClick={() => applyQuickRange("week")}>Esta semana</Button>
+          <Button size="sm" variant="outline" onClick={() => applyQuickRange("month")}>Este mes</Button>
+          {(search || statusFilter !== "all") && (
+            <Button size="sm" variant="ghost" onClick={() => { setSearch(""); setStatusFilter("all"); }}>Limpiar filtros</Button>
+          )}
+          <span className="ml-auto self-center text-xs text-muted-foreground">{filteredEntries.length} de {entries.length} fichajes</span>
         </div>
       </div>
 
