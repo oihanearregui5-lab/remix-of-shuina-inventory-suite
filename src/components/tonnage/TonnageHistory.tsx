@@ -16,11 +16,22 @@ import { cn } from "@/lib/utils";
 const ALL = "__all__";
 
 const TonnageHistory = () => {
-  const [filterDate, setFilterDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+  const { user } = useAuth();
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const [filterDate, setFilterDate] = useState<string>(todayStr);
   const monthDate = useMemo(() => startOfMonth(new Date(filterDate + "T00:00")), [filterDate]);
   const { trucks, trips, loading } = useTonnage(monthDate);
   const [typeFilter, setTypeFilter] = useState<TripType | typeof ALL>(ALL);
   const [driverNames, setDriverNames] = useState<Map<string, string>>(new Map());
+
+  const isToday = filterDate === todayStr;
+  const todayTrips = useMemo(() => trips.filter((t) => t.trip_date === todayStr), [trips, todayStr]);
+  const myTodayTrips = useMemo(
+    () => todayTrips.filter((t) => (t.driver_user_id ?? t.created_by_user_id) === user?.id),
+    [todayTrips, user?.id],
+  );
+  const todayTotalKg = todayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
+  const myTotalKg = myTodayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
 
   const dayTrips = useMemo(
     () => trips
