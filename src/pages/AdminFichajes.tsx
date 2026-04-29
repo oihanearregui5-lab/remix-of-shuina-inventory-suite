@@ -165,7 +165,7 @@ const AdminFichajes = () => {
     );
   }
 
-  const byEmployee = entries.reduce<Record<string, { name: string; entries: EntryWithProfile[] }>>(
+  const byEmployee = filteredEntries.reduce<Record<string, { name: string; entries: EntryWithProfile[] }>>(
     (acc, e) => {
       const name = e.profiles?.full_name ?? "Desconocido";
       if (!acc[e.user_id]) acc[e.user_id] = { name, entries: [] };
@@ -174,7 +174,7 @@ const AdminFichajes = () => {
     },
     {}
   );
-  const adminHoursSummary = summarizeEntriesForRange(entries, new Date(`${dateFrom}T00:00:00`), new Date(`${dateTo}T23:59:59`));
+  const adminHoursSummary = summarizeEntriesForRange(filteredEntries, new Date(`${dateFrom}T00:00:00`), new Date(`${dateTo}T23:59:59`));
 
   return (
     <div className="animate-fade-in">
