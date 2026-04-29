@@ -19,7 +19,6 @@ import {
 import VacationClockingsSection from "./vacations/VacationClockingsSection";
 import VacationGeneralCalendarSection from "./vacations/VacationGeneralCalendarSection";
 import JourneysSection from "./vacations/JourneysSection";
-import JourneysGrid from "./vacations/JourneysGrid";
 import VacationGridSection from "./vacations/VacationGridSection";
 import WorkerProfilesSection from "./vacations/WorkerProfilesSection";
 import type { FichajeRow } from "./vacations/vacation-types";
@@ -27,9 +26,7 @@ import type { FichajeRow } from "./vacations/vacation-types";
 const sections = [
   { key: "clockings", label: "Fichajes", icon: Clock3 },
   { key: "general", label: "Calendario general", icon: CalendarRange },
-  { key: "vacations", label: "Vacaciones", icon: BriefcaseBusiness },
   { key: "excel", label: "Jornadas (planilla)", icon: ClipboardList },
-  { key: "grid", label: "Jornadas (rejilla)", icon: LayoutGrid },
   { key: "workers", label: "Ficha por trabajador", icon: UserSquare2 },
 ] as const;
 
