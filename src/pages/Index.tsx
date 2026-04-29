@@ -148,7 +148,7 @@ const Index = () => {
       case "machines":
         return <MachineHub />;
       case "staff":
-        return <StaffHubView />;
+        return workspaceMode === "admin" && canViewAdmin ? <AdminStaffSimpleView /> : <StaffHubView />;
       case "chat":
         return <ChatHubView />;
       case "notes":
