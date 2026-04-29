@@ -121,27 +121,40 @@ const AdminFichajes = () => {
     return `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`;
   };
 
+  const filteredEntries = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return entries.filter((e) => {
+      if (statusFilter === "open" && e.clock_out) return false;
+      if (statusFilter === "closed" && !e.clock_out) return false;
+      if (q && !(e.profiles?.full_name ?? "").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [entries, search, statusFilter]);
+
   const exportCSV = () => {
-    const headers = "Empleado,Fecha,Entrada,Salida,Duración\n";
-    const rows = entries
+    const sep = ";";
+    const headers = ["Empleado", "Fecha", "Entrada", "Salida", "Duración", "Minutos"].join(sep) + "\n";
+    const rows = filteredEntries
       .map((e) => {
-        const name = e.profiles?.full_name ?? "Desconocido";
+        const name = (e.profiles?.full_name ?? "Desconocido").replace(/;/g, ",");
         const date = format(new Date(e.clock_in), "dd/MM/yyyy");
         const inTime = format(new Date(e.clock_in), "HH:mm");
         const outTime = e.clock_out ? format(new Date(e.clock_out), "HH:mm") : "En curso";
         const dur = formatDuration(e.clock_in, e.clock_out);
-        return `${name},${date},${inTime},${outTime},${dur}`;
+        const mins = e.clock_out ? differenceInMinutes(new Date(e.clock_out), new Date(e.clock_in)) : 0;
+        return [name, date, inTime, outTime, dur, mins].join(sep);
       })
       .join("\n");
 
-    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + headers + rows], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `fichajes_transtubari_${dateFrom}_${dateTo}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("CSV exportado");
+    toast.success(`CSV exportado (${filteredEntries.length} registros)`);
   };
 
   if (!canViewAdmin) {
