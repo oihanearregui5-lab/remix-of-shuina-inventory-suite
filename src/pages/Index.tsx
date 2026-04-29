@@ -10,6 +10,7 @@ const TaskHubView = lazy(() => import("@/components/TaskHubView"));
 const MachineHub = lazy(() => import("@/components/MachineHub"));
 const AdminHubView = lazy(() => import("@/components/AdminHubView"));
 const StaffHubView = lazy(() => import("@/components/StaffHubView"));
+const AdminStaffSimpleView = lazy(() => import("@/components/staff/AdminStaffSimpleView"));
 const ChatHubView = lazy(() => import("@/components/ChatHubView"));
 const GasolineHubView = lazy(() => import("@/components/GasolineHubView"));
 const WorkReportsHubView = lazy(() => import("@/components/WorkReportsHubView"));
