@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Download, Calendar, Clock, ChevronDown, ChevronRight } from "lucide-react";
+import { Users, Download, Calendar, Clock, ChevronDown, ChevronRight, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { format, differenceInMinutes, startOfMonth, endOfMonth } from "date-fns";
+import { format, differenceInMinutes, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import WorkerLiveStatusPanel from "@/components/shared/WorkerLiveStatusPanel";
 import { useWorkerLiveStatus } from "@/hooks/useWorkerLiveStatus";
@@ -44,6 +45,22 @@ const AdminFichajes = () => {
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "closed">("all");
+
+  const applyQuickRange = (mode: "today" | "week" | "month") => {
+    const now = new Date();
+    if (mode === "today") {
+      const d = format(now, "yyyy-MM-dd");
+      setDateFrom(d); setDateTo(d);
+    } else if (mode === "week") {
+      setDateFrom(format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"));
+      setDateTo(format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"));
+    } else {
+      setDateFrom(format(startOfMonth(now), "yyyy-MM-dd"));
+      setDateTo(format(endOfMonth(now), "yyyy-MM-dd"));
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -96,7 +113,7 @@ const AdminFichajes = () => {
 
   const getTotalHours = () => {
     let totalMins = 0;
-    entries.forEach((e) => {
+    filteredEntries.forEach((e) => {
       if (e.clock_out) {
         totalMins += differenceInMinutes(new Date(e.clock_out), new Date(e.clock_in));
       }
@@ -104,27 +121,40 @@ const AdminFichajes = () => {
     return `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`;
   };
 
+  const filteredEntries = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return entries.filter((e) => {
+      if (statusFilter === "open" && e.clock_out) return false;
+      if (statusFilter === "closed" && !e.clock_out) return false;
+      if (q && !(e.profiles?.full_name ?? "").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [entries, search, statusFilter]);
+
   const exportCSV = () => {
-    const headers = "Empleado,Fecha,Entrada,Salida,Duración\n";
-    const rows = entries
+    const sep = ";";
+    const headers = ["Empleado", "Fecha", "Entrada", "Salida", "Duración", "Minutos"].join(sep) + "\n";
+    const rows = filteredEntries
       .map((e) => {
-        const name = e.profiles?.full_name ?? "Desconocido";
+        const name = (e.profiles?.full_name ?? "Desconocido").replace(/;/g, ",");
         const date = format(new Date(e.clock_in), "dd/MM/yyyy");
         const inTime = format(new Date(e.clock_in), "HH:mm");
         const outTime = e.clock_out ? format(new Date(e.clock_out), "HH:mm") : "En curso";
         const dur = formatDuration(e.clock_in, e.clock_out);
-        return `${name},${date},${inTime},${outTime},${dur}`;
+        const mins = e.clock_out ? differenceInMinutes(new Date(e.clock_out), new Date(e.clock_in)) : 0;
+        return [name, date, inTime, outTime, dur, mins].join(sep);
       })
       .join("\n");
 
-    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + headers + rows], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `fichajes_transtubari_${dateFrom}_${dateTo}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("CSV exportado");
+    toast.success(`CSV exportado (${filteredEntries.length} registros)`);
   };
 
   if (!canViewAdmin) {
@@ -135,7 +165,7 @@ const AdminFichajes = () => {
     );
   }
 
-  const byEmployee = entries.reduce<Record<string, { name: string; entries: EntryWithProfile[] }>>(
+  const byEmployee = filteredEntries.reduce<Record<string, { name: string; entries: EntryWithProfile[] }>>(
     (acc, e) => {
       const name = e.profiles?.full_name ?? "Desconocido";
       if (!acc[e.user_id]) acc[e.user_id] = { name, entries: [] };
@@ -144,7 +174,7 @@ const AdminFichajes = () => {
     },
     {}
   );
-  const adminHoursSummary = summarizeEntriesForRange(entries, new Date(`${dateFrom}T00:00:00`), new Date(`${dateTo}T23:59:59`));
+  const adminHoursSummary = summarizeEntriesForRange(filteredEntries, new Date(`${dateFrom}T00:00:00`), new Date(`${dateTo}T23:59:59`));
 
   return (
     <div className="animate-fade-in">
@@ -192,14 +222,40 @@ const AdminFichajes = () => {
       </section>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Desde</label>
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40" />
+      <div className="panel-surface p-3 sm:p-4 mb-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_160px_1fr_180px]">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Desde</label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Hasta</label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1"><Search className="h-3 w-3" /> Buscar trabajador</label>
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nombre…" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1"><Filter className="h-3 w-3" /> Estado</label>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="open">En curso</SelectItem>
+                <SelectItem value="closed">Cerrados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Hasta</label>
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => applyQuickRange("today")}>Hoy</Button>
+          <Button size="sm" variant="outline" onClick={() => applyQuickRange("week")}>Esta semana</Button>
+          <Button size="sm" variant="outline" onClick={() => applyQuickRange("month")}>Este mes</Button>
+          {(search || statusFilter !== "all") && (
+            <Button size="sm" variant="ghost" onClick={() => { setSearch(""); setStatusFilter("all"); }}>Limpiar filtros</Button>
+          )}
+          <span className="ml-auto self-center text-xs text-muted-foreground">{filteredEntries.length} de {entries.length} fichajes</span>
         </div>
       </div>
 
@@ -217,7 +273,7 @@ const AdminFichajes = () => {
             <Calendar className="w-5 h-5 text-info" />
             <span className="text-sm text-muted-foreground">Fichajes</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{entries.length}</p>
+          <p className="text-2xl font-bold text-foreground">{filteredEntries.length}</p>
         </div>
         <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
