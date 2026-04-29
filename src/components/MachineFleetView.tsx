@@ -164,6 +164,7 @@ const MachineFleetView = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<MachineStatus | "all">("all");
+  const [familyFilter, setFamilyFilter] = useState<string>("all");
 
   const toggleDensity = () => {
     const next = density === "comfy" ? "compact" : "comfy";
