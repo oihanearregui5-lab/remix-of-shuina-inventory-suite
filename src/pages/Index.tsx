@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, UserCircle } from "lucide-react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale } from "lucide-react";
 import { useUIMode } from "@/hooks/useUIMode";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavPreferences, applyNavPrefs } from "@/hooks/useNavPreferences";
 import DashboardView from "@/components/DashboardView";
 import Fichajes from "@/pages/Fichajes";
 const AdminFichajes = lazy(() => import("@/pages/AdminFichajes"));
@@ -34,7 +35,6 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "gasoline", label: "Gasolina", description: "Tarjetas y movimientos de repostaje.", icon: Fuel, workspace: "worker", mobilePrimary: true },
   { key: "staff", label: "Calendario", description: "Vacaciones, turnos y solicitudes.", icon: CalendarRange, workspace: "worker" },
   { key: "albaranes", label: "Albaranes", description: "Sube facturas y albaranes de tus compras.", icon: ReceiptText, workspace: "worker" },
-  { key: "account", label: "Mi cuenta", description: "Foto, nombre, contacto y contraseña.", icon: UserCircle, workspace: "worker" },
   { key: "admin", label: "Resumen", description: "Visión global del día y control operativo.", icon: ShieldCheck, workspace: "admin", adminOnly: true, mobilePrimary: true },
   { key: "fichajes", label: "Fichajes", description: "Control y revisión de entradas y salidas.", icon: Clock, workspace: "admin", mobilePrimary: true },
   { key: "workReports", label: "Partes", description: "Seguimiento y corrección de partes.", icon: FileText, workspace: "admin", mobilePrimary: true },
@@ -57,6 +57,7 @@ const Index = () => {
     return stored === "worker" || stored === "admin" ? (stored as WorkspaceMode) : null;
   });
   const { canViewAdmin, isAdmin, profile, role, signOut } = useAuth();
+  const { prefs: navPrefs } = useNavPreferences();
   const { isSimple } = useUIMode();
 
   // Si pierde permisos admin mientras estaba en admin, vuelve al selector
@@ -75,7 +76,7 @@ const Index = () => {
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
     const workerSimpleSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage"];
-    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes", "account"];
+    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"];
     const adminSections: AppSection[] = role === "admin"
       ? ["admin", "fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"];
@@ -86,15 +87,22 @@ const Index = () => {
       : isSimple
       ? workerSimpleSections
       : workerSections;
-    return sections.filter((section) => {
+    const filtered = sections.filter((section) => {
       const sectionWorkspace = section.workspace ?? "worker";
       const matchesWorkspace = workspaceMode === "admin" ? sectionWorkspace === "admin" : sectionWorkspace === "worker";
       return matchesWorkspace && allowed.includes(section.key) && (!section.adminOnly || canViewAdmin);
     });
-  }, [canViewAdmin, role, workspaceMode, isSimple]);
+    // Aplicar preferencias del usuario (oculto + orden).
+    const orderedKeys = applyNavPrefs(filtered.map((s) => s.key), navPrefs);
+    return orderedKeys
+      .map((k) => filtered.find((s) => s.key === k))
+      .filter((s): s is typeof filtered[number] => Boolean(s));
+  }, [canViewAdmin, role, workspaceMode, isSimple, navPrefs]);
 
   useEffect(() => {
     if (!visibleSections.length) return;
+    // "account" se accede desde el dialog y no aparece en visibleSections — permitirla.
+    if (currentSection === "account") return;
     if (!visibleSections.some((section) => section.key === currentSection)) {
       setCurrentSection(visibleSections[0]?.key ?? "dashboard");
     }

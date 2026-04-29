@@ -1560,6 +1560,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_nav_preferences: {
+        Row: {
+          hidden_sections: string[]
+          section_order: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          hidden_sections?: string[]
+          section_order?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          hidden_sections?: string[]
+          section_order?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
