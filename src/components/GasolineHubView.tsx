@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { buildGasolineAlerts, getFuelUnitPrice, parseFuelNumber, validateFuelDraft } from "@/lib/gasoline-alerts";
@@ -56,6 +58,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
   const [selectedCardId, setSelectedCardId] = useState<string>(creditCards[0].id);
   const [draft, setDraft] = useState<GasolineRecord>(() => emptyForm(creditCards[0].id));
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [cardsOpen, setCardsOpen] = useState<boolean>(isAdminView);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -162,6 +165,84 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
   const totalLiters = cardRecords.reduce((sum, record) => sum + parseFuelNumber(record.liters), 0);
   const averagePrice = totalAmount > 0 && totalLiters > 0 ? totalAmount / totalLiters : null;
 
+  const renderCardsAccordion = () => (
+    <Accordion
+      type="single"
+      collapsible
+      value={selectedCardId}
+      onValueChange={(value) => {
+        if (!value) return;
+        setEditingId(null);
+        setSelectedCardId(value);
+      }}
+      className="divide-y divide-border"
+    >
+      {cardSummaries.map((card) => {
+        const monthPrefix = new Date().toISOString().slice(0, 7);
+        const monthEntries = records.filter((record) => record.cardId === card.id && record.date.startsWith(monthPrefix));
+        const monthTotal = monthEntries.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+        const lastFive = records
+          .filter((record) => record.cardId === card.id)
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .slice(0, 5);
+        return (
+          <AccordionItem key={card.id} value={card.id} className="border-b-0">
+            <AccordionTrigger className="px-2 py-3 hover:no-underline">
+              <div className="flex flex-1 items-center justify-between gap-3 pr-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-secondary/25 text-secondary-foreground">
+                    <CreditCard className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 text-left">
+                    <p className="truncate text-sm font-semibold text-foreground">{card.alias} · <span className="font-mono text-xs text-muted-foreground">{card.masked.slice(-9)}</span></p>
+                    <p className="text-[11px] text-muted-foreground">{card.entries} mov. · {card.lastDate ?? "sin uso"}</p>
+                  </div>
+                </div>
+                {isAdminView && (
+                  <span className="flex-none rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-foreground">{monthTotal.toFixed(2)} € / mes</span>
+                )}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-3 pb-3">
+              <div className="space-y-3">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setEditingId(null);
+                    setSelectedCardId(card.id);
+                    setDraft(emptyForm(card.id));
+                    document.getElementById("gas-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                >
+                  <Fuel className="h-4 w-4" /> Registrar repostaje
+                </Button>
+                {lastFive.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Sin movimientos todavía.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {lastFive.map((record) => (
+                      <li key={record.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-foreground">{record.station || "Sin gasolinera"}</p>
+                          <p className="text-[11px] text-muted-foreground">{record.date}{record.vehicle ? ` · ${record.vehicle}` : ""}</p>
+                        </div>
+                        {isAdminView ? (
+                          <span className="flex-none font-semibold text-foreground">{record.amount ? `${Number(record.amount).toFixed(2)} €` : "—"}</span>
+                        ) : (
+                          <span className="flex-none text-[11px] text-muted-foreground">{record.station ? "✓" : ""}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
+  );
+
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader
@@ -172,82 +253,26 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
       />
 
       <section className="panel-surface p-2 sm:p-3">
-        <Accordion
-          type="single"
-          collapsible
-          value={selectedCardId}
-          onValueChange={(value) => {
-            if (!value) return;
-            setEditingId(null);
-            setSelectedCardId(value);
-          }}
-          className="divide-y divide-border"
-        >
-          {cardSummaries.map((card) => {
-            const monthPrefix = new Date().toISOString().slice(0, 7);
-            const monthEntries = records
-              .filter((record) => record.cardId === card.id && record.date.startsWith(monthPrefix));
-            const monthTotal = monthEntries.reduce((sum, record) => sum + Number(record.amount || 0), 0);
-            const lastFive = records
-              .filter((record) => record.cardId === card.id)
-              .sort((a, b) => b.date.localeCompare(a.date))
-              .slice(0, 5);
-            return (
-              <AccordionItem key={card.id} value={card.id} className="border-b-0">
-                <AccordionTrigger className="px-2 py-3 hover:no-underline">
-                  <div className="flex flex-1 items-center justify-between gap-3 pr-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-secondary/25 text-secondary-foreground">
-                        <CreditCard className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 text-left">
-                        <p className="truncate text-sm font-semibold text-foreground">{card.alias} · <span className="font-mono text-xs text-muted-foreground">{card.masked.slice(-9)}</span></p>
-                        <p className="text-[11px] text-muted-foreground">{card.entries} mov. · {card.lastDate ?? "sin uso"}</p>
-                      </div>
-                    </div>
-                    {isAdminView && (
-                      <span className="flex-none rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-foreground">{monthTotal.toFixed(2)} € / mes</span>
-                    )}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-3 pb-3">
-                  <div className="space-y-3">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setEditingId(null);
-                        setSelectedCardId(card.id);
-                        setDraft(emptyForm(card.id));
-                        document.getElementById("gas-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }}
-                    >
-                      <Fuel className="h-4 w-4" /> Registrar repostaje
-                    </Button>
-                    {lastFive.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">Sin movimientos todavía.</p>
-                    ) : (
-                      <ul className="space-y-1.5">
-                        {lastFive.map((record) => (
-                          <li key={record.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs">
-                            <div className="min-w-0">
-                              <p className="truncate font-medium text-foreground">{record.station || "Sin gasolinera"}</p>
-                              <p className="text-[11px] text-muted-foreground">{record.date}{record.vehicle ? ` · ${record.vehicle}` : ""}</p>
-                            </div>
-                            {isAdminView ? (
-                              <span className="flex-none font-semibold text-foreground">{record.amount ? `${Number(record.amount).toFixed(2)} €` : "—"}</span>
-                            ) : (
-                              <span className="flex-none text-[11px] text-muted-foreground">{record.station ? "✓" : ""}</span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+        {!isAdminView && (
+          <Collapsible open={cardsOpen} onOpenChange={setCardsOpen}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-muted/40 px-3 py-3 text-left transition-colors hover:bg-muted/60">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Tarjetas</p>
+                  <p className="text-[11px] text-muted-foreground">{creditCards.length} disponibles · pulsa para elegir</p>
+                </div>
+              </div>
+              <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", cardsOpen && "rotate-180")} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2">
+              {renderCardsAccordion()}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+        {isAdminView && renderCardsAccordion()}
       </section>
 
       {isAdminView && selectedCardAlerts.length > 0 ? (
