@@ -82,6 +82,13 @@ const MachineCardDialog = ({ machineId, open, onOpenChange, onChanged }: Machine
   const [draft, setDraft] = useState<Partial<MachineFull>>({});
   const [saving, setSaving] = useState(false);
 
+  // Edición inline de bloques (solo admin)
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [editingWatch, setEditingWatch] = useState(false);
+  const [watchDraft, setWatchDraft] = useState("");
+  const [savingBlock, setSavingBlock] = useState(false);
+
   // Nueva avería (trabajador y admin)
   const [newIncident, setNewIncident] = useState({ title: "", description: "" });
   const [savingIncident, setSavingIncident] = useState(false);
