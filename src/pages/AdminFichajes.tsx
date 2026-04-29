@@ -113,7 +113,7 @@ const AdminFichajes = () => {
 
   const getTotalHours = () => {
     let totalMins = 0;
-    entries.forEach((e) => {
+    filteredEntries.forEach((e) => {
       if (e.clock_out) {
         totalMins += differenceInMinutes(new Date(e.clock_out), new Date(e.clock_in));
       }
