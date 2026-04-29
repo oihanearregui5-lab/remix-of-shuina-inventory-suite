@@ -19,6 +19,7 @@ const VacationClockingsSection = ({ rows, workers }: Props) => {
   const [fromDate, setFromDate] = useState(today.slice(0, 8) + "01");
   const [toDate, setToDate] = useState(today);
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [folderSearch, setFolderSearch] = useState("");
 
   // Folder-mode: if no worker selected yet, show one folder per worker
   const showFolders = workerFilter === "";
