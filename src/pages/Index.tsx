@@ -76,7 +76,7 @@ const Index = () => {
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
     const workerSimpleSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage"];
-    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes", "account"];
+    const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"];
     const adminSections: AppSection[] = role === "admin"
       ? ["admin", "fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"];
@@ -87,12 +87,17 @@ const Index = () => {
       : isSimple
       ? workerSimpleSections
       : workerSections;
-    return sections.filter((section) => {
+    const filtered = sections.filter((section) => {
       const sectionWorkspace = section.workspace ?? "worker";
       const matchesWorkspace = workspaceMode === "admin" ? sectionWorkspace === "admin" : sectionWorkspace === "worker";
       return matchesWorkspace && allowed.includes(section.key) && (!section.adminOnly || canViewAdmin);
     });
-  }, [canViewAdmin, role, workspaceMode, isSimple]);
+    // Aplicar preferencias del usuario (oculto + orden).
+    const orderedKeys = applyNavPrefs(filtered.map((s) => s.key), navPrefs);
+    return orderedKeys
+      .map((k) => filtered.find((s) => s.key === k))
+      .filter((s): s is typeof filtered[number] => Boolean(s));
+  }, [canViewAdmin, role, workspaceMode, isSimple, navPrefs]);
 
   useEffect(() => {
     if (!visibleSections.length) return;
