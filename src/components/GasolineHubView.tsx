@@ -59,6 +59,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
   const [draft, setDraft] = useState<GasolineRecord>(() => emptyForm(creditCards[0].id));
   const [editingId, setEditingId] = useState<string | null>(null);
   const [cardsOpen, setCardsOpen] = useState<boolean>(isAdminView);
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
