@@ -108,7 +108,7 @@ const Index = () => {
     if (mode === "admin" && !canViewAdmin) return;
     setWorkspaceMode(mode);
     if (typeof window !== "undefined") window.sessionStorage.setItem(WORKSPACE_KEY, mode);
-    setCurrentSection(mode === "admin" ? (role === "admin" ? "admin" : "fichajes") : "dashboard");
+    setCurrentSection(mode === "admin" ? "fichajes" : "dashboard");
     setMobileMenuOpen(false);
   };
 
