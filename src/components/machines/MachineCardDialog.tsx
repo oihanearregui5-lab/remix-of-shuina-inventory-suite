@@ -114,6 +114,8 @@ const MachineCardDialog = ({ machineId, open, onOpenChange, onChanged }: Machine
     const m = machineRes.data as MachineFull;
     setMachine(m);
     setDraft(m);
+    setNotesDraft(m.notes ?? "");
+    setWatchDraft((m.watch_points ?? []).join("\n"));
     setIncidents((incidentsRes.data ?? []) as IncidentRow[]);
     setServices((servicesRes.data ?? []) as ServiceRow[]);
     setLoading(false);
