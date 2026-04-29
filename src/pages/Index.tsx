@@ -76,18 +76,13 @@ const Index = () => {
 
   const visibleSections = useMemo(() => {
     if (!workspaceMode) return [];
-    const workerSimpleSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage"];
     const workerSections: AppSection[] = ["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"];
     const adminSections: AppSection[] = role === "admin"
       ? ["admin", "fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"];
     const isAdminWorkspace = workspaceMode === "admin" && canViewAdmin;
-    // Vista sencilla solo aplica al trabajador. El admin siempre ve todo.
-    const allowed = isAdminWorkspace
-      ? adminSections
-      : isSimple
-      ? workerSimpleSections
-      : workerSections;
+    // Vista sencilla y completa muestran las mismas secciones; solo cambia la densidad del contenido.
+    const allowed = isAdminWorkspace ? adminSections : workerSections;
     const filtered = sections.filter((section) => {
       const sectionWorkspace = section.workspace ?? "worker";
       const matchesWorkspace = workspaceMode === "admin" ? sectionWorkspace === "admin" : sectionWorkspace === "worker";
