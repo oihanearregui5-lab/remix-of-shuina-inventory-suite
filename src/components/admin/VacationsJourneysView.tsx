@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BriefcaseBusiness, CalendarRange, Clock3, ClipboardList, LayoutGrid, UserSquare2 } from "lucide-react";
+import { CalendarRange, Clock3, ClipboardList, UserSquare2 } from "lucide-react";
 import { differenceInMinutes } from "date-fns";
 import { toast } from "sonner";
 import PageHeader from "@/components/shared/PageHeader";
