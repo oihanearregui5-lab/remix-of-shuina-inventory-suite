@@ -3,6 +3,7 @@ import { format, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { Calendar, Filter, Minus, Package, Plus, Truck } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
+import { useAuth } from "@/hooks/useAuth";
 import { useTonnage, formatKg, type TripType } from "@/hooks/useTonnage";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
