@@ -27,7 +27,7 @@ const MyJourneyView = () => {
   const { user, profile } = useAuth();
   const { data, loading, error } = useTranstubariData();
   const [viewMode, setViewMode] = useState<ViewMode>("month");
-  const [anchor, setAnchor] = useState<Date>(() => new Date(2026, 3, 23));
+  const [anchor, setAnchor] = useState<Date>(() => new Date());
   const [myStaffId, setMyStaffId] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Map<string, OverrideRow>>(new Map());
   const [loadingOverrides, setLoadingOverrides] = useState(false);
