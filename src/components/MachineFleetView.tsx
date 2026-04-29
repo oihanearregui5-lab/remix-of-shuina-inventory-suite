@@ -451,7 +451,7 @@ const MachineFleetView = () => {
             />
           </div>
           <Select value={statusFilter} onValueChange={(value: MachineStatus | "all") => setStatusFilter(value)}>
-            <SelectTrigger className="sm:w-48">
+            <SelectTrigger className="sm:w-44">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
@@ -461,6 +461,17 @@ const MachineFleetView = () => {
               <SelectItem value="repair">Avería</SelectItem>
               <SelectItem value="inspection">Inspección</SelectItem>
               <SelectItem value="inactive">Inactiva</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={familyFilter} onValueChange={setFamilyFilter}>
+            <SelectTrigger className="sm:w-44">
+              <SelectValue placeholder="Familia" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las familias</SelectItem>
+              {families.map((f) => (
+                <SelectItem key={f} value={f}>{f}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
