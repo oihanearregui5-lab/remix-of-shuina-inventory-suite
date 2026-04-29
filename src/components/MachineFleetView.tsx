@@ -463,12 +463,20 @@ const MachineFleetView = () => {
             ? "gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             : "gap-5 sm:grid-cols-2 lg:grid-cols-3",
         )}>
-          {filteredMachineCards.map((machine) => (
-            <article key={machine.id} className="panel-surface flex flex-col overflow-hidden p-0">
+          {filteredMachineCards.map((machine) => {
+            const hasIncident = machine.openIncidents > 0;
+            return (
+            <article
+              key={machine.id}
+              className={cn(
+                "panel-surface flex flex-col overflow-hidden p-0 transition-colors",
+                hasIncident && "border-l-4 border-l-destructive ring-1 ring-destructive/30",
+              )}
+            >
               {/* Foto con overlay de fotos disponibles */}
               <button
                 type="button"
-                onClick={() => openDetail(machine)}
+                onClick={() => setCardDialogId(machine.id)}
                 className="group relative block aspect-[16/10] w-full overflow-hidden bg-muted"
               >
                 {machine.visual ? (
@@ -484,6 +492,12 @@ const MachineFleetView = () => {
                     <span className="text-[10px] uppercase tracking-wider">Sin foto</span>
                   </div>
                 )}
+                {hasIncident && (
+                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-semibold text-destructive-foreground shadow">
+                    <AlertTriangle className="h-3 w-3" />
+                    {machine.openIncidents} incidencia{machine.openIncidents > 1 ? "s" : ""}
+                  </span>
+                )}
                 {machine.photoCount > 0 && (
                   <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
                     <Camera className="h-3 w-3" />
@@ -494,7 +508,7 @@ const MachineFleetView = () => {
 
               {/* Info compacta */}
               <div className="flex flex-1 flex-col gap-2 p-3">
-                <button type="button" onClick={() => openDetail(machine)} className="text-left">
+                <button type="button" onClick={() => setCardDialogId(machine.id)} className="text-left">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-foreground">{machine.display_name}</p>
@@ -577,7 +591,8 @@ const MachineFleetView = () => {
                 </div>
               </div>
             </article>
-          ))}
+            );
+          })}
         </section>
       )}
 
