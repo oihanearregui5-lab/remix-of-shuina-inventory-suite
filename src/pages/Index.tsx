@@ -57,6 +57,7 @@ const Index = () => {
     return stored === "worker" || stored === "admin" ? (stored as WorkspaceMode) : null;
   });
   const { canViewAdmin, isAdmin, profile, role, signOut } = useAuth();
+  const { prefs: navPrefs } = useNavPreferences();
   const { isSimple } = useUIMode();
 
   // Si pierde permisos admin mientras estaba en admin, vuelve al selector
