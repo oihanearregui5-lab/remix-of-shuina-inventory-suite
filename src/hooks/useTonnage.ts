@@ -177,7 +177,9 @@ export const useTonnage = (monthDate: Date) => {
         unload_zone_id: input.unload_zone_id || null,
         notes: input.notes?.trim() || null,
         created_by_user_id: user.id,
-        driver_user_id: input.driver_user_id ?? user.id,
+        driver_user_id: input.driver_user_id ?? null,
+        driver_staff_id: input.driver_staff_id ?? null,
+        driver_name_snapshot: input.driver_name_snapshot ?? null,
         trip_type: input.trip_type ?? "tolva",
       });
       if (error) {
