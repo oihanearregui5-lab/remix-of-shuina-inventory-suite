@@ -143,10 +143,12 @@ export const useTonnage = (monthDate: Date) => {
     void loadTrips();
   }, [loadTrips]);
 
-  // Realtime
+  // Realtime — usa un nombre único por instancia para evitar colisiones
+  // cuando varios componentes montan el hook a la vez (Hub + modal).
   useEffect(() => {
+    const channelName = `tonnage-live-${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel("tonnage-live")
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "tonnage_trips" }, () => void loadTrips())
       .on("postgres_changes", { event: "*", schema: "public", table: "tonnage_trucks" }, () => void loadTrucks())
       .on("postgres_changes", { event: "*", schema: "public", table: "tonnage_zones" }, () => void loadZones())
