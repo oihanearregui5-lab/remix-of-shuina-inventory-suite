@@ -591,7 +591,8 @@ const MachineFleetView = () => {
                 </div>
               </div>
             </article>
-          ))}
+            );
+          })}
         </section>
       )}
 
