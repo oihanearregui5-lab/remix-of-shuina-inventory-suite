@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar, Filter, Truck } from "lucide-react";
+import { Calendar, Filter, Minus, Package, Plus, Truck } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
 import { useTonnage, formatKg, type TripType } from "@/hooks/useTonnage";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const ALL = "__all__";
@@ -43,6 +45,53 @@ const TonnageHistory = () => {
 
   const totalKg = dayTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
   const tolvaCount = dayTrips.filter((t) => t.trip_type === "tolva").length;
+
+  // ===== Materiales del día (totales editables al final del día) =====
+  // Las cantidades se almacenan en el PRIMER viaje del día como "snapshot diario".
+  const allDayTrips = useMemo(
+    () => trips
+      .filter((t) => t.trip_date === filterDate)
+      .sort((a, b) => (a.trip_time || "").localeCompare(b.trip_time || "")),
+    [trips, filterDate],
+  );
+  const anchorTrip = allDayTrips[0] ?? null;
+
+  const [matTortas, setMatTortas] = useState(0);
+  const [matArenasA, setMatArenasA] = useState(0);
+  const [matArenasB, setMatArenasB] = useState(0);
+  const [matSulfatos, setMatSulfatos] = useState(0);
+  const [savingMaterials, setSavingMaterials] = useState(false);
+
+  useEffect(() => {
+    setMatTortas(Number(anchorTrip?.qty_tortas || 0));
+    setMatArenasA(Number(anchorTrip?.qty_arenas_a || 0));
+    setMatArenasB(Number(anchorTrip?.qty_arenas_b || 0));
+    setMatSulfatos(Number(anchorTrip?.qty_sulfatos || 0));
+  }, [anchorTrip?.id]);
+
+  const saveMaterials = async () => {
+    if (!anchorTrip) {
+      toast.error("Aún no hay viajes registrados este día");
+      return;
+    }
+    setSavingMaterials(true);
+    const { error } = await (supabase as any)
+      .from("tonnage_trips")
+      .update({
+        qty_tortas: matTortas,
+        qty_arenas_a: matArenasA,
+        qty_arenas_b: matArenasB,
+        qty_sulfatos: matSulfatos,
+      })
+      .eq("id", anchorTrip.id);
+    setSavingMaterials(false);
+    if (error) {
+      toast.error("No se pudo guardar el resumen de materiales");
+      return;
+    }
+    toast.success("Materiales del día guardados");
+  };
+
 
   return (
     <div className="space-y-3">
@@ -118,6 +167,60 @@ const TonnageHistory = () => {
             })}
           </ul>
         )}
+      </section>
+
+      {/* Resumen de materiales del día (se introduce al final del día) */}
+      <section className="panel-surface p-4">
+        <header className="mb-3 flex items-center gap-2">
+          <Package className="h-4 w-4 text-primary" />
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Materiales del día</h3>
+            <p className="text-[11px] text-muted-foreground">
+              Indica las unidades totales transportadas en la jornada. Se rellena al cerrar el día.
+            </p>
+          </div>
+        </header>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { key: "tortas", label: "Tortas", value: matTortas, set: setMatTortas, color: "bg-primary/15 text-primary" },
+            { key: "arenas_a", label: "Arenas A", value: matArenasA, set: setMatArenasA, color: "bg-warning/20 text-foreground" },
+            { key: "arenas_b", label: "Arenas B", value: matArenasB, set: setMatArenasB, color: "bg-warning/30 text-foreground" },
+            { key: "sulfatos", label: "Sulfatos", value: matSulfatos, set: setMatSulfatos, color: "bg-success/15 text-success" },
+          ].map((m) => (
+            <div key={m.key} className="rounded-2xl border border-border bg-background p-3">
+              <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide", m.color)}>
+                {m.label}
+              </span>
+              <div className="mt-2 flex items-center justify-between gap-1">
+                <Button type="button" size="icon" variant="outline" className="h-9 w-9"
+                  onClick={() => m.set(Math.max(0, m.value - 1))} disabled={m.value === 0}>
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input type="number" min="0" step="1"
+                  value={m.value === 0 ? "" : m.value}
+                  placeholder="0"
+                  onChange={(e) => {
+                    const n = parseFloat(e.target.value);
+                    m.set(isNaN(n) || n < 0 ? 0 : n);
+                  }}
+                  className="h-9 flex-1 text-center text-lg font-semibold [-moz-appearance:_textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <Button type="button" size="icon" variant="outline" className="h-9 w-9"
+                  onClick={() => m.set(m.value + 1)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Button
+          type="button"
+          onClick={() => void saveMaterials()}
+          disabled={!anchorTrip || savingMaterials}
+          className="mt-3 w-full bg-success text-white hover:bg-success/90"
+        >
+          {savingMaterials ? "Guardando…" : anchorTrip ? "Guardar materiales del día" : "Sin viajes registrados aún"}
+        </Button>
       </section>
     </div>
   );
