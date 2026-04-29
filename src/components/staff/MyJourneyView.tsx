@@ -224,9 +224,53 @@ const MyJourneyView = () => {
           </Button>
         </div>
 
-        <Button type="button" variant="secondary" size="sm" onClick={() => setAnchor(new Date())}>
-          Hoy
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="secondary" size="sm" onClick={() => setAnchor(new Date())}>
+            Hoy
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const start = startOfMonth(anchor);
+              const end = endOfMonth(anchor);
+              const days = eachDayOfInterval({ start, end });
+              const lines: string[] = ["Fecha,Día,Turno"];
+              days.forEach((d) => {
+                const code = getMyShiftForDay(d) ?? "";
+                lines.push(`${format(d, "yyyy-MM-dd")},${format(d, "EEE", { locale: es })},${code}`);
+              });
+              const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `mi-jornada-${format(anchor, "yyyy-MM")}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            <Download className="h-4 w-4" /> Exportar mes
+          </Button>
+        </div>
+      </div>
+
+      {/* Leyenda M / T / N */}
+      <div className="panel-surface flex flex-wrap items-center gap-3 px-4 py-2 text-xs text-muted-foreground">
+        <span className="font-semibold uppercase tracking-wider">Leyenda:</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded font-bold text-[10px]" style={{ backgroundColor: myColor, color: myColorText }}>M</span>
+          Mañana
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded font-bold text-[10px]" style={{ backgroundColor: myColor, color: myColorText }}>T</span>
+          Tarde
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded font-bold text-[10px]" style={{ backgroundColor: myColor, color: myColorText }}>N</span>
+          Noche
+        </span>
+        <span className="ml-auto">Solo se muestran tus turnos asignados.</span>
       </div>
 
       {/* Counters */}
