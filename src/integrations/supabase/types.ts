@@ -1404,6 +1404,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tonnage_daily_materials: {
+        Row: {
+          created_at: string
+          id: string
+          material_date: string
+          notes: string | null
+          qty_arenas_a: number
+          qty_arenas_b: number
+          qty_sulfatos: number
+          qty_tortas: number
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_date: string
+          notes?: string | null
+          qty_arenas_a?: number
+          qty_arenas_b?: number
+          qty_sulfatos?: number
+          qty_tortas?: number
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_date?: string
+          notes?: string | null
+          qty_arenas_a?: number
+          qty_arenas_b?: number
+          qty_sulfatos?: number
+          qty_tortas?: number
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: []
+      }
       tonnage_trips: {
         Row: {
           created_at: string

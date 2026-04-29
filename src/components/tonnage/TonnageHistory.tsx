@@ -47,16 +47,67 @@ const TonnageHistory = () => {
   const tolvaCount = dayTrips.filter((t) => t.trip_type === "tolva").length;
   const acopioCount = dayTrips.filter((t) => t.trip_type === "acopio").length;
 
-  // Materiales del día: suma de kg por material (a partir del camión que hizo el viaje)
-  const materialTotals = useMemo(() => {
-    const acc = { arenas: 0, tortas: 0, sulfatos: 0 } as Record<"arenas" | "tortas" | "sulfatos", number>;
-    dayTrips.forEach((t) => {
-      const truck = trucks.find((tr) => tr.id === t.truck_id);
-      const mat = (t.material_snapshot || truck?.material) as "arenas" | "tortas" | "sulfatos" | undefined;
-      if (mat && mat in acc) acc[mat] += Number(t.weight_kg) || 0;
-    });
-    return acc;
-  }, [dayTrips, trucks]);
+  // Materiales del día (entrada manual al final del día, compartida por el equipo)
+  type MatKey = "qty_tortas" | "qty_arenas_a" | "qty_arenas_b" | "qty_sulfatos";
+  const MAT_FIELDS: { key: MatKey; label: string }[] = [
+    { key: "qty_tortas", label: "Tortas" },
+    { key: "qty_arenas_a", label: "Arenas A" },
+    { key: "qty_arenas_b", label: "Arenas B" },
+    { key: "qty_sulfatos", label: "Sulfatos" },
+  ];
+  const [materials, setMaterials] = useState<Record<MatKey, string>>({
+    qty_tortas: "", qty_arenas_a: "", qty_arenas_b: "", qty_sulfatos: "",
+  });
+  const [matLoading, setMatLoading] = useState(false);
+  const [matSaving, setMatSaving] = useState(false);
+  const [matDirty, setMatDirty] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMatDirty(false);
+    setMatLoading(true);
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("tonnage_daily_materials")
+        .select("qty_tortas, qty_arenas_a, qty_arenas_b, qty_sulfatos")
+        .eq("material_date", filterDate)
+        .maybeSingle();
+      if (cancelled) return;
+      setMaterials({
+        qty_tortas: data?.qty_tortas != null ? String(data.qty_tortas) : "",
+        qty_arenas_a: data?.qty_arenas_a != null ? String(data.qty_arenas_a) : "",
+        qty_arenas_b: data?.qty_arenas_b != null ? String(data.qty_arenas_b) : "",
+        qty_sulfatos: data?.qty_sulfatos != null ? String(data.qty_sulfatos) : "",
+      });
+      setMatLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [filterDate]);
+
+  const saveMaterials = async () => {
+    setMatSaving(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const payload = {
+      material_date: filterDate,
+      qty_tortas: Number(materials.qty_tortas) || 0,
+      qty_arenas_a: Number(materials.qty_arenas_a) || 0,
+      qty_arenas_b: Number(materials.qty_arenas_b) || 0,
+      qty_sulfatos: Number(materials.qty_sulfatos) || 0,
+      updated_by_user_id: userData.user?.id ?? null,
+    };
+    const { error } = await (supabase as any)
+      .from("tonnage_daily_materials")
+      .upsert(payload, { onConflict: "material_date" });
+    setMatSaving(false);
+    if (error) {
+      const { toast } = await import("sonner");
+      toast.error("No se pudieron guardar los materiales");
+      return;
+    }
+    setMatDirty(false);
+    const { toast } = await import("sonner");
+    toast.success("✅ Materiales guardados");
+  };
 
   const shiftDay = (delta: number) => {
     const next = addDays(new Date(filterDate + "T00:00"), delta);
@@ -169,26 +220,47 @@ const TonnageHistory = () => {
         )}
       </section>
 
-      {/* Materiales del día (resumen por material para añadir al final del día) */}
+      {/* Materiales del día — entrada manual al final de la jornada */}
       <section className="panel-surface p-4">
-        <div className="mb-3">
-          <p className="text-sm font-semibold text-foreground">Materiales del día</p>
-          <p className="text-xs text-muted-foreground">
-            Total transportado por material · súmalo a tu reporte de fin de jornada
-          </p>
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Materiales del día</p>
+            <p className="text-xs text-muted-foreground">
+              Apunta las cantidades al final del día (compartido por todo el equipo)
+            </p>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          {(["arenas", "tortas", "sulfatos"] as const).map((mat) => (
-            <div key={mat} className="rounded-xl border border-border bg-muted/30 p-3 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {mat === "arenas" ? "Arenas" : mat === "tortas" ? "Tortas" : "Sulfatos"}
-              </p>
-              <p className="mt-1 text-lg font-bold text-foreground">
-                {formatKg(materialTotals[mat])}
-                <span className="ml-1 text-[10px] font-normal text-muted-foreground">kg</span>
-              </p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {MAT_FIELDS.map((f) => (
+            <div key={f.key}>
+              <Label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {f.label}
+              </Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="any"
+                placeholder="0"
+                value={materials[f.key]}
+                disabled={matLoading}
+                onChange={(e) => {
+                  setMaterials((m) => ({ ...m, [f.key]: e.target.value }));
+                  setMatDirty(true);
+                }}
+                className="h-11 text-base font-semibold"
+              />
             </div>
           ))}
+        </div>
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            onClick={() => void saveMaterials()}
+            disabled={matSaving || matLoading || !matDirty}
+            className="h-10 px-5"
+          >
+            {matSaving ? "Guardando…" : matDirty ? "Guardar materiales" : "Guardado"}
+          </Button>
         </div>
       </section>
     </div>
