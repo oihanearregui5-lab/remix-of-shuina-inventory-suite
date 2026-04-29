@@ -248,7 +248,7 @@ const AppShell = <T extends string>({
           )}
           aria-label="Navegación principal"
         >
-          {navigation(collapsed)}
+          {navigation(collapsed, true)}
         </aside>
         <div
           id="mobile-navigation"
@@ -261,7 +261,7 @@ const AppShell = <T extends string>({
             mobileMenuOpen && "translate-x-0",
           )}
         >
-          {navigation(false)}
+          {navigation(false, false)}
         </div>
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 border-b border-border/70 bg-background/92 backdrop-blur-xl">
@@ -277,17 +277,6 @@ const AppShell = <T extends string>({
                   aria-expanded={mobileMenuOpen}
                 >
                   <Menu className="h-4 w-4" />
-                </Button>
-                {/* Botón plegar/expandir en topbar (solo desktop) */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="hidden md:inline-flex"
-                  onClick={toggleCollapsed}
-                  aria-label={collapsed ? "Expandir menú" : "Plegar menú"}
-                  title={collapsed ? "Expandir menú" : "Plegar menú"}
-                >
-                  {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                 </Button>
                 <div className="min-w-0 space-y-1">
                   <div className="min-w-0">
