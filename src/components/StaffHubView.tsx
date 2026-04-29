@@ -152,9 +152,6 @@ const StaffHubView = () => {
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Asuntos propios restantes</p><p className="mt-2 text-3xl font-bold text-foreground">{Math.max(0, (myAllowance?.personal_days_base ?? 2) + (myAllowance?.personal_adjustment_days ?? 0) - approvedPersonalDays)}</p></div>
         <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Turnos hoy</p><p className="mt-2 text-3xl font-bold text-foreground">{todayShifts.length}</p></div>
       </section>
-        <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Asuntos propios restantes</p><p className="mt-2 text-3xl font-bold text-foreground">{Math.max(0, (myAllowance?.personal_days_base ?? 2) + (myAllowance?.personal_adjustment_days ?? 0) - approvedPersonalDays)}</p></div>
-        <div className="panel-surface p-4"><p className="text-sm text-muted-foreground">Turnos hoy</p><p className="mt-2 text-3xl font-bold text-foreground">{todayShifts.length}</p></div>
-      </section>
 
       <section className="grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
         <section className="panel-surface p-4">
