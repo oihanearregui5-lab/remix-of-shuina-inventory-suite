@@ -101,6 +101,8 @@ const Index = () => {
 
   useEffect(() => {
     if (!visibleSections.length) return;
+    // "account" se accede desde el dialog y no aparece en visibleSections — permitirla.
+    if (currentSection === "account") return;
     if (!visibleSections.some((section) => section.key === currentSection)) {
       setCurrentSection(visibleSections[0]?.key ?? "dashboard");
     }
