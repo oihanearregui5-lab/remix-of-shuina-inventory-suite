@@ -12,8 +12,12 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface DriverOption {
-  user_id: string;
+  /** Identificador compuesto: "user:<uuid>" si tiene cuenta, "staff:<uuid>" si solo está en directorio */
+  key: string;
+  staff_id: string;
+  user_id: string | null;
   full_name: string;
+  role: "principal" | "ocasional" | null;
 }
 
 const WEIGHT_MIN = 27500;
@@ -34,7 +38,7 @@ const TonnageRegisterTrip = () => {
   const db = supabase as any;
 
   const [truckId, setTruckId] = useState<string>("");
-  const [driverUserId, setDriverUserId] = useState<string>("");
+  const [driverKey, setDriverKey] = useState<string>("");
   const [drivers, setDrivers] = useState<DriverOption[]>([]);
   const [autoSelectedTruck, setAutoSelectedTruck] = useState(false);
 
@@ -45,35 +49,53 @@ const TonnageRegisterTrip = () => {
   const [unloadZoneId, setUnloadZoneId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
-  // Cargar lista de conductores (perfiles)
+  // Cargar lista de camioneros desde el directorio de personal
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data } = await db
-        .from("profiles")
-        .select("user_id, full_name")
+        .from("staff_directory")
+        .select("id, full_name, linked_user_id, truck_driver_role, is_truck_driver, active")
+        .eq("is_truck_driver", true)
+        .eq("active", true)
+        .order("truck_driver_role", { ascending: true })
         .order("full_name", { ascending: true });
       if (cancelled) return;
-      const list = ((data ?? []) as DriverOption[]).filter((d) => (d.full_name || "").trim().length > 0);
+      const list: DriverOption[] = ((data ?? []) as any[])
+        .filter((d) => (d.full_name || "").trim().length > 0)
+        .map((d) => ({
+          key: d.linked_user_id ? `user:${d.linked_user_id}` : `staff:${d.id}`,
+          staff_id: d.id,
+          user_id: d.linked_user_id ?? null,
+          full_name: d.full_name,
+          role: d.truck_driver_role ?? null,
+        }));
       setDrivers(list);
     })();
     return () => { cancelled = true; };
   }, [db]);
 
-  // Conductor por defecto = usuario actual
+  const selectedDriver = useMemo(
+    () => drivers.find((d) => d.key === driverKey) ?? null,
+    [drivers, driverKey],
+  );
+
+  // Conductor por defecto = usuario actual si está en la lista
   useEffect(() => {
-    if (user?.id && !driverUserId) setDriverUserId(user.id);
-  }, [user?.id, driverUserId]);
+    if (driverKey || !user?.id || drivers.length === 0) return;
+    const me = drivers.find((d) => d.user_id === user.id);
+    if (me) setDriverKey(me.key);
+  }, [user?.id, driverKey, drivers]);
 
   // Camión por defecto = el asignado al conductor seleccionado (si existe)
   useEffect(() => {
-    if (autoSelectedTruck || !driverUserId || trucks.length === 0) return;
-    const myTruck = trucks.find((t) => t.default_driver_user_id === driverUserId);
+    if (autoSelectedTruck || !selectedDriver?.user_id || trucks.length === 0) return;
+    const myTruck = trucks.find((t) => t.default_driver_user_id === selectedDriver.user_id);
     if (myTruck) {
       setTruckId(myTruck.id);
       setAutoSelectedTruck(true);
     }
-  }, [trucks, driverUserId, autoSelectedTruck]);
+  }, [trucks, selectedDriver, autoSelectedTruck]);
 
   // Actualizar la hora cada minuto para mantenerla "automática" hasta que el usuario la edite
   const [autoTime, setAutoTime] = useState(true);
@@ -118,13 +140,13 @@ const TonnageRegisterTrip = () => {
 
   const validationError = useMemo(() => {
     if (!truckId) return "Elige un camión";
-    if (!driverUserId) return "Indica el conductor";
+    if (!driverKey) return "Indica el conductor";
     if (!weightKg || weightKg < WEIGHT_MIN || weightKg > WEIGHT_MAX) return `Peso entre ${WEIGHT_MIN} y ${WEIGHT_MAX} kg`;
     if (!tripTime) return "Indica la hora";
     if (!loadZoneId) return "Falta la zona de carga";
     if (!unloadZoneId) return "Falta la zona de descarga";
     return null;
-  }, [truckId, driverUserId, weightKg, tripTime, loadZoneId, unloadZoneId]);
+  }, [truckId, driverKey, weightKg, tripTime, loadZoneId, unloadZoneId]);
 
   const handleSubmit = async () => {
     if (validationError) {
@@ -139,7 +161,9 @@ const TonnageRegisterTrip = () => {
       weight_kg: weightKg,
       load_zone_id: loadZoneId || null,
       unload_zone_id: unloadZoneId || null,
-      driver_user_id: driverUserId || null,
+      driver_user_id: selectedDriver?.user_id ?? null,
+      driver_staff_id: selectedDriver?.staff_id ?? null,
+      driver_name_snapshot: selectedDriver?.full_name ?? null,
       trip_type: tripType,
     });
     setSaving(false);
@@ -179,14 +203,25 @@ const TonnageRegisterTrip = () => {
         <Label className="mb-2 flex items-center gap-2 text-sm font-medium">
           <User className="h-4 w-4 text-primary" /> Conductor <span className="text-destructive">*</span>
         </Label>
-        <Select value={driverUserId} onValueChange={(v) => { setDriverUserId(v); setAutoSelectedTruck(false); }}>
+        <Select value={driverKey} onValueChange={(v) => { setDriverKey(v); setAutoSelectedTruck(false); }}>
           <SelectTrigger className="h-12 text-base"><SelectValue placeholder="¿Quién conduce?" /></SelectTrigger>
           <SelectContent>
-            {drivers.map((d) => (
-              <SelectItem key={d.user_id} value={d.user_id}>
-                {d.full_name}{d.user_id === user?.id ? " (tú)" : ""}
-              </SelectItem>
-            ))}
+            {(["principal", "ocasional"] as const).map((role) => {
+              const list = drivers.filter((d) => (d.role ?? "principal") === role);
+              if (list.length === 0) return null;
+              return (
+                <div key={role}>
+                  <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {role === "principal" ? "Camioneros titulares" : "Camioneros ocasionales"}
+                  </div>
+                  {list.map((d) => (
+                    <SelectItem key={d.key} value={d.key}>
+                      {d.full_name}{d.user_id && d.user_id === user?.id ? " (tú)" : ""}
+                    </SelectItem>
+                  ))}
+                </div>
+              );
+            })}
           </SelectContent>
         </Select>
       </section>
