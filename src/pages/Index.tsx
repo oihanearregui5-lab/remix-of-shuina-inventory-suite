@@ -21,7 +21,7 @@ const AccountSettingsView = lazy(() => import("@/components/AccountSettingsView"
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "account";
 type WorkspaceMode = "worker" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
