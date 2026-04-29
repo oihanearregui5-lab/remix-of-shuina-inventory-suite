@@ -47,6 +47,17 @@ const TonnageHistory = () => {
   const tolvaCount = dayTrips.filter((t) => t.trip_type === "tolva").length;
   const acopioCount = dayTrips.filter((t) => t.trip_type === "acopio").length;
 
+  // Materiales del día: suma de kg por material (a partir del camión que hizo el viaje)
+  const materialTotals = useMemo(() => {
+    const acc = { arenas: 0, tortas: 0, sulfatos: 0 } as Record<"arenas" | "tortas" | "sulfatos", number>;
+    dayTrips.forEach((t) => {
+      const truck = trucks.find((tr) => tr.id === t.truck_id);
+      const mat = (t.material_snapshot || truck?.material) as "arenas" | "tortas" | "sulfatos" | undefined;
+      if (mat && mat in acc) acc[mat] += Number(t.weight_kg) || 0;
+    });
+    return acc;
+  }, [dayTrips, trucks]);
+
   const shiftDay = (delta: number) => {
     const next = addDays(new Date(filterDate + "T00:00"), delta);
     setFilterDate(format(next, "yyyy-MM-dd"));
