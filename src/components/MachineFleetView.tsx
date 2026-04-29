@@ -315,18 +315,32 @@ const MachineFleetView = () => {
     [machineCards],
   );
 
+  const families = useMemo(() => {
+    const set = new Set<string>();
+    machineCards.forEach((m) => { if (m.asset_family) set.add(m.asset_family); });
+    return Array.from(set).sort();
+  }, [machineCards]);
+
   const filteredMachineCards = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    return machineCards.filter((machine) => {
+    const filtered = machineCards.filter((machine) => {
       const matchesStatus = statusFilter === "all" || machine.status === statusFilter;
+      const matchesFamily = familyFilter === "all" || machine.asset_family === familyFilter;
       const matchesSearch =
         !normalizedSearch ||
         [machine.display_name, machine.asset_family, machine.license_plate, machine.asset_code]
           .filter(Boolean)
           .some((value) => value!.toLowerCase().includes(normalizedSearch));
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesFamily && matchesSearch;
     });
-  }, [machineCards, searchTerm, statusFilter]);
+    // Orden: críticas (rojas) primero → atención → estables; dentro, por nombre.
+    const riskOrder: Record<string, number> = { critical: 0, attention: 1, stable: 2 };
+    return [...filtered].sort((a, b) => {
+      const r = (riskOrder[a.riskLevel] ?? 9) - (riskOrder[b.riskLevel] ?? 9);
+      if (r !== 0) return r;
+      return a.display_name.localeCompare(b.display_name);
+    });
+  }, [machineCards, searchTerm, statusFilter, familyFilter]);
 
   const openDetail = (machine: (typeof machineCards)[number]) => {
     setSelectedMachine({
