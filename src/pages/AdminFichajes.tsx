@@ -451,6 +451,13 @@ const AdminFichajes = () => {
       {entries.length === 0 && !loading && (
         <p className="text-muted-foreground text-center py-8">No hay fichajes en el rango seleccionado</p>
       )}
+
+      <AdminTimeEntryDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        entry={editEntry ? { id: editEntry.id, user_id: editEntry.user_id, clock_in: editEntry.clock_in, clock_out: editEntry.clock_out, notes: null } : null}
+        onSaved={fetchEntries}
+      />
     </div>
   );
 };
