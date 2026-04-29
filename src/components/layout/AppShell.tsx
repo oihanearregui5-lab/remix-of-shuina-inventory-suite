@@ -95,8 +95,7 @@ const AppShell = <T extends string>({
   };
 
   const openAccountSettings = () => {
-    const accountSection = visibleSections.find((s) => s.key === ("account" as T));
-    if (accountSection) onSectionChange(accountSection.key);
+    onSectionChange("account" as T);
   };
 
   const navigation = (isCollapsedDesktop: boolean, showCollapseToggle: boolean) => (
