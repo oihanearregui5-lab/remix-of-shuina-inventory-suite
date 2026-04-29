@@ -99,7 +99,7 @@ const AppShell = <T extends string>({
     if (accountSection) onSectionChange(accountSection.key);
   };
 
-  const navigation = (isCollapsedDesktop: boolean) => (
+  const navigation = (isCollapsedDesktop: boolean, showCollapseToggle: boolean) => (
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         className={cn(
@@ -107,11 +107,38 @@ const AppShell = <T extends string>({
           isCollapsedDesktop ? "px-3" : "px-5",
         )}
       >
-        <div className={cn("flex items-center", isCollapsedDesktop ? "justify-center" : "justify-start")}>
+        <div className={cn("flex items-center", isCollapsedDesktop ? "justify-center" : "justify-between")}>
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sidebar-border/80 bg-sidebar-accent/60">
             <img src="/favicon.svg" alt="Abeja Transtubari" className="h-8 w-8 object-contain" />
           </div>
+          {showCollapseToggle && (
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              aria-label={isCollapsedDesktop ? "Expandir menú" : "Plegar menú"}
+              title={isCollapsedDesktop ? "Expandir menú" : "Plegar menú"}
+              className={cn(
+                "hidden md:inline-flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
+                isCollapsedDesktop && "mt-2",
+              )}
+            >
+              {isCollapsedDesktop ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </button>
+          )}
         </div>
+        {isCollapsedDesktop && showCollapseToggle && (
+          <div className="mt-2 flex justify-center">
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              aria-label="Expandir menú"
+              title="Expandir menú"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className={cn("min-h-0 flex-1 overflow-y-auto py-4", isCollapsedDesktop ? "px-2" : "px-3")}>
@@ -175,20 +202,6 @@ const AppShell = <T extends string>({
           isCollapsedDesktop ? "px-2" : "px-4",
         )}
       >
-        {/* Botón plegar (solo en desktop) */}
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          className={cn(
-            "hidden md:flex w-full items-center gap-2 rounded-lg bg-sidebar-accent/55 px-3 py-2 text-xs font-semibold text-sidebar-foreground transition-colors hover:bg-sidebar-accent/75",
-            isCollapsedDesktop && "justify-center px-2",
-          )}
-          title={isCollapsedDesktop ? "Expandir menú" : "Plegar menú"}
-        >
-          {isCollapsedDesktop ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          {!isCollapsedDesktop && <span>Plegar</span>}
-        </button>
-
         {/* Bloque de usuario → abre Mi cuenta */}
         <button
           type="button"
