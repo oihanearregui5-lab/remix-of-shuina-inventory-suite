@@ -297,14 +297,16 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
         </div>
       </section>
 
-      {!isAdminView && openCardId && (() => {
+      {openCardId && (() => {
         const card = cardSummaries.find((c) => c.id === openCardId);
         if (!card) return null;
         const cardRecords = records
           .filter((r) => r.cardId === card.id)
           .sort((a, b) => b.date.localeCompare(a.date));
         const monthPrefix = new Date().toISOString().slice(0, 7);
-        const monthCount = cardRecords.filter((r) => r.date.startsWith(monthPrefix)).length;
+        const monthEntries = cardRecords.filter((r) => r.date.startsWith(monthPrefix));
+        const monthCount = monthEntries.length;
+        const monthTotal = monthEntries.reduce((sum, r) => sum + Number(r.amount || 0), 0);
         return (
           <div
             className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-primary/35 px-4 py-8 backdrop-blur-sm"
