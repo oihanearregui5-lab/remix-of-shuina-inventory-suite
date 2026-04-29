@@ -84,37 +84,7 @@ const VacationsJourneysView = () => {
     }
   };
 
-  const saveVacationSlot = async (payload: { worker_id: string; date: string; shift: "dia" | "tarde" | "noche"; id?: string }) => {
-    const existing = vacationSlots.find((slot) => slot.worker_id === payload.worker_id && slot.date === payload.date && slot.shift === payload.shift);
-    if (existing) {
-      toast.success("La franja ya estaba asignada");
-      return;
-    }
-    try {
-      await saveSlotMutation.mutateAsync(payload);
-      toast.success("Vacaciones actualizadas");
-    } catch {
-      toast.error("No se pudo guardar la franja");
-    }
-  };
 
-  const deleteVacationSlot = async (slotId: string) => {
-    try {
-      await deleteSlotMutation.mutateAsync(slotId);
-      toast.success("Franja liberada");
-    } catch {
-      toast.error("No se pudo quitar la franja");
-    }
-  };
-
-  const updateWorker = async (workerId: string, payload: { display_name: string; color_hex: string }) => {
-    try {
-      await updateWorkerMutation.mutateAsync({ workerId, ...payload });
-      toast.success("Trabajador actualizado");
-    } catch {
-      toast.error("No se pudo actualizar el trabajador");
-    }
-  };
 
   return (
     <div className="space-y-5 animate-fade-in">
