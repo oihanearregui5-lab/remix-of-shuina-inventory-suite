@@ -149,6 +149,26 @@ const MyAccountDialog = ({
           <Switch checked={isSimple} onCheckedChange={() => toggleMode()} />
         </div>
 
+        {/* Sonido de notificaciones */}
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
+          <div className="flex items-center gap-2">
+            {soundOn ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-muted-foreground" />}
+            <div>
+              <p className="text-sm font-semibold text-foreground">Sonido de notificaciones</p>
+              <p className="text-xs text-muted-foreground">
+                Suena un aviso suave al recibir un mensaje nuevo.
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={soundOn}
+            onCheckedChange={(v) => {
+              setSoundOn(v);
+              setNotificationSoundEnabled(v);
+            }}
+          />
+        </div>
+
         {/* Cambiar espacio */}
         {canChangeWorkspace && onChangeWorkspace && (
           <Button
