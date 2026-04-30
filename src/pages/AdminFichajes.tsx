@@ -187,7 +187,7 @@ const AdminFichajes = () => {
     );
   }
 
-  const byEmployee = filteredEntries.reduce<Record<string, { name: string; entries: EntryWithProfile[] }>>(
+  const byEmployee = filteredEntries.reduce<Record<string, { name: string; entries: EntryWithProfile[]; staffId?: string }>>(
     (acc, e) => {
       const name = e.profiles?.full_name ?? "Desconocido";
       if (!acc[e.user_id]) acc[e.user_id] = { name, entries: [] };
@@ -196,6 +196,14 @@ const AdminFichajes = () => {
     },
     {}
   );
+  // Añadir todos los trabajadores del directorio aunque no tengan fichajes,
+  // para que aparezcan como "carpeta" abrible con su ficha (Abel, David, Jon, Raquel, etc.).
+  allStaff.forEach((s) => {
+    const key = s.linked_user_id ?? `staff:${s.id}`;
+    if (!byEmployee[key]) {
+      byEmployee[key] = { name: s.full_name, entries: [], staffId: s.id };
+    }
+  });
   const adminHoursSummary = summarizeEntriesForRange(filteredEntries, new Date(`${dateFrom}T00:00:00`), new Date(`${dateTo}T23:59:59`));
 
   return (
