@@ -8,6 +8,7 @@ import { UIModeProvider } from "@/hooks/useUIMode";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import PWABanner from "@/components/shared/PWABanner";
 import OfflineBanner from "@/components/shared/OfflineBanner";
+import OfflineIndicator from "@/components/shared/OfflineIndicator";
 import { shouldRetryError } from "@/lib/error-utils";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -89,6 +90,7 @@ const App = () => {
               <Sonner />
               <BrowserRouter>
                 <OfflineBanner />
+                <OfflineIndicator />
                 <PWABanner />
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
