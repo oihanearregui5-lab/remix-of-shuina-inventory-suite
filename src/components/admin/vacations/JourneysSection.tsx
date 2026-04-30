@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { addDays, eachDayOfInterval, endOfWeek, format, startOfWeek, startOfYear } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Eye, Loader2, Pencil } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Eye, Loader2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { useTranstubariData } from "@/hooks/useTranstubariData";
