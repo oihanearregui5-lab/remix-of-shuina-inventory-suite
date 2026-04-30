@@ -1,6 +1,5 @@
-import { ArrowDown, ArrowUp, Bell, BellOff, Eye, EyeOff, LogOut, RefreshCcw, RotateCcw, Save, Sparkles, UserCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "@/hooks/use-toast";
+import { ArrowDown, ArrowUp, Bell, BellOff, Eye, EyeOff, LogOut, RefreshCcw, RotateCcw, Sparkles, UserCircle } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { useUIMode } from "@/hooks/useUIMode";
-import { useNavPreferences } from "@/hooks/useNavPreferences";
+import { useNavPreferences, type NavScope } from "@/hooks/useNavPreferences";
 import { isNotificationSoundEnabled, setNotificationSoundEnabled } from "@/hooks/useNotificationSound";
 
 interface SectionItem {
@@ -45,62 +44,24 @@ const MyAccountDialog = ({
   availableSections = [],
 }: MyAccountDialogProps) => {
   const { isSimple, toggleMode } = useUIMode();
-  const { prefs, savePrefs, reset } = useNavPreferences();
+  // Usamos el SCOPE del espacio activo. Cada espacio tiene sus propias prefs.
+  const scope: NavScope = workspaceMode;
+  const { prefs, toggleHidden, moveSection, reset } = useNavPreferences(scope);
   const [soundOn, setSoundOn] = useState(isNotificationSoundEnabled());
-
-  // Estado borrador local: los cambios sólo se aplican al pulsar "Guardar".
-  const [draft, setDraft] = useState(prefs);
-  useEffect(() => {
-    if (open) setDraft(prefs);
-  }, [open, prefs]);
 
   const allKeys = availableSections.map((s) => s.key);
 
-  // Construir orden actual aplicando el borrador.
+  // Construir orden actual aplicando preferencias al instante (sin draft).
   const orderedSections = useMemo(() => {
     const ordered: string[] = [];
-    for (const k of draft.order) {
+    for (const k of prefs.order) {
       if (allKeys.includes(k) && !ordered.includes(k)) ordered.push(k);
     }
     for (const k of allKeys) {
       if (!ordered.includes(k)) ordered.push(k);
     }
     return ordered.map((k) => availableSections.find((s) => s.key === k)!).filter(Boolean);
-  }, [availableSections, draft.order, allKeys]);
-
-  const isDirty =
-    JSON.stringify(draft.hidden) !== JSON.stringify(prefs.hidden) ||
-    JSON.stringify(draft.order) !== JSON.stringify(prefs.order);
-
-  const toggleHiddenDraft = (key: string) => {
-    setDraft((d) => ({
-      ...d,
-      hidden: d.hidden.includes(key) ? d.hidden.filter((k) => k !== key) : [...d.hidden, key],
-    }));
-  };
-
-  const moveSectionDraft = (key: string, direction: "up" | "down") => {
-    const current = [
-      ...draft.order.filter((k) => allKeys.includes(k)),
-      ...allKeys.filter((k) => !draft.order.includes(k)),
-    ];
-    const idx = current.indexOf(key);
-    if (idx < 0) return;
-    const target = direction === "up" ? idx - 1 : idx + 1;
-    if (target < 0 || target >= current.length) return;
-    const next = [...current];
-    [next[idx], next[target]] = [next[target], next[idx]];
-    setDraft((d) => ({ ...d, order: next }));
-  };
-
-  const handleSave = async () => {
-    await savePrefs(draft);
-    toast({ title: "Menú guardado", description: "Tus cambios ya se ven en la barra de navegación." });
-  };
-
-  const handleResetDraft = () => {
-    setDraft({ hidden: [], order: [] });
-  };
+  }, [availableSections, prefs.order, allKeys]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -190,16 +151,19 @@ const MyAccountDialog = ({
               <div>
                 <p className="text-sm font-semibold text-foreground">Personalizar menú</p>
                 <p className="text-xs text-muted-foreground">
-                  Oculta o reordena las secciones a tu gusto.
+                  Oculta o reordena las secciones — los cambios se aplican al instante.
+                </p>
+                <p className="mt-1 text-[10px] text-muted-foreground/70">
+                  Espacio: <span className="font-semibold">{workspaceMode === "admin" ? "Administración" : "Trabajador"}</span>
                 </p>
               </div>
-              <Button size="sm" variant="ghost" onClick={handleResetDraft} className="gap-1 text-xs" title="Restaurar predeterminado">
+              <Button size="sm" variant="ghost" onClick={() => reset()} className="gap-1 text-xs" title="Restaurar predeterminado">
                 <RotateCcw className="h-3.5 w-3.5" /> Restaurar
               </Button>
             </div>
             <ul className="space-y-1.5">
               {orderedSections.map((section, index) => {
-                const isHidden = draft.hidden.includes(section.key);
+                const isHidden = prefs.hidden.includes(section.key);
                 return (
                   <li
                     key={section.key}
@@ -208,7 +172,7 @@ const MyAccountDialog = ({
                     <div className="flex flex-col">
                       <button
                         type="button"
-                        onClick={() => moveSectionDraft(section.key, "up")}
+                        onClick={() => moveSection(section.key, "up", allKeys)}
                         disabled={index === 0}
                         aria-label={`Subir ${section.label}`}
                         className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
@@ -217,7 +181,7 @@ const MyAccountDialog = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => moveSectionDraft(section.key, "down")}
+                        onClick={() => moveSection(section.key, "down", allKeys)}
                         disabled={index === orderedSections.length - 1}
                         aria-label={`Bajar ${section.label}`}
                         className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
@@ -231,20 +195,13 @@ const MyAccountDialog = ({
                     {isHidden ? <EyeOff className="h-3.5 w-3.5 text-muted-foreground" /> : <Eye className="h-3.5 w-3.5 text-primary" />}
                     <Switch
                       checked={!isHidden}
-                      onCheckedChange={() => toggleHiddenDraft(section.key)}
+                      onCheckedChange={() => toggleHidden(section.key)}
                       aria-label={isHidden ? `Mostrar ${section.label}` : `Ocultar ${section.label}`}
                     />
                   </li>
                 );
               })}
             </ul>
-            <Button
-              onClick={handleSave}
-              disabled={!isDirty}
-              className="mt-3 w-full gap-2"
-            >
-              <Save className="h-4 w-4" /> Guardar cambios
-            </Button>
           </div>
         )}
 
