@@ -46,6 +46,7 @@ const MyAccountDialog = ({
 }: MyAccountDialogProps) => {
   const { isSimple, toggleMode } = useUIMode();
   const { prefs, savePrefs, reset } = useNavPreferences();
+  const [soundOn, setSoundOn] = useState(isNotificationSoundEnabled());
 
   // Estado borrador local: los cambios sólo se aplican al pulsar "Guardar".
   const [draft, setDraft] = useState(prefs);
