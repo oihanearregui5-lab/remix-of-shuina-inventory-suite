@@ -32,6 +32,7 @@ const AdminFichajes = () => {
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [entries, setEntries] = useState<EntryWithProfile[]>([]);
   const [staffColors, setStaffColors] = useState<Map<string, { color: string; staffId: string }>>(new Map());
+  const [allStaff, setAllStaff] = useState<Array<{ id: string; full_name: string; color: string; linked_user_id: string | null }>>([]);
   const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
   const [editEntry, setEditEntry] = useState<EntryWithProfile | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -78,15 +79,30 @@ const AdminFichajes = () => {
     const loadStaffColors = async () => {
       const { data } = await (supabase as any)
         .from("staff_directory")
-        .select("id, color_tag, linked_user_id")
-        .not("linked_user_id", "is", null);
+        .select("id, full_name, color_tag, linked_user_id")
+        .eq("active", true)
+        .order("sort_order");
       const map = new Map<string, { color: string; staffId: string }>();
+      const list: Array<{ id: string; full_name: string; color: string; linked_user_id: string | null }> = [];
+      const palette: Record<string, string> = {
+        red: "#ef4444", indigo: "#6366f1", teal: "#14b8a6", slate: "#64748b",
+        amber: "#f59e0b", blue: "#3b82f6", emerald: "#10b981", orange: "#f97316",
+        violet: "#8b5cf6", cyan: "#06b6d4", rose: "#f43f5e", lime: "#84cc16", yellow: "#eab308",
+      };
+      const toHex = (tag: string | null) => {
+        if (!tag) return "#4F5A7A";
+        if (tag.startsWith("#")) return tag;
+        return palette[tag] || "#4F5A7A";
+      };
       (data ?? []).forEach((row: any) => {
+        const color = toHex(row.color_tag);
+        list.push({ id: row.id, full_name: row.full_name, color, linked_user_id: row.linked_user_id });
         if (row.linked_user_id) {
-          map.set(row.linked_user_id, { color: row.color_tag || "#4F5A7A", staffId: row.id });
+          map.set(row.linked_user_id, { color, staffId: row.id });
         }
       });
       setStaffColors(map);
+      setAllStaff(list);
     };
     if (canViewAdmin) void loadStaffColors();
   }, [canViewAdmin]);
