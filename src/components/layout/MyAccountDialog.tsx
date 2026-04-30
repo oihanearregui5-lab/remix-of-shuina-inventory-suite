@@ -1,5 +1,6 @@
-import { ArrowDown, ArrowUp, Eye, EyeOff, LogOut, RefreshCcw, RotateCcw, Sparkles, UserCircle } from "lucide-react";
-import { useMemo } from "react";
+import { ArrowDown, ArrowUp, Eye, EyeOff, LogOut, RefreshCcw, RotateCcw, Save, Sparkles, UserCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
