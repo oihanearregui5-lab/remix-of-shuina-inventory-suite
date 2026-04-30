@@ -221,7 +221,7 @@ const TonnageMonthlyTable = () => {
     // Fila vacía
     aoa.push([]);
     // Cabecera (fila 3): "Día" + nombres de camiones + métricas
-    const header = ["Día", ...trucks.map((t) => `#${t.truck_number} ${t.label}`), "Nº VIAJES", "Peso total", "Media"];
+    const header = ["Día", ...trucks.map((t) => `#${t.truck_number} ${t.label}`), "Nº VIAJES", "Peso total", "Media", "Arenas", "Tortas", "Sulfatos", "Total mat."];
     aoa.push(header);
 
     // Filas día a día
@@ -244,6 +244,9 @@ const TonnageMonthlyTable = () => {
       row.push(dayCount);
       row.push(Math.round(dayTotal));
       row.push(dayCount > 0 ? Math.round(dayTotal / dayCount) : "");
+      const m = materialDayMap.get(dateStr);
+      const ar = m?.arenas ?? 0; const to = m?.tortas ?? 0; const su = m?.sulfatos ?? 0;
+      row.push(ar || ""); row.push(to || ""); row.push(su || ""); row.push((ar + to + su) || "");
       aoa.push(row);
     }
 
@@ -253,6 +256,10 @@ const TonnageMonthlyTable = () => {
     totalRow.push(totalViajes);
     totalRow.push(Math.round(totalKg));
     totalRow.push(totalViajes > 0 ? Math.round(avgKg) : "");
+    totalRow.push(materialTotals.arenas || "");
+    totalRow.push(materialTotals.tortas || "");
+    totalRow.push(materialTotals.sulfatos || "");
+    totalRow.push(materialTotals.total || "");
     aoa.push(totalRow);
 
     // Crear libro
