@@ -417,7 +417,7 @@ const AppShell = <T extends string>({
         onChangeWorkspace={onChangeWorkspace}
         onOpenAccountSettings={openAccountSettings}
         onSignOut={onSignOut}
-        availableSections={visibleSections.map((s) => ({ key: s.key, label: s.label }))}
+        availableSections={(allSections ?? visibleSections).map((s) => ({ key: s.key, label: s.label }))}
       />
     </div>
   );
