@@ -36,13 +36,20 @@ interface LogRow {
 }
 
 const ITEMS = [
-  { key: "hydraulic_oil", label: "Aceite hidráulico" },
-  { key: "engine_oil", label: "Aceite motor" },
-  { key: "coolant", label: "Anticongelante" },
-  { key: "adblue", label: "AdBlue" },
+  { key: "hydraulic_oil", label: "Aceite hidráulico", Icon: Droplet },
+  { key: "engine_oil", label: "Aceite motor", Icon: Flame },
+  { key: "coolant", label: "Refrigerante", Icon: Snowflake },
+  { key: "adblue", label: "AdBlue", Icon: Beaker },
+] as const;
+
+const EXTRAS = [
+  { key: "air_filters", label: "Filtros aire", Icon: Wind },
+  { key: "fuel_filters", label: "Filtros combustible", Icon: Fuel },
+  { key: "general_greasing", label: "Engrase general", Icon: Wrench },
 ] as const;
 
 type ItemKey = (typeof ITEMS)[number]["key"];
+type ExtraKey = (typeof EXTRAS)[number]["key"];
 
 const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }: Props) => {
   const { user, isAdmin } = useAuth();
