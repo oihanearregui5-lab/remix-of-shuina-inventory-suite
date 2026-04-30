@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import NotificationsBell from "@/components/shared/NotificationsBell";
 import GlobalSearchDialog from "@/components/shared/GlobalSearchDialog";
 import MyAccountDialog from "@/components/layout/MyAccountDialog";
+import { useUnreadCounts } from "@/hooks/useUnreadCounts";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 
 export interface AppShellSection<T extends string> {
   key: T;
@@ -52,6 +54,8 @@ const AppShell = <T extends string>({
   children,
 }: AppShellProps<T>) => {
   const visibleSections = useMemo(() => sections, [sections]);
+  const { counts } = useUnreadCounts();
+  useNotificationSound();
   const activeSection = visibleSections.find((section) => section.key === currentSection) ?? visibleSections[0];
   const mobilePrimarySections = useMemo(() => {
     const preferred = visibleSections.filter((section) => section.mobilePrimary).slice(0, 5);
@@ -166,11 +170,23 @@ const AppShell = <T extends string>({
                       : "bg-sidebar-accent/80 text-sidebar-foreground",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" />
                 </span>
                 {!isCollapsedDesktop && (
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium">{section.label}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="block flex-1 text-sm font-medium">{section.label}</span>
+                      {section.key === "chat" && counts.chat > 0 && (
+                        <span className="rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground animate-pulse">
+                          {counts.chat > 99 ? "99+" : counts.chat}
+                        </span>
+                      )}
+                      {section.key === "tasks" && counts.tasks > 0 && (
+                        <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                          {counts.tasks > 99 ? "99+" : counts.tasks}
+                        </span>
+                      )}
+                    </span>
                     <span className="mt-0.5 block text-xs leading-5 text-sidebar-foreground/75">
                       {section.description}
                     </span>
@@ -366,12 +382,22 @@ const AppShell = <T extends string>({
                 aria-current={isActive ? "page" : undefined}
                 aria-label={section.label}
                 className={cn(
-                  "flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center text-[11px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "relative flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center text-[11px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   isActive ? "bg-primary text-primary-foreground shadow-[var(--shadow-soft)]" : "bg-card text-muted-foreground",
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden="true" />
                 <span className="truncate">{section.label}</span>
+                {section.key === "chat" && counts.chat > 0 && (
+                  <span className="absolute right-1 top-1 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-destructive-foreground">
+                    {counts.chat > 9 ? "9+" : counts.chat}
+                  </span>
+                )}
+                {section.key === "tasks" && counts.tasks > 0 && (
+                  <span className="absolute right-1 top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">
+                    {counts.tasks > 9 ? "9+" : counts.tasks}
+                  </span>
+                )}
               </button>
             );
           })}

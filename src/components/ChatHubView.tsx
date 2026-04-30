@@ -311,6 +311,15 @@ const ChatHubView = () => {
       persistLastSeen(nextSeen);
     }
 
+    if (markAsSeen) {
+      try {
+        await (supabase as any).rpc("mark_channel_read", { p_channel_id: channelId });
+        window.dispatchEvent(new CustomEvent("chat-channel-read"));
+      } catch {
+        // silencio
+      }
+    }
+
     setLoadingMessages(false);
     setChatError(null);
     void fetchChannelSummaries();

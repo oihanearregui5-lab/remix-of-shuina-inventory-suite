@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Eye, EyeOff, LogOut, RefreshCcw, RotateCcw, Save, Sparkles, UserCircle } from "lucide-react";
+import { ArrowDown, ArrowUp, Bell, BellOff, Eye, EyeOff, LogOut, RefreshCcw, RotateCcw, Save, Sparkles, UserCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useUIMode } from "@/hooks/useUIMode";
 import { useNavPreferences } from "@/hooks/useNavPreferences";
+import { isNotificationSoundEnabled, setNotificationSoundEnabled } from "@/hooks/useNotificationSound";
 
 interface SectionItem {
   key: string;
@@ -45,6 +46,7 @@ const MyAccountDialog = ({
 }: MyAccountDialogProps) => {
   const { isSimple, toggleMode } = useUIMode();
   const { prefs, savePrefs, reset } = useNavPreferences();
+  const [soundOn, setSoundOn] = useState(isNotificationSoundEnabled());
 
   // Estado borrador local: los cambios sólo se aplican al pulsar "Guardar".
   const [draft, setDraft] = useState(prefs);
@@ -145,6 +147,26 @@ const MyAccountDialog = ({
             </div>
           </div>
           <Switch checked={isSimple} onCheckedChange={() => toggleMode()} />
+        </div>
+
+        {/* Sonido de notificaciones */}
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
+          <div className="flex items-center gap-2">
+            {soundOn ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-muted-foreground" />}
+            <div>
+              <p className="text-sm font-semibold text-foreground">Sonido de notificaciones</p>
+              <p className="text-xs text-muted-foreground">
+                Suena un aviso suave al recibir un mensaje nuevo.
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={soundOn}
+            onCheckedChange={(v) => {
+              setSoundOn(v);
+              setNotificationSoundEnabled(v);
+            }}
+          />
         </div>
 
         {/* Cambiar espacio */}
