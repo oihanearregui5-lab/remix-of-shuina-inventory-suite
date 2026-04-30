@@ -54,6 +54,8 @@ const AppShell = <T extends string>({
   children,
 }: AppShellProps<T>) => {
   const visibleSections = useMemo(() => sections, [sections]);
+  const { counts } = useUnreadCounts();
+  useNotificationSound();
   const activeSection = visibleSections.find((section) => section.key === currentSection) ?? visibleSections[0];
   const mobilePrimarySections = useMemo(() => {
     const preferred = visibleSections.filter((section) => section.mobilePrimary).slice(0, 5);
