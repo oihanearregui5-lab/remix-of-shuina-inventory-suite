@@ -1,10 +1,13 @@
 import { lazy, Suspense, useState } from "react";
 import { Truck, Wrench, AlertTriangle, BarChart3 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/useAuth";
 
 const MachineFleetView = lazy(() => import("@/components/MachineFleetView"));
 const MaintenanceAnalyticsView = lazy(() => import("@/components/machines/MaintenanceAnalyticsView"));
+
+interface MachineHubProps {
+  isAdminView?: boolean;
+}
 
 const SubviewLoader = () => (
   <div className="space-y-3">
