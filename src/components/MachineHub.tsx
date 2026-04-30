@@ -1,9 +1,8 @@
 import { lazy, Suspense, useState } from "react";
-import { Truck, Droplet } from "lucide-react";
+import { Truck, Wrench, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MachineFleetView = lazy(() => import("@/components/MachineFleetView"));
-const ConsumablesView = lazy(() => import("@/components/machines/ConsumablesView"));
 
 const SubviewLoader = () => (
   <div className="space-y-3">
@@ -19,12 +18,15 @@ const MachineHub = () => {
   return (
     <div className="space-y-4 animate-fade-in">
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="!grid w-full grid-cols-2 h-auto">
+        <TabsList className="!grid w-full grid-cols-3 h-auto">
           <TabsTrigger value="flota" className="gap-2 py-2.5">
             <Truck className="h-4 w-4" /> Flota
           </TabsTrigger>
-          <TabsTrigger value="consumibles" className="gap-2 py-2.5">
-            <Droplet className="h-4 w-4" /> Consumibles
+          <TabsTrigger value="averia" className="gap-2 py-2.5">
+            <AlertTriangle className="h-4 w-4" /> Avería
+          </TabsTrigger>
+          <TabsTrigger value="mantenimiento" className="gap-2 py-2.5">
+            <Wrench className="h-4 w-4" /> Mantenimiento
           </TabsTrigger>
         </TabsList>
 
@@ -32,8 +34,11 @@ const MachineHub = () => {
           <TabsContent value="flota" className="mt-0">
             <MachineFleetView />
           </TabsContent>
-          <TabsContent value="consumibles" className="mt-0">
-            <ConsumablesView />
+          <TabsContent value="averia" className="mt-0">
+            <MachineFleetView defaultStatusFilter="repair" />
+          </TabsContent>
+          <TabsContent value="mantenimiento" className="mt-0">
+            <MachineFleetView defaultStatusFilter="maintenance" />
           </TabsContent>
         </Suspense>
       </Tabs>

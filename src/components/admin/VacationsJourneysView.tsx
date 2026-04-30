@@ -22,7 +22,7 @@ import type { FichajeRow } from "./vacations/vacation-types";
 const sections = [
   { key: "clockings", label: "Fichajes", icon: Clock3 },
   { key: "general", label: "Calendario general", icon: CalendarRange },
-  { key: "excel", label: "Jornadas (planilla)", icon: ClipboardList },
+  { key: "excel", label: "Jornadas", icon: ClipboardList },
   { key: "workers", label: "Ficha por trabajador", icon: UserSquare2 },
 ] as const;
 
