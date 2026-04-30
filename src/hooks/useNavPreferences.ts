@@ -167,7 +167,7 @@ export const useNavPreferences = () => {
     void persist(EMPTY);
   }, [persist]);
 
-  return { prefs, loaded, toggleHidden, moveSection, reset };
+  return { prefs, loaded, toggleHidden, moveSection, reset, savePrefs: persist };
 };
 
 /**
