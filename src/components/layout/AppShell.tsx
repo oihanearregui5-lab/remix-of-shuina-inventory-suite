@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import NotificationsBell from "@/components/shared/NotificationsBell";
 import GlobalSearchDialog from "@/components/shared/GlobalSearchDialog";
 import MyAccountDialog from "@/components/layout/MyAccountDialog";
+import { useUnreadCounts } from "@/hooks/useUnreadCounts";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 
 export interface AppShellSection<T extends string> {
   key: T;
