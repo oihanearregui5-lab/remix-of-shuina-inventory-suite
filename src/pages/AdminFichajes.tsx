@@ -405,13 +405,15 @@ const AdminFichajes = () => {
       </div>
 
       {/* By employee — agrupados como carpetas individuales por trabajador */}
-      {Object.entries(byEmployee).map(([userId, { name, entries: empEntries }]) => {
+      {Object.entries(byEmployee).map(([userId, { name, entries: empEntries, staffId: directStaffId }]) => {
         const totalMins = empEntries.reduce(
           (sum, e) => sum + (e.clock_out ? differenceInMinutes(new Date(e.clock_out), new Date(e.clock_in)) : 0),
           0
         );
         const staffInfo = staffColors.get(userId);
-        const color = staffInfo?.color || "#4F5A7A";
+        const directStaff = directStaffId ? allStaff.find((s) => s.id === directStaffId) : null;
+        const color = staffInfo?.color || directStaff?.color || "#4F5A7A";
+        const resolvedStaffId = staffInfo?.staffId || directStaffId || null;
         const isExpanded = expandedEmployees.has(userId);
         return (
           <div key={userId} className="mb-3">
@@ -422,9 +424,9 @@ const AdminFichajes = () => {
               style={{ borderLeft: `4px solid ${color}` }}
               onDoubleClick={(e) => {
                 e.preventDefault();
-                if (staffInfo) setSelectedWorkerId(staffInfo.staffId);
+                if (resolvedStaffId) setSelectedWorkerId(resolvedStaffId);
               }}
-              title={staffInfo ? "Clic para abrir/cerrar · doble clic para ver ficha" : "Clic para abrir/cerrar"}
+              title={resolvedStaffId ? "Clic para abrir/cerrar · doble clic para ver ficha" : "Clic para abrir/cerrar"}
             >
               <div className="flex items-center gap-3">
                 {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
