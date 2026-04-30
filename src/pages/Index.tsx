@@ -180,6 +180,8 @@ const Index = () => {
         return <AdminHubView />;
       case "vacations":
         return <VacationsJourneysView />;
+      case "analytics":
+        return <AnalyticsDashboardView />;
       case "fichajes":
       default:
         return workspaceMode === "admin" && canViewAdmin ? <AdminFichajes /> : <Fichajes />;
