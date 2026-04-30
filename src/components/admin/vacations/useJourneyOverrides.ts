@@ -8,7 +8,7 @@ export interface JourneyOverride {
   id: string;
   journey_date: string;
   shift: ShiftCode;
-  staff_member_id: string | null;
+  staff_member_id: string | null; // null = "vaciado" explícito
   color: string | null;
   badge_label: string | null;
 }
@@ -16,6 +16,8 @@ export interface JourneyOverride {
 export type OverrideMap = Map<string, JourneyOverride>;
 
 const overrideKey = (date: string, shift: ShiftCode) => `${date}__${shift}`;
+
+const TEMP_PREFIX = "__optimistic__";
 
 export const useJourneyOverrides = (visibleDates: Date[]) => {
   const [overrides, setOverrides] = useState<OverrideMap>(new Map());
@@ -74,8 +76,39 @@ export const useJourneyOverrides = (visibleDates: Date[]) => {
     [overrides],
   );
 
+  // Update optimista de la celda — sin toasts en éxito.
+  const applyOptimistic = useCallback(
+    (date: string, shift: ShiftCode, staffMemberId: string | null, color: string | null) => {
+      const key = overrideKey(date, shift);
+      setOverrides((current) => {
+        const next = new Map(current);
+        const previous = next.get(key);
+        next.set(key, {
+          id: previous?.id ?? `${TEMP_PREFIX}${key}`,
+          journey_date: date,
+          shift,
+          staff_member_id: staffMemberId,
+          color,
+          badge_label: previous?.badge_label ?? null,
+        });
+        return next;
+      });
+    },
+    [],
+  );
+
+  const removeOptimistic = useCallback((date: string, shift: ShiftCode) => {
+    const key = overrideKey(date, shift);
+    setOverrides((current) => {
+      const next = new Map(current);
+      next.delete(key);
+      return next;
+    });
+  }, []);
+
   const setAssignment = useCallback(
     async (date: string, shift: ShiftCode, staffMemberId: string, color?: string | null) => {
+      applyOptimistic(date, shift, staffMemberId, color ?? null);
       const { error } = await supabase.rpc("set_journey_assignment", {
         p_journey_date: date,
         p_shift: shift,
@@ -86,30 +119,49 @@ export const useJourneyOverrides = (visibleDates: Date[]) => {
       if (error) {
         console.error("Error asignando turno", error);
         toast.error(error.message ?? "No se pudo asignar el turno");
+        await fetchOverrides();
         throw error;
       }
-      toast.success("Turno asignado");
-      await fetchOverrides();
+      // Sin toast: la celda ya muestra el cambio.
     },
-    [fetchOverrides],
+    [applyOptimistic, fetchOverrides],
   );
 
+  // "Vaciar" deja un override con staff_member_id NULL → la celda se ve como "—" aunque el Excel tenga gente.
   const clearAssignment = useCallback(
     async (date: string, shift: ShiftCode) => {
+      applyOptimistic(date, shift, null, null);
       const { error } = await supabase.rpc("clear_journey_assignment", {
         p_journey_date: date,
         p_shift: shift,
       });
       if (error) {
-        console.error("Error limpiando turno", error);
+        console.error("Error vaciando turno", error);
         toast.error(error.message ?? "No se pudo vaciar el turno");
+        await fetchOverrides();
         throw error;
       }
-      toast.success("Turno vaciado");
-      await fetchOverrides();
     },
-    [fetchOverrides],
+    [applyOptimistic, fetchOverrides],
   );
 
-  return { overrides, getOverride, setAssignment, clearAssignment, refetch: fetchOverrides };
+  // Restaura el valor del Excel borrando el override por completo.
+  const restoreFromExcel = useCallback(
+    async (date: string, shift: ShiftCode) => {
+      removeOptimistic(date, shift);
+      const { error } = await supabase.rpc("delete_journey_assignment", {
+        p_journey_date: date,
+        p_shift: shift,
+      });
+      if (error) {
+        console.error("Error restaurando turno", error);
+        toast.error(error.message ?? "No se pudo restaurar el turno");
+        await fetchOverrides();
+        throw error;
+      }
+    },
+    [removeOptimistic, fetchOverrides],
+  );
+
+  return { overrides, getOverride, setAssignment, clearAssignment, restoreFromExcel, refetch: fetchOverrides };
 };
