@@ -1210,7 +1210,7 @@ export type Database = {
           journey_date: string
           notes: string | null
           shift: string
-          staff_member_id: string
+          staff_member_id: string | null
         }
         Insert: {
           badge_label?: string | null
@@ -1221,7 +1221,7 @@ export type Database = {
           journey_date: string
           notes?: string | null
           shift: string
-          staff_member_id: string
+          staff_member_id?: string | null
         }
         Update: {
           badge_label?: string | null
@@ -1232,7 +1232,7 @@ export type Database = {
           journey_date?: string
           notes?: string | null
           shift?: string
-          staff_member_id?: string
+          staff_member_id?: string | null
         }
         Relationships: [
           {
@@ -2070,6 +2070,10 @@ export type Database = {
         Args: { _description: string; _member_ids: string[]; _name: string }
         Returns: string
       }
+      delete_journey_assignment: {
+        Args: { p_journey_date: string; p_shift: string }
+        Returns: boolean
+      }
       ensure_current_user_setup: {
         Args: { _full_name?: string }
         Returns: undefined
@@ -2096,7 +2100,7 @@ export type Database = {
           p_color?: string
           p_journey_date: string
           p_shift: string
-          p_staff_member_id: string
+          p_staff_member_id?: string
         }
         Returns: string
       }

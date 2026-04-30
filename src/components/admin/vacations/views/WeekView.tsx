@@ -21,9 +21,10 @@ interface Props {
   getOverride?: (date: string, shift: ShiftCode) => JourneyOverride | null;
   onAssign?: (date: string, shift: ShiftCode, staffMemberId: string, color?: string | null) => Promise<void>;
   onClear?: (date: string, shift: ShiftCode) => Promise<void>;
+  onRestore?: (date: string, shift: ShiftCode) => Promise<void>;
 }
 
-const WeekView = ({ data, weekDays, holidaysByDate, selectedWorkerId, getDisplayWorker, onClickWorker, editMode, allWorkers, getOverride, onAssign, onClear }: Props) => {
+const WeekView = ({ data, weekDays, holidaysByDate, selectedWorkerId, getDisplayWorker, onClickWorker, editMode, allWorkers, getOverride, onAssign, onClear, onRestore }: Props) => {
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <div className="grid min-w-[980px]" style={{ gridTemplateColumns: "90px repeat(7, minmax(0, 1fr))" }}>
@@ -73,6 +74,7 @@ const WeekView = ({ data, weekDays, holidaysByDate, selectedWorkerId, getDisplay
                   allWorkers={allWorkers}
                   onAssign={onAssign}
                   onClear={onClear}
+                  onRestore={onRestore}
                 />
               </div>
             ))}

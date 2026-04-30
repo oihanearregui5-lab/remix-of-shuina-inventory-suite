@@ -20,9 +20,10 @@ interface Props {
   getOverride?: (date: string, shift: ShiftCode) => JourneyOverride | null;
   onAssign?: (date: string, shift: ShiftCode, staffMemberId: string, color?: string | null) => Promise<void>;
   onClear?: (date: string, shift: ShiftCode) => Promise<void>;
+  onRestore?: (date: string, shift: ShiftCode) => Promise<void>;
 }
 
-const DayView = ({ data, anchorDate, holidaysByDate, selectedWorkerId, getDisplayWorker, onClickWorker, editMode, allWorkers, getOverride, onAssign, onClear }: Props) => {
+const DayView = ({ data, anchorDate, holidaysByDate, selectedWorkerId, getDisplayWorker, onClickWorker, editMode, allWorkers, getOverride, onAssign, onClear, onRestore }: Props) => {
   const holiday = holidaysByDate.get(toDateKey(anchorDate));
 
   return (
@@ -55,6 +56,7 @@ const DayView = ({ data, anchorDate, holidaysByDate, selectedWorkerId, getDispla
                 allWorkers={allWorkers}
                 onAssign={onAssign}
                 onClear={onClear}
+                onRestore={onRestore}
               />
             </div>
           </div>
