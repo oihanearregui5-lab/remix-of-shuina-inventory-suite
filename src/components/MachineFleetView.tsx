@@ -734,6 +734,13 @@ const MachineFleetView = ({ defaultStatusFilter = "all", hideHeader = false }: M
         onCountChange={(machineId, count) => setPhotoCounts((current) => ({ ...current, [machineId]: count }))}
       />
 
+      <MachineMaintenanceDialog
+        open={Boolean(maintenanceDialog)}
+        machineId={maintenanceDialog?.id ?? null}
+        machineName={maintenanceDialog?.name ?? ""}
+        onOpenChange={(open) => !open && setMaintenanceDialog(null)}
+      />
+
       {/* Dialog alta/edición */}
       <Dialog open={formDialogOpen} onOpenChange={setFormDialogOpen}>
         <DialogContent className="max-w-lg">
