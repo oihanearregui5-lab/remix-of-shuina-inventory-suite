@@ -46,6 +46,7 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "vacations", label: "Calendario", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
   { key: "albaranes", label: "Albaranes", description: "Registro de pedidos por proveedor, destino y máquina.", icon: ReceiptText, workspace: "admin" },
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
+  { key: "analytics", label: "Analítica", description: "KPIs, gráficas y alertas operativas.", icon: BarChart3, workspace: "admin", adminOnly: true },
 ];
 
 const WORKSPACE_KEY = "transtubari-workspace-mode";
@@ -92,10 +93,11 @@ const Index = () => {
       "staff",          // ambos
       "vacations",      // admin
       "albaranes",      // ambos
+      "analytics",      // admin
     ];
     const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
-      ? ["fichajes", "admin", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff"]
+      ? ["fichajes", "admin", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
     const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
     const allowed = unifiedOrder.filter((k) => allowedSet.has(k));
@@ -178,6 +180,8 @@ const Index = () => {
         return <AdminHubView />;
       case "vacations":
         return <VacationsJourneysView />;
+      case "analytics":
+        return <AnalyticsDashboardView />;
       case "fichajes":
       default:
         return workspaceMode === "admin" && canViewAdmin ? <AdminFichajes /> : <Fichajes />;
