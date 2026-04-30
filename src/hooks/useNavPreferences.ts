@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-const STORAGE_KEY = "transtubari-nav-prefs";
+const STORAGE_KEY_BASE = "transtubari-nav-prefs";
+
+export type NavScope = "worker" | "admin";
 
 export interface NavPreferences {
   hidden: string[];
@@ -11,10 +13,12 @@ export interface NavPreferences {
 
 const EMPTY: NavPreferences = { hidden: [], order: [] };
 
-const readLocal = (): NavPreferences => {
+const storageKey = (scope: NavScope) => `${STORAGE_KEY_BASE}-${scope}`;
+
+const readLocal = (scope: NavScope): NavPreferences => {
   if (typeof window === "undefined") return EMPTY;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(storageKey(scope));
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw);
     return {
@@ -26,29 +30,50 @@ const readLocal = (): NavPreferences => {
   }
 };
 
-const writeLocal = (prefs: NavPreferences) => {
+const writeLocal = (scope: NavScope, prefs: NavPreferences) => {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+  window.localStorage.setItem(storageKey(scope), JSON.stringify(prefs));
 };
 
-export const useNavPreferences = () => {
+/**
+ * Hook de preferencias de menú con scopes separados (admin / worker).
+ *
+ * Cada scope guarda su propio `hidden` y `order` en localStorage Y en BD
+ * (tabla user_nav_preferences con columna `scope`).
+ *
+ * Cambios en el state son INMEDIATOS (no esperan a la BD).
+ * La sincronización con BD ocurre en background con debounce de 400ms
+ * para evitar saturar el servidor cuando el usuario hace toggles rápidos.
+ *
+ * IMPORTANTE: la BD NUNCA pisa al state local cuando el usuario está
+ * editando. Solo se carga de BD una vez al montar (con user.id).
+ */
+export const useNavPreferences = (scope: NavScope) => {
   const { user } = useAuth();
-  const [prefs, setPrefsState] = useState<NavPreferences>(() => readLocal());
+  const [prefs, setPrefsState] = useState<NavPreferences>(() => readLocal(scope));
   const [loaded, setLoaded] = useState(false);
 
-  // Cargar de BD si hay user (con fallback silencioso a localStorage).
+  // Si el scope cambia (cambias de admin a worker), recargamos local
+  useEffect(() => {
+    setPrefsState(readLocal(scope));
+  }, [scope]);
+
+  // Carga inicial de BD (solo una vez por user+scope)
+  const loadedFromBD = useRef<string | null>(null);
   useEffect(() => {
     let active = true;
+    const key = `${user?.id}|${scope}`;
+    if (!user?.id || loadedFromBD.current === key) {
+      setLoaded(true);
+      return;
+    }
     const load = async () => {
-      if (!user?.id) {
-        setLoaded(true);
-        return;
-      }
       try {
         const { data, error } = await (supabase as any)
           .from("user_nav_preferences")
           .select("hidden_sections, section_order")
           .eq("user_id", user.id)
+          .eq("scope", scope)
           .maybeSingle();
         if (!active) return;
         if (!error && data) {
@@ -56,50 +81,11 @@ export const useNavPreferences = () => {
             hidden: data.hidden_sections ?? [],
             order: data.section_order ?? [],
           };
-          // Solo aplicar BD si trae algo. Si está vacío, no pisa local.
-          if (remote.hidden.length > 0 || remote.order.length > 0) {
-            const local = readLocal();
-            if (
-              JSON.stringify(remote.hidden) !== JSON.stringify(local.hidden) ||
-              JSON.stringify(remote.order) !== JSON.stringify(local.order)
-            ) {
-              setPrefsState(remote);
-              writeLocal(remote);
-            }
-          } else {
-            // BD vacía: si tenemos algo en local, súbelo
-            const local = readLocal();
-            if (local.hidden.length > 0 || local.order.length > 0) {
-              void (supabase as any)
-                .from("user_nav_preferences")
-                .upsert(
-                  {
-                    user_id: user.id,
-                    hidden_sections: local.hidden,
-                    section_order: local.order,
-                    updated_at: new Date().toISOString(),
-                  },
-                  { onConflict: "user_id" },
-                );
-            }
-          }
-        } else if (!data) {
-          // No hay fila: subir local si tiene algo
-          const local = readLocal();
-          if (local.hidden.length > 0 || local.order.length > 0) {
-            void (supabase as any)
-              .from("user_nav_preferences")
-              .upsert(
-                {
-                  user_id: user.id,
-                  hidden_sections: local.hidden,
-                  section_order: local.order,
-                  updated_at: new Date().toISOString(),
-                },
-                { onConflict: "user_id" },
-              );
-          }
+          // Aplicamos lo de BD aunque venga vacío. Es la fuente de verdad.
+          setPrefsState(remote);
+          writeLocal(scope, remote);
         }
+        loadedFromBD.current = key;
       } catch {
         // silencio: usamos localStorage
       } finally {
@@ -110,64 +96,92 @@ export const useNavPreferences = () => {
     return () => {
       active = false;
     };
-  }, [user?.id]);
+  }, [user?.id, scope]);
 
-  const persist = useCallback(
-    async (next: NavPreferences) => {
-      setPrefsState(next);
-      writeLocal(next);
+  // Debounced persistencia a BD
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persistToDB = useCallback(
+    (next: NavPreferences) => {
       if (!user?.id) return;
-      try {
-        await (supabase as any)
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = setTimeout(() => {
+        void (supabase as any)
           .from("user_nav_preferences")
           .upsert(
             {
               user_id: user.id,
+              scope,
               hidden_sections: next.hidden,
               section_order: next.order,
               updated_at: new Date().toISOString(),
             },
-            { onConflict: "user_id" },
+            { onConflict: "user_id,scope" },
           );
-      } catch {
-        // silencio
-      }
+      }, 400);
     },
-    [user?.id],
+    [user?.id, scope],
+  );
+
+  /**
+   * Aplica un cambio. Es síncrono para el state local + localStorage.
+   * La BD se actualiza con debounce.
+   */
+  const setPrefs = useCallback(
+    (updater: NavPreferences | ((prev: NavPreferences) => NavPreferences)) => {
+      setPrefsState((prev) => {
+        const next = typeof updater === "function" ? (updater as (p: NavPreferences) => NavPreferences)(prev) : updater;
+        writeLocal(scope, next);
+        persistToDB(next);
+        return next;
+      });
+    },
+    [scope, persistToDB],
   );
 
   const toggleHidden = useCallback(
     (key: string) => {
-      const isHidden = prefs.hidden.includes(key);
-      const hidden = isHidden ? prefs.hidden.filter((k) => k !== key) : [...prefs.hidden, key];
-      void persist({ ...prefs, hidden });
+      setPrefs((prev) => {
+        const isHidden = prev.hidden.includes(key);
+        return {
+          ...prev,
+          hidden: isHidden ? prev.hidden.filter((k) => k !== key) : [...prev.hidden, key],
+        };
+      });
     },
-    [persist, prefs],
+    [setPrefs],
   );
 
   const moveSection = useCallback(
     (key: string, direction: "up" | "down", allKeys: string[]) => {
-      // Construir orden actual (preferencias + faltantes al final).
-      const current = [
-        ...prefs.order.filter((k) => allKeys.includes(k)),
-        ...allKeys.filter((k) => !prefs.order.includes(k)),
-      ];
-      const idx = current.indexOf(key);
-      if (idx < 0) return;
-      const target = direction === "up" ? idx - 1 : idx + 1;
-      if (target < 0 || target >= current.length) return;
-      const next = [...current];
-      [next[idx], next[target]] = [next[target], next[idx]];
-      void persist({ ...prefs, order: next });
+      setPrefs((prev) => {
+        const current = [
+          ...prev.order.filter((k) => allKeys.includes(k)),
+          ...allKeys.filter((k) => !prev.order.includes(k)),
+        ];
+        const idx = current.indexOf(key);
+        if (idx < 0) return prev;
+        const target = direction === "up" ? idx - 1 : idx + 1;
+        if (target < 0 || target >= current.length) return prev;
+        const next = [...current];
+        [next[idx], next[target]] = [next[target], next[idx]];
+        return { ...prev, order: next };
+      });
     },
-    [persist, prefs],
+    [setPrefs],
   );
 
   const reset = useCallback(() => {
-    void persist(EMPTY);
-  }, [persist]);
+    setPrefs(EMPTY);
+  }, [setPrefs]);
 
-  return { prefs, loaded, toggleHidden, moveSection, reset, savePrefs: persist };
+  return {
+    prefs,
+    loaded,
+    toggleHidden,
+    moveSection,
+    reset,
+    savePrefs: setPrefs,
+  };
 };
 
 /**
