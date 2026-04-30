@@ -62,32 +62,20 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
 
   const { getOverride, setAssignment, clearAssignment } = useJourneyOverrides(visibleDates);
 
+  // SOLO trabajadores del directorio (staff_directory) — sus IDs son los válidos para asignar.
+  // Los workers del Excel sin contraparte en el directorio no se pueden asignar (FK lo impediría).
   const allWorkers: DisplayWorker[] = useMemo(() => {
-    const map = new Map<string, DisplayWorker>();
-    excelWorkers.forEach((w) => {
-      map.set(w.id, {
+    return workers
+      .map<DisplayWorker>((w) => ({
         id: w.id,
-        name: w.name,
-        initials: w.initials,
-        color: w.color,
-        defaultShift: w.defaultShift,
-        appWorkerId: null,
-      });
-    });
-    workers.forEach((w) => {
-      if (!map.has(w.id)) {
-        map.set(w.id, {
-          id: w.id,
-          name: w.display_name,
-          initials: w.display_name.slice(0, 2).toUpperCase(),
-          color: w.color_hex,
-          defaultShift: w.shift_default,
-          appWorkerId: w.id,
-        });
-      }
-    });
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [excelWorkers, workers]);
+        name: w.display_name,
+        initials: w.display_name.slice(0, 2).toUpperCase(),
+        color: w.color_hex,
+        defaultShift: w.shift_default,
+        appWorkerId: w.id,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [workers]);
 
 
   const monthReading = useMemo(() => {
