@@ -779,6 +779,60 @@ export type Database = {
           },
         ]
       }
+      machine_maintenance_log: {
+        Row: {
+          adblue_done: boolean
+          adblue_liters: number | null
+          coolant_done: boolean
+          coolant_liters: number | null
+          created_at: string
+          created_by_user_id: string | null
+          engine_oil_done: boolean
+          engine_oil_liters: number | null
+          hydraulic_oil_done: boolean
+          hydraulic_oil_liters: number | null
+          id: string
+          log_date: string
+          machine_id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          adblue_done?: boolean
+          adblue_liters?: number | null
+          coolant_done?: boolean
+          coolant_liters?: number | null
+          created_at?: string
+          created_by_user_id?: string | null
+          engine_oil_done?: boolean
+          engine_oil_liters?: number | null
+          hydraulic_oil_done?: boolean
+          hydraulic_oil_liters?: number | null
+          id?: string
+          log_date?: string
+          machine_id: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adblue_done?: boolean
+          adblue_liters?: number | null
+          coolant_done?: boolean
+          coolant_liters?: number | null
+          created_at?: string
+          created_by_user_id?: string | null
+          engine_oil_done?: boolean
+          engine_oil_liters?: number | null
+          hydraulic_oil_done?: boolean
+          hydraulic_oil_liters?: number | null
+          id?: string
+          log_date?: string
+          machine_id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       machine_notes: {
         Row: {
           author_user_id: string
