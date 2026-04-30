@@ -47,6 +47,7 @@ const AppShell = <T extends string>({
   onSectionChange,
   onSectionPrefetch,
   sections,
+  allSections,
   isAdmin: _isAdmin,
   workspaceMode,
   profileName,
