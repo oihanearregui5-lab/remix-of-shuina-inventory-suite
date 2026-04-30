@@ -267,6 +267,32 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_read_state: {
+        Row: {
+          channel_id: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_read_state_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_calendar_days: {
         Row: {
           calendar_date: string
@@ -2051,10 +2077,12 @@ export type Database = {
         Args: { p_journey_date: string; p_shift: string }
         Returns: boolean
       }
+      count_pending_tasks: { Args: never; Returns: number }
       count_request_days: {
         Args: { p_end: string; p_start: string }
         Returns: number
       }
+      count_unread_messages: { Args: never; Returns: number }
       create_notification: {
         Args: {
           _body: string
@@ -2093,6 +2121,7 @@ export type Database = {
         Args: { p_channel_id: string; p_user_id: string }
         Returns: boolean
       }
+      mark_channel_read: { Args: { p_channel_id: string }; Returns: undefined }
       next_delivery_note_number: { Args: never; Returns: string }
       set_journey_assignment: {
         Args: {
