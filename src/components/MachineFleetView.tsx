@@ -268,6 +268,13 @@ const MachineFleetView = ({ defaultStatusFilter = "all", hideHeader = false }: M
     void fetchMachines();
   };
 
+  const changeMachineStatus = async (machineId: string, nextStatus: MachineStatus) => {
+    const { error } = await db.from("machine_assets").update({ status: nextStatus }).eq("id", machineId);
+    if (error) return toast.error("No se pudo cambiar el estado");
+    toast.success(`Estado: ${machineStatusLabel[nextStatus]}`);
+    void fetchMachines();
+  };
+
   const machineCards = useMemo(
     () =>
       machines.map((machine) => {
