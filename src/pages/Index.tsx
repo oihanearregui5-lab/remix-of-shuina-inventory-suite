@@ -117,6 +117,31 @@ const Index = () => {
       .filter((s): s is typeof baseOrdered[number] => Boolean(s));
   }, [canViewAdmin, role, workspaceMode, isSimple, navPrefs]);
 
+  // Todas las secciones permitidas por rol/workspace SIN aplicar el filtro de "ocultas".
+  // Esto se usa en el panel "Personalizar menú" para que el usuario pueda volver a mostrar
+  // secciones que había ocultado previamente.
+  const allAllowedSections = useMemo(() => {
+    if (!workspaceMode) return [];
+    const unifiedOrder: AppSection[] = [
+      "dashboard", "admin", "fichajes", "workReports", "tasks", "chat", "tonnage",
+      "notes", "machines", "gasoline", "staff", "vacations", "albaranes", "analytics",
+    ];
+    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+    const adminAllowed = new Set<AppSection>(role === "admin"
+      ? ["fichajes", "admin", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
+      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
+    const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
+    const allowed = unifiedOrder.filter((k) => allowedSet.has(k));
+    const filtered = sections.filter((section) => {
+      const sectionWorkspace = section.workspace ?? "worker";
+      const matchesWorkspace = workspaceMode === "admin" ? sectionWorkspace === "admin" : sectionWorkspace === "worker";
+      return matchesWorkspace && allowed.includes(section.key) && (!section.adminOnly || canViewAdmin);
+    });
+    return allowed
+      .map((k) => filtered.find((s) => s.key === k))
+      .filter((s): s is typeof filtered[number] => Boolean(s));
+  }, [canViewAdmin, role, workspaceMode]);
+
   useEffect(() => {
     if (!visibleSections.length) return;
     // "account" se accede desde el dialog y no aparece en visibleSections — permitirla.
