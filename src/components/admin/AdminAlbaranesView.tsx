@@ -99,8 +99,13 @@ const BUCKET = "delivery-notes";
 // ============================================================
 // COMPONENTE
 // ============================================================
-const AdminAlbaranesView = () => {
-  const { user, canViewAdmin, isAdmin } = useAuth();
+interface AdminAlbaranesViewProps {
+  isAdminView?: boolean;
+}
+
+const AdminAlbaranesView = ({ isAdminView }: AdminAlbaranesViewProps = {}) => {
+  const { user, canViewAdmin, isAdmin: globalIsAdmin } = useAuth();
+  const isAdmin = isAdminView !== undefined ? isAdminView : globalIsAdmin;
   const db = supabase as any;
   const [notes, setNotes] = useState<DeliveryNote[]>([]);
   const [machines, setMachines] = useState<MachineOption[]>([]);
