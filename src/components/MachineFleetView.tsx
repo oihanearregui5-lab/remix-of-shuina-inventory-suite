@@ -139,7 +139,12 @@ interface WorkReportItem extends MachineUsageReport {}
 
 const emptyForm = { display_name: "", asset_family: "", asset_code: "", license_plate: "", status: "active" as MachineStatus, notes: "" };
 
-const MachineFleetView = () => {
+interface MachineFleetViewProps {
+  defaultStatusFilter?: MachineStatus | "all";
+  hideHeader?: boolean;
+}
+
+const MachineFleetView = ({ defaultStatusFilter = "all", hideHeader = false }: MachineFleetViewProps = {}) => {
   const { user, isAdmin } = useAuth();
   const { isSimple } = useUIMode();
   const db = supabase as any;
@@ -163,7 +168,7 @@ const MachineFleetView = () => {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<MachineStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<MachineStatus | "all">(defaultStatusFilter);
   const [familyFilter, setFamilyFilter] = useState<string>("all");
 
   const toggleDensity = () => {

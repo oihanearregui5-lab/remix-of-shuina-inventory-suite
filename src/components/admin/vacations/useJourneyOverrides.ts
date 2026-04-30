@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { toDateKey } from "./vacation-utils";
 import type { ShiftCode } from "./journeys-constants";
@@ -84,8 +85,10 @@ export const useJourneyOverrides = (visibleDates: Date[]) => {
       });
       if (error) {
         console.error("Error asignando turno", error);
+        toast.error(error.message ?? "No se pudo asignar el turno");
         throw error;
       }
+      toast.success("Turno asignado");
       await fetchOverrides();
     },
     [fetchOverrides],
@@ -99,8 +102,10 @@ export const useJourneyOverrides = (visibleDates: Date[]) => {
       });
       if (error) {
         console.error("Error limpiando turno", error);
+        toast.error(error.message ?? "No se pudo vaciar el turno");
         throw error;
       }
+      toast.success("Turno vaciado");
       await fetchOverrides();
     },
     [fetchOverrides],

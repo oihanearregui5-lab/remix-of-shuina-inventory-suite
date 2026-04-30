@@ -189,6 +189,25 @@ const TonnageMonthlyTable = () => {
     return map;
   }, [trips]);
 
+  // Cantidades de material por día (suma de qty_arenas_a + qty_arenas_b, qty_tortas, qty_sulfatos)
+  const materialDayMap = useMemo(() => {
+    const map = new Map<string, { arenas: number; tortas: number; sulfatos: number }>();
+    trips.forEach((trip) => {
+      const cur = map.get(trip.trip_date) ?? { arenas: 0, tortas: 0, sulfatos: 0 };
+      cur.arenas += Number(trip.qty_arenas_a || 0) + Number(trip.qty_arenas_b || 0);
+      cur.tortas += Number(trip.qty_tortas || 0);
+      cur.sulfatos += Number(trip.qty_sulfatos || 0);
+      map.set(trip.trip_date, cur);
+    });
+    return map;
+  }, [trips]);
+
+  const materialTotals = useMemo(() => {
+    let arenas = 0, tortas = 0, sulfatos = 0;
+    materialDayMap.forEach((v) => { arenas += v.arenas; tortas += v.tortas; sulfatos += v.sulfatos; });
+    return { arenas, tortas, sulfatos, total: arenas + tortas + sulfatos };
+  }, [materialDayMap]);
+
   const totalViajes = trips.length;
   const totalKg = trips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
   const avgKg = totalViajes > 0 ? totalKg / totalViajes : 0;
@@ -202,7 +221,7 @@ const TonnageMonthlyTable = () => {
     // Fila vacía
     aoa.push([]);
     // Cabecera (fila 3): "Día" + nombres de camiones + métricas
-    const header = ["Día", ...trucks.map((t) => `#${t.truck_number} ${t.label}`), "Nº VIAJES", "Peso total", "Media"];
+    const header = ["Día", ...trucks.map((t) => `#${t.truck_number} ${t.label}`), "Nº VIAJES", "Peso total", "Media", "Arenas", "Tortas", "Sulfatos", "Total mat."];
     aoa.push(header);
 
     // Filas día a día
@@ -225,6 +244,9 @@ const TonnageMonthlyTable = () => {
       row.push(dayCount);
       row.push(Math.round(dayTotal));
       row.push(dayCount > 0 ? Math.round(dayTotal / dayCount) : "");
+      const m = materialDayMap.get(dateStr);
+      const ar = m?.arenas ?? 0; const to = m?.tortas ?? 0; const su = m?.sulfatos ?? 0;
+      row.push(ar || ""); row.push(to || ""); row.push(su || ""); row.push((ar + to + su) || "");
       aoa.push(row);
     }
 
@@ -234,13 +256,17 @@ const TonnageMonthlyTable = () => {
     totalRow.push(totalViajes);
     totalRow.push(Math.round(totalKg));
     totalRow.push(totalViajes > 0 ? Math.round(avgKg) : "");
+    totalRow.push(materialTotals.arenas || "");
+    totalRow.push(materialTotals.tortas || "");
+    totalRow.push(materialTotals.sulfatos || "");
+    totalRow.push(materialTotals.total || "");
     aoa.push(totalRow);
 
     // Crear libro
     const ws = XLSX.utils.aoa_to_sheet(aoa);
 
     // Anchos de columna
-    const colWidths = [{ wch: 6 }, ...trucks.map(() => ({ wch: 12 })), { wch: 10 }, { wch: 12 }, { wch: 10 }];
+    const colWidths = [{ wch: 6 }, ...trucks.map(() => ({ wch: 12 })), { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 10 }];
     ws["!cols"] = colWidths;
 
     // Combinar la fila del título
@@ -323,6 +349,10 @@ const TonnageMonthlyTable = () => {
                   <th className="min-w-[60px] border-l-2 border-border bg-muted/50 px-2 py-2 text-center font-semibold">Viajes</th>
                   <th className="min-w-[80px] bg-muted/50 px-2 py-2 text-center font-semibold">Total</th>
                   <th className="min-w-[70px] bg-muted/50 px-2 py-2 text-center font-semibold">Media</th>
+                  <th className="min-w-[60px] border-l-2 border-border bg-warning/15 px-2 py-2 text-center font-semibold" title="Arenas">Arenas</th>
+                  <th className="min-w-[60px] bg-primary/10 px-2 py-2 text-center font-semibold" title="Tortas">Tortas</th>
+                  <th className="min-w-[60px] bg-success/15 px-2 py-2 text-center font-semibold" title="Sulfatos">Sulfatos</th>
+                  <th className="min-w-[60px] bg-muted/50 px-2 py-2 text-center font-semibold">Σ</th>
                 </tr>
               </thead>
               <tbody>
@@ -362,6 +392,21 @@ const TonnageMonthlyTable = () => {
                       <td className="border-l-2 border-border bg-muted/20 px-2 py-1.5 text-center font-semibold">{daySum?.tripCount ?? ""}</td>
                       <td className="bg-muted/20 px-2 py-1.5 text-right font-semibold">{daySum ? formatKg(daySum.totalKg) : ""}</td>
                       <td className="bg-muted/20 px-2 py-1.5 text-right text-muted-foreground">{daySum && daySum.tripCount > 0 ? formatKg(daySum.avgKg) : ""}</td>
+                      {(() => {
+                        const m = materialDayMap.get(dateStr);
+                        const arenas = m?.arenas ?? 0;
+                        const tortas = m?.tortas ?? 0;
+                        const sulfatos = m?.sulfatos ?? 0;
+                        const sum = arenas + tortas + sulfatos;
+                        return (
+                          <>
+                            <td className="border-l-2 border-border bg-warning/10 px-2 py-1.5 text-center">{arenas || ""}</td>
+                            <td className="bg-primary/5 px-2 py-1.5 text-center">{tortas || ""}</td>
+                            <td className="bg-success/10 px-2 py-1.5 text-center">{sulfatos || ""}</td>
+                            <td className="bg-muted/30 px-2 py-1.5 text-center font-semibold">{sum || ""}</td>
+                          </>
+                        );
+                      })()}
                     </tr>
                   );
                 })}
@@ -376,6 +421,10 @@ const TonnageMonthlyTable = () => {
                   <td className="border-l-2 border-border bg-primary/10 px-2 py-2 text-center">{totalViajes}</td>
                   <td className="bg-primary/10 px-2 py-2 text-right">{formatKg(totalKg)}</td>
                   <td className="bg-primary/10 px-2 py-2 text-right">{totalViajes > 0 ? formatKg(avgKg) : "—"}</td>
+                  <td className="border-l-2 border-border bg-warning/20 px-2 py-2 text-center">{materialTotals.arenas || ""}</td>
+                  <td className="bg-primary/15 px-2 py-2 text-center">{materialTotals.tortas || ""}</td>
+                  <td className="bg-success/20 px-2 py-2 text-center">{materialTotals.sulfatos || ""}</td>
+                  <td className="bg-muted/50 px-2 py-2 text-center">{materialTotals.total || ""}</td>
                 </tr>
               </tbody>
             </table>
