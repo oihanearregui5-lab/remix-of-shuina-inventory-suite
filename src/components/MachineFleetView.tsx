@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Camera, FileText, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Camera, Droplet, FileText, Pencil, Plus, Search, Trash2, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUIMode } from "@/hooks/useUIMode";
@@ -7,6 +7,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import MachineDetailDialog, { type MachineDialogItem } from "@/components/machines/MachineDetailDialog";
 import MachineCardDialog from "@/components/machines/MachineCardDialog";
 import MachinePhotosDialog from "@/components/machines/MachinePhotosDialog";
+import MachineMaintenanceDialog from "@/components/machines/MachineMaintenanceDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -159,6 +160,7 @@ const MachineFleetView = ({ defaultStatusFilter = "all", hideHeader = false }: M
   const [selectedMachine, setSelectedMachine] = useState<MachineDialogItem | null>(null);
   const [cardDialogId, setCardDialogId] = useState<string | null>(null);
   const [photosDialog, setPhotosDialog] = useState<{ id: string; name: string } | null>(null);
+  const [maintenanceDialog, setMaintenanceDialog] = useState<{ id: string; name: string } | null>(null);
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
