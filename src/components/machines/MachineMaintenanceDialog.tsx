@@ -63,6 +63,11 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
     coolant: { done: false, liters: "" },
     adblue: { done: false, liters: "" },
   });
+  const [extras, setExtras] = useState<Record<ExtraKey, boolean>>({
+    air_filters: false,
+    fuel_filters: false,
+    general_greasing: false,
+  });
   const [notes, setNotes] = useState("");
   const [history, setHistory] = useState<LogRow[]>([]);
   const [saving, setSaving] = useState(false);
@@ -74,6 +79,34 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
     void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, machineId, logDate]);
+
+  const parseNotes = (raw: string | null): { extras: Record<ExtraKey, boolean>; text: string } => {
+    const empty = { air_filters: false, fuel_filters: false, general_greasing: false };
+    if (!raw) return { extras: empty, text: "" };
+    const m = raw.match(/^__extras__:(\{[^\n]*\})\n?/);
+    if (!m) return { extras: empty, text: raw };
+    try {
+      const parsed = JSON.parse(m[1]);
+      return {
+        extras: {
+          air_filters: Boolean(parsed.air_filters),
+          fuel_filters: Boolean(parsed.fuel_filters),
+          general_greasing: Boolean(parsed.general_greasing),
+        },
+        text: raw.slice(m[0].length),
+      };
+    } catch {
+      return { extras: empty, text: raw };
+    }
+  };
+
+  const serializeNotes = (extrasState: Record<ExtraKey, boolean>, text: string): string | null => {
+    const anyExtra = Object.values(extrasState).some(Boolean);
+    const t = text.trim();
+    if (!anyExtra && !t) return null;
+    if (!anyExtra) return t || null;
+    return `__extras__:${JSON.stringify(extrasState)}\n${t}`;
+  };
 
   const loadAll = async () => {
     if (!machineId) return;
@@ -91,7 +124,9 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
         coolant: { done: existing.coolant_done, liters: existing.coolant_liters?.toString() ?? "" },
         adblue: { done: existing.adblue_done, liters: existing.adblue_liters?.toString() ?? "" },
       });
-      setNotes(existing.notes ?? "");
+      const parsed = parseNotes(existing.notes);
+      setExtras(parsed.extras);
+      setNotes(parsed.text);
     } else {
       setExistingId(null);
       setForm({
@@ -100,6 +135,7 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
         coolant: { done: false, liters: "" },
         adblue: { done: false, liters: "" },
       });
+      setExtras({ air_filters: false, fuel_filters: false, general_greasing: false });
       setNotes("");
     }
     setLoading(false);
@@ -119,7 +155,7 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
       coolant_liters: form.coolant.liters ? Number(form.coolant.liters) : null,
       adblue_done: form.adblue.done,
       adblue_liters: form.adblue.liters ? Number(form.adblue.liters) : null,
-      notes: notes.trim() || null,
+      notes: serializeNotes(extras, notes),
       created_by_user_id: user.id,
     };
     const { error } = existingId
