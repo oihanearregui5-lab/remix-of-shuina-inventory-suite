@@ -142,7 +142,7 @@ const ShiftPill = ({
                 key={w.id}
                 type="button"
                 disabled={busy}
-                onClick={() => void handleAssign(w.id, w.color)}
+                onClick={() => w.assignmentId && void handleAssign(w.assignmentId, w.color)}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
               >
                 <span

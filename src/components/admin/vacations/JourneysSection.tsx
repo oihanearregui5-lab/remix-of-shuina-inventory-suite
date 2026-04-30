@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addDays, eachDayOfInterval, endOfWeek, format, startOfWeek, startOfYear } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Download, Eye, Loader2, Pencil } from "lucide-react";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useTranstubariData } from "@/hooks/useTranstubariData";
 import { useAuth } from "@/hooks/useAuth";
 import { getWorkerYearStats } from "@/lib/transtubari-parser";
+import { supabase } from "@/integrations/supabase/client";
 import type { HolidayItem, VacationSlotItem, VacationViewMode, WorkerItem, WorkerYearSummaryItem } from "./vacation-types";
 import { getMonthMatrix, toDateKey } from "./vacation-utils";
 import { SHIFT_CODES } from "./journeys-constants";
@@ -35,10 +36,11 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
   const [panelOpen, setPanelOpen] = useState(false);
   const [modalWorkerId, setModalWorkerId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [staffMembers, setStaffMembers] = useState<Array<{ id: string; full_name: string; color_tag: string | null }>>([]);
   const { canViewAdmin } = useAuth();
 
   const excelWorkers = data?.workers ?? [];
-  const { resolveExcelWorker, resolveAppWorker, getDisplayWorker } = useWorkerLookups(excelWorkers, workers);
+  const { resolveExcelWorker, resolveAppWorker, getDisplayWorker } = useWorkerLookups(excelWorkers, workers, staffMembers);
   const currentMonth = useMemo(() => new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1), [anchorDate]);
   const monthGrid = useMemo(() => getMonthMatrix(currentMonth), [currentMonth]);
   const weekDays = useMemo(
@@ -62,20 +64,28 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
 
   const { getOverride, setAssignment, clearAssignment } = useJourneyOverrides(visibleDates);
 
+  useEffect(() => {
+    const loadStaffMembers = async () => {
+      const { data } = await supabase
+        .from("staff_directory")
+        .select("id, full_name, color_tag")
+        .eq("active", true)
+        .order("full_name", { ascending: true });
+
+      setStaffMembers((data ?? []) as Array<{ id: string; full_name: string; color_tag: string | null }>);
+    };
+
+    void loadStaffMembers();
+  }, []);
+
   // SOLO trabajadores del directorio (staff_directory) — sus IDs son los válidos para asignar.
   // Los workers del Excel sin contraparte en el directorio no se pueden asignar (FK lo impediría).
   const allWorkers: DisplayWorker[] = useMemo(() => {
     return workers
-      .map<DisplayWorker>((w) => ({
-        id: w.id,
-        name: w.display_name,
-        initials: w.display_name.slice(0, 2).toUpperCase(),
-        color: w.color_hex,
-        defaultShift: w.shift_default,
-        appWorkerId: w.id,
-      }))
+      .map((w) => getDisplayWorker(w.display_name) ?? getDisplayWorker(w.name))
+      .filter((worker): worker is DisplayWorker => Boolean(worker?.assignmentId))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [workers]);
+  }, [getDisplayWorker, workers]);
 
 
   const monthReading = useMemo(() => {
