@@ -52,12 +52,53 @@ export const useNavPreferences = () => {
           .maybeSingle();
         if (!active) return;
         if (!error && data) {
-          const next: NavPreferences = {
+          const remote: NavPreferences = {
             hidden: data.hidden_sections ?? [],
             order: data.section_order ?? [],
           };
-          setPrefsState(next);
-          writeLocal(next);
+          // Solo aplicar BD si trae algo. Si está vacío, no pisa local.
+          if (remote.hidden.length > 0 || remote.order.length > 0) {
+            const local = readLocal();
+            if (
+              JSON.stringify(remote.hidden) !== JSON.stringify(local.hidden) ||
+              JSON.stringify(remote.order) !== JSON.stringify(local.order)
+            ) {
+              setPrefsState(remote);
+              writeLocal(remote);
+            }
+          } else {
+            // BD vacía: si tenemos algo en local, súbelo
+            const local = readLocal();
+            if (local.hidden.length > 0 || local.order.length > 0) {
+              void (supabase as any)
+                .from("user_nav_preferences")
+                .upsert(
+                  {
+                    user_id: user.id,
+                    hidden_sections: local.hidden,
+                    section_order: local.order,
+                    updated_at: new Date().toISOString(),
+                  },
+                  { onConflict: "user_id" },
+                );
+            }
+          }
+        } else if (!data) {
+          // No hay fila: subir local si tiene algo
+          const local = readLocal();
+          if (local.hidden.length > 0 || local.order.length > 0) {
+            void (supabase as any)
+              .from("user_nav_preferences")
+              .upsert(
+                {
+                  user_id: user.id,
+                  hidden_sections: local.hidden,
+                  section_order: local.order,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "user_id" },
+              );
+          }
         }
       } catch {
         // silencio: usamos localStorage
