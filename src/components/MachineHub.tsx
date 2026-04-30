@@ -35,7 +35,7 @@ const MachineHub = ({ isAdminView = false }: MachineHubProps) => {
           <TabsTrigger value="mantenimiento" className="gap-2 py-2.5">
             <Wrench className="h-4 w-4" /> Mantenimiento
           </TabsTrigger>
-          {canViewAdmin && (
+          {isAdminView && (
             <TabsTrigger value="analisis" className="gap-2 py-2.5">
               <BarChart3 className="h-4 w-4" /> Análisis
             </TabsTrigger>
@@ -52,7 +52,7 @@ const MachineHub = ({ isAdminView = false }: MachineHubProps) => {
           <TabsContent value="mantenimiento" className="mt-0">
             <MachineFleetView defaultStatusFilter="maintenance" />
           </TabsContent>
-          {canViewAdmin && (
+          {isAdminView && (
             <TabsContent value="analisis" className="mt-0">
               <MaintenanceAnalyticsView />
             </TabsContent>
