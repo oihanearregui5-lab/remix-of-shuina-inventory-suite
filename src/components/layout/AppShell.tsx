@@ -388,6 +388,16 @@ const AppShell = <T extends string>({
               >
                 <Icon className="h-4 w-4" aria-hidden="true" />
                 <span className="truncate">{section.label}</span>
+                {section.key === "chat" && counts.chat > 0 && (
+                  <span className="absolute right-1 top-1 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-destructive-foreground">
+                    {counts.chat > 9 ? "9+" : counts.chat}
+                  </span>
+                )}
+                {section.key === "tasks" && counts.tasks > 0 && (
+                  <span className="absolute right-1 top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">
+                    {counts.tasks > 9 ? "9+" : counts.tasks}
+                  </span>
+                )}
               </button>
             );
           })}
