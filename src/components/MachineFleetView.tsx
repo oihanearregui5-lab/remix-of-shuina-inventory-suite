@@ -613,10 +613,20 @@ const MachineFleetView = ({ defaultStatusFilter = "all", hideHeader = false }: M
                     size="sm"
                     variant="outline"
                     className="h-8 gap-1 px-2 text-xs"
+                    onClick={() => setMaintenanceDialog({ id: machine.id, name: machine.display_name })}
+                    title="Checklist diaria de mantenimiento"
+                  >
+                    <Droplet className="h-3.5 w-3.5" />
+                    Mantenim.
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1 px-2 text-xs"
                     onClick={() => setPhotosDialog({ id: machine.id, name: machine.display_name })}
                   >
                     <Camera className="h-3.5 w-3.5" />
-                    {machine.photoCount > 0 ? `Ver fotos (${machine.photoCount})` : "Fotos"}
+                    {machine.photoCount > 0 ? `Fotos (${machine.photoCount})` : "Fotos"}
                   </Button>
                   {isAdmin && (
                     <>
@@ -628,6 +638,42 @@ const MachineFleetView = ({ defaultStatusFilter = "all", hideHeader = false }: M
                       </Button>
                     </>
                   )}
+                </div>
+
+                {/* Cambio rápido de estado: averías → mantenimiento → flota */}
+                <div className="flex flex-wrap gap-1 border-t border-border pt-2">
+                  <Button
+                    size="sm"
+                    variant={machine.status === "repair" ? "destructive" : "outline"}
+                    className="h-7 gap-1 px-2 text-[11px]"
+                    onClick={() => void changeMachineStatus(machine.id, "repair")}
+                    title="Marcar avería"
+                    disabled={machine.status === "repair"}
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    Avería
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={machine.status === "maintenance" ? "default" : "outline"}
+                    className="h-7 gap-1 px-2 text-[11px]"
+                    onClick={() => void changeMachineStatus(machine.id, "maintenance")}
+                    title="En reparación / mantenimiento"
+                    disabled={machine.status === "maintenance"}
+                  >
+                    <Wrench className="h-3 w-3" />
+                    En reparación
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={machine.status === "active" ? "default" : "outline"}
+                    className="h-7 gap-1 px-2 text-[11px]"
+                    onClick={() => void changeMachineStatus(machine.id, "active")}
+                    title="Volver a flota operativa"
+                    disabled={machine.status === "active"}
+                  >
+                    Operativa
+                  </Button>
                 </div>
               </div>
             </article>
