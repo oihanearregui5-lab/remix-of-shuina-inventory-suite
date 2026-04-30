@@ -220,6 +220,7 @@ const Index = () => {
       currentSection={currentSection}
       onSectionChange={handleSectionChange}
       sections={visibleSections}
+      allSections={allAllowedSections}
       canViewAdmin={canViewAdmin}
       isAdmin={isAdmin}
       workspaceMode={workspaceMode}
