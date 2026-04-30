@@ -170,11 +170,23 @@ const AppShell = <T extends string>({
                       : "bg-sidebar-accent/80 text-sidebar-foreground",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" />
                 </span>
                 {!isCollapsedDesktop && (
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium">{section.label}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="block flex-1 text-sm font-medium">{section.label}</span>
+                      {section.key === "chat" && counts.chat > 0 && (
+                        <span className="rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground animate-pulse">
+                          {counts.chat > 99 ? "99+" : counts.chat}
+                        </span>
+                      )}
+                      {section.key === "tasks" && counts.tasks > 0 && (
+                        <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                          {counts.tasks > 99 ? "99+" : counts.tasks}
+                        </span>
+                      )}
+                    </span>
                     <span className="mt-0.5 block text-xs leading-5 text-sidebar-foreground/75">
                       {section.description}
                     </span>
