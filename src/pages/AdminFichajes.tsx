@@ -32,6 +32,7 @@ const AdminFichajes = () => {
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [entries, setEntries] = useState<EntryWithProfile[]>([]);
   const [staffColors, setStaffColors] = useState<Map<string, { color: string; staffId: string }>>(new Map());
+  const [allStaff, setAllStaff] = useState<Array<{ id: string; full_name: string; color: string; linked_user_id: string | null }>>([]);
   const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
   const [editEntry, setEditEntry] = useState<EntryWithProfile | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -78,15 +79,30 @@ const AdminFichajes = () => {
     const loadStaffColors = async () => {
       const { data } = await (supabase as any)
         .from("staff_directory")
-        .select("id, color_tag, linked_user_id")
-        .not("linked_user_id", "is", null);
+        .select("id, full_name, color_tag, linked_user_id")
+        .eq("active", true)
+        .order("sort_order");
       const map = new Map<string, { color: string; staffId: string }>();
+      const list: Array<{ id: string; full_name: string; color: string; linked_user_id: string | null }> = [];
+      const palette: Record<string, string> = {
+        red: "#ef4444", indigo: "#6366f1", teal: "#14b8a6", slate: "#64748b",
+        amber: "#f59e0b", blue: "#3b82f6", emerald: "#10b981", orange: "#f97316",
+        violet: "#8b5cf6", cyan: "#06b6d4", rose: "#f43f5e", lime: "#84cc16", yellow: "#eab308",
+      };
+      const toHex = (tag: string | null) => {
+        if (!tag) return "#4F5A7A";
+        if (tag.startsWith("#")) return tag;
+        return palette[tag] || "#4F5A7A";
+      };
       (data ?? []).forEach((row: any) => {
+        const color = toHex(row.color_tag);
+        list.push({ id: row.id, full_name: row.full_name, color, linked_user_id: row.linked_user_id });
         if (row.linked_user_id) {
-          map.set(row.linked_user_id, { color: row.color_tag || "#4F5A7A", staffId: row.id });
+          map.set(row.linked_user_id, { color, staffId: row.id });
         }
       });
       setStaffColors(map);
+      setAllStaff(list);
     };
     if (canViewAdmin) void loadStaffColors();
   }, [canViewAdmin]);
@@ -171,7 +187,7 @@ const AdminFichajes = () => {
     );
   }
 
-  const byEmployee = filteredEntries.reduce<Record<string, { name: string; entries: EntryWithProfile[] }>>(
+  const byEmployee = filteredEntries.reduce<Record<string, { name: string; entries: EntryWithProfile[]; staffId?: string }>>(
     (acc, e) => {
       const name = e.profiles?.full_name ?? "Desconocido";
       if (!acc[e.user_id]) acc[e.user_id] = { name, entries: [] };
@@ -180,6 +196,14 @@ const AdminFichajes = () => {
     },
     {}
   );
+  // Añadir todos los trabajadores del directorio aunque no tengan fichajes,
+  // para que aparezcan como "carpeta" abrible con su ficha (Abel, David, Jon, Raquel, etc.).
+  allStaff.forEach((s) => {
+    const key = s.linked_user_id ?? `staff:${s.id}`;
+    if (!byEmployee[key]) {
+      byEmployee[key] = { name: s.full_name, entries: [], staffId: s.id };
+    }
+  });
   const adminHoursSummary = summarizeEntriesForRange(filteredEntries, new Date(`${dateFrom}T00:00:00`), new Date(`${dateTo}T23:59:59`));
 
   return (
@@ -381,13 +405,15 @@ const AdminFichajes = () => {
       </div>
 
       {/* By employee — agrupados como carpetas individuales por trabajador */}
-      {Object.entries(byEmployee).map(([userId, { name, entries: empEntries }]) => {
+      {Object.entries(byEmployee).map(([userId, { name, entries: empEntries, staffId: directStaffId }]) => {
         const totalMins = empEntries.reduce(
           (sum, e) => sum + (e.clock_out ? differenceInMinutes(new Date(e.clock_out), new Date(e.clock_in)) : 0),
           0
         );
         const staffInfo = staffColors.get(userId);
-        const color = staffInfo?.color || "#4F5A7A";
+        const directStaff = directStaffId ? allStaff.find((s) => s.id === directStaffId) : null;
+        const color = staffInfo?.color || directStaff?.color || "#4F5A7A";
+        const resolvedStaffId = staffInfo?.staffId || directStaffId || null;
         const isExpanded = expandedEmployees.has(userId);
         return (
           <div key={userId} className="mb-3">
@@ -398,9 +424,9 @@ const AdminFichajes = () => {
               style={{ borderLeft: `4px solid ${color}` }}
               onDoubleClick={(e) => {
                 e.preventDefault();
-                if (staffInfo) setSelectedWorkerId(staffInfo.staffId);
+                if (resolvedStaffId) setSelectedWorkerId(resolvedStaffId);
               }}
-              title={staffInfo ? "Clic para abrir/cerrar · doble clic para ver ficha" : "Clic para abrir/cerrar"}
+              title={resolvedStaffId ? "Clic para abrir/cerrar · doble clic para ver ficha" : "Clic para abrir/cerrar"}
             >
               <div className="flex items-center gap-3">
                 {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
