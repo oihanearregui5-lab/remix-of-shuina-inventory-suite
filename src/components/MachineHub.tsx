@@ -17,11 +17,10 @@ const SubviewLoader = () => (
   </div>
 );
 
-const MachineHub = () => {
-  const { canViewAdmin } = useAuth();
+const MachineHub = ({ isAdminView = false }: MachineHubProps) => {
   const [tab, setTab] = useState<string>("flota");
 
-  const cols = canViewAdmin ? "grid-cols-4" : "grid-cols-3";
+  const cols = isAdminView ? "grid-cols-4" : "grid-cols-3";
 
   return (
     <div className="space-y-4 animate-fade-in">
