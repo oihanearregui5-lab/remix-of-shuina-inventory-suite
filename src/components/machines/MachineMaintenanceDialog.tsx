@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Droplet, Loader2, Trash2 } from "lucide-react";
+import { Droplet, Loader2, Trash2, Wind, Fuel, Wrench, Flame, Snowflake, Beaker } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,13 +36,20 @@ interface LogRow {
 }
 
 const ITEMS = [
-  { key: "hydraulic_oil", label: "Aceite hidráulico" },
-  { key: "engine_oil", label: "Aceite motor" },
-  { key: "coolant", label: "Anticongelante" },
-  { key: "adblue", label: "AdBlue" },
+  { key: "hydraulic_oil", label: "Aceite hidráulico", Icon: Droplet },
+  { key: "engine_oil", label: "Aceite motor", Icon: Flame },
+  { key: "coolant", label: "Refrigerante", Icon: Snowflake },
+  { key: "adblue", label: "AdBlue", Icon: Beaker },
+] as const;
+
+const EXTRAS = [
+  { key: "air_filters", label: "Filtros aire", Icon: Wind },
+  { key: "fuel_filters", label: "Filtros combustible", Icon: Fuel },
+  { key: "general_greasing", label: "Engrase general", Icon: Wrench },
 ] as const;
 
 type ItemKey = (typeof ITEMS)[number]["key"];
+type ExtraKey = (typeof EXTRAS)[number]["key"];
 
 const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }: Props) => {
   const { user, isAdmin } = useAuth();
@@ -56,6 +63,11 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
     coolant: { done: false, liters: "" },
     adblue: { done: false, liters: "" },
   });
+  const [extras, setExtras] = useState<Record<ExtraKey, boolean>>({
+    air_filters: false,
+    fuel_filters: false,
+    general_greasing: false,
+  });
   const [notes, setNotes] = useState("");
   const [history, setHistory] = useState<LogRow[]>([]);
   const [saving, setSaving] = useState(false);
@@ -67,6 +79,34 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
     void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, machineId, logDate]);
+
+  const parseNotes = (raw: string | null): { extras: Record<ExtraKey, boolean>; text: string } => {
+    const empty = { air_filters: false, fuel_filters: false, general_greasing: false };
+    if (!raw) return { extras: empty, text: "" };
+    const m = raw.match(/^__extras__:(\{[^\n]*\})\n?/);
+    if (!m) return { extras: empty, text: raw };
+    try {
+      const parsed = JSON.parse(m[1]);
+      return {
+        extras: {
+          air_filters: Boolean(parsed.air_filters),
+          fuel_filters: Boolean(parsed.fuel_filters),
+          general_greasing: Boolean(parsed.general_greasing),
+        },
+        text: raw.slice(m[0].length),
+      };
+    } catch {
+      return { extras: empty, text: raw };
+    }
+  };
+
+  const serializeNotes = (extrasState: Record<ExtraKey, boolean>, text: string): string | null => {
+    const anyExtra = Object.values(extrasState).some(Boolean);
+    const t = text.trim();
+    if (!anyExtra && !t) return null;
+    if (!anyExtra) return t || null;
+    return `__extras__:${JSON.stringify(extrasState)}\n${t}`;
+  };
 
   const loadAll = async () => {
     if (!machineId) return;
@@ -84,7 +124,9 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
         coolant: { done: existing.coolant_done, liters: existing.coolant_liters?.toString() ?? "" },
         adblue: { done: existing.adblue_done, liters: existing.adblue_liters?.toString() ?? "" },
       });
-      setNotes(existing.notes ?? "");
+      const parsed = parseNotes(existing.notes);
+      setExtras(parsed.extras);
+      setNotes(parsed.text);
     } else {
       setExistingId(null);
       setForm({
@@ -93,6 +135,7 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
         coolant: { done: false, liters: "" },
         adblue: { done: false, liters: "" },
       });
+      setExtras({ air_filters: false, fuel_filters: false, general_greasing: false });
       setNotes("");
     }
     setLoading(false);
@@ -112,7 +155,7 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
       coolant_liters: form.coolant.liters ? Number(form.coolant.liters) : null,
       adblue_done: form.adblue.done,
       adblue_liters: form.adblue.liters ? Number(form.adblue.liters) : null,
-      notes: notes.trim() || null,
+      notes: serializeNotes(extras, notes),
       created_by_user_id: user.id,
     };
     const { error } = existingId
@@ -157,34 +200,79 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando…</div>
           ) : (
-            <div className="space-y-2 rounded-lg border border-border p-3">
-              {ITEMS.map((item) => {
-                const value = form[item.key];
-                return (
-                  <div key={item.key} className={cn("flex items-center gap-3 rounded-md p-2 transition-colors", value.done && "bg-success/5")}>
-                    <Checkbox
-                      checked={value.done}
-                      onCheckedChange={(checked) =>
-                        setForm((cur) => ({ ...cur, [item.key]: { ...cur[item.key], done: Boolean(checked) } }))
-                      }
-                    />
-                    <span className="flex-1 text-sm font-medium text-foreground">{item.label}</span>
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      value={value.liters}
-                      placeholder="Litros"
-                      onChange={(e) =>
-                        setForm((cur) => ({ ...cur, [item.key]: { ...cur[item.key], liters: e.target.value } }))
-                      }
-                      className="w-28"
-                      disabled={!value.done}
-                    />
-                    <span className="w-6 text-xs text-muted-foreground">L</span>
-                  </div>
-                );
-              })}
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Checklist de mantenimiento</p>
+                <p className="text-xs text-muted-foreground">Marca lo realizado y anota los litros usados.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                {ITEMS.map((item) => {
+                  const value = form[item.key];
+                  const Icon = item.Icon;
+                  const missingLiters = value.done && !value.liters;
+                  return (
+                    <div
+                      key={item.key}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md border border-transparent p-2 transition-colors",
+                        value.done && "bg-success/5 border-success/30",
+                      )}
+                    >
+                      <Checkbox
+                        className="h-5 w-5"
+                        checked={value.done}
+                        onCheckedChange={(checked) =>
+                          setForm((cur) => ({ ...cur, [item.key]: { ...cur[item.key], done: Boolean(checked) } }))
+                        }
+                      />
+                      <Icon className={cn("h-4 w-4", value.done ? "text-primary" : "text-muted-foreground")} />
+                      <span className="flex-1 text-sm font-medium text-foreground">{item.label}</span>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.1"
+                        value={value.liters}
+                        placeholder="Litros"
+                        onChange={(e) =>
+                          setForm((cur) => ({ ...cur, [item.key]: { ...cur[item.key], liters: e.target.value } }))
+                        }
+                        className={cn(
+                          "w-24 transition-colors",
+                          !value.done && "opacity-50",
+                          missingLiters && "border-warning ring-1 ring-warning/40",
+                        )}
+                        disabled={!value.done}
+                      />
+                      <span className="w-4 text-xs text-muted-foreground">L</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-1.5 border-t border-border pt-2">
+                {EXTRAS.map((item) => {
+                  const Icon = item.Icon;
+                  const checked = extras[item.key];
+                  return (
+                    <div
+                      key={item.key}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md border border-transparent p-2 transition-colors",
+                        checked && "bg-success/5 border-success/30",
+                      )}
+                    >
+                      <Checkbox
+                        className="h-5 w-5"
+                        checked={checked}
+                        onCheckedChange={(c) => setExtras((cur) => ({ ...cur, [item.key]: Boolean(c) }))}
+                      />
+                      <Icon className={cn("h-4 w-4", checked ? "text-primary" : "text-muted-foreground")} />
+                      <span className="flex-1 text-sm font-medium text-foreground">{item.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -211,8 +299,12 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
                   const chips: string[] = [];
                   if (row.hydraulic_oil_done) chips.push(`Hidr. ${row.hydraulic_oil_liters ?? 0}L`);
                   if (row.engine_oil_done) chips.push(`Motor ${row.engine_oil_liters ?? 0}L`);
-                  if (row.coolant_done) chips.push(`Anticong. ${row.coolant_liters ?? 0}L`);
+                  if (row.coolant_done) chips.push(`Refrig. ${row.coolant_liters ?? 0}L`);
                   if (row.adblue_done) chips.push(`AdBlue ${row.adblue_liters ?? 0}L`);
+                  const parsed = parseNotes(row.notes);
+                  if (parsed.extras.air_filters) chips.push("Filtros aire");
+                  if (parsed.extras.fuel_filters) chips.push("Filtros comb.");
+                  if (parsed.extras.general_greasing) chips.push("Engrase");
                   return (
                     <div key={row.id} className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm">
                       <div className="flex flex-col">
