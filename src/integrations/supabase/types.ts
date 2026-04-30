@@ -1708,18 +1708,21 @@ export type Database = {
       user_nav_preferences: {
         Row: {
           hidden_sections: string[]
+          scope: string
           section_order: string[]
           updated_at: string
           user_id: string
         }
         Insert: {
           hidden_sections?: string[]
+          scope?: string
           section_order?: string[]
           updated_at?: string
           user_id: string
         }
         Update: {
           hidden_sections?: string[]
+          scope?: string
           section_order?: string[]
           updated_at?: string
           user_id?: string
