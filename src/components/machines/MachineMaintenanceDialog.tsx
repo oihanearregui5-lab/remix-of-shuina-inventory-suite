@@ -299,8 +299,12 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
                   const chips: string[] = [];
                   if (row.hydraulic_oil_done) chips.push(`Hidr. ${row.hydraulic_oil_liters ?? 0}L`);
                   if (row.engine_oil_done) chips.push(`Motor ${row.engine_oil_liters ?? 0}L`);
-                  if (row.coolant_done) chips.push(`Anticong. ${row.coolant_liters ?? 0}L`);
+                  if (row.coolant_done) chips.push(`Refrig. ${row.coolant_liters ?? 0}L`);
                   if (row.adblue_done) chips.push(`AdBlue ${row.adblue_liters ?? 0}L`);
+                  const parsed = parseNotes(row.notes);
+                  if (parsed.extras.air_filters) chips.push("Filtros aire");
+                  if (parsed.extras.fuel_filters) chips.push("Filtros comb.");
+                  if (parsed.extras.general_greasing) chips.push("Engrase");
                   return (
                     <div key={row.id} className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm">
                       <div className="flex flex-col">
