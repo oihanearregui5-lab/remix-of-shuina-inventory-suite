@@ -189,6 +189,25 @@ const TonnageMonthlyTable = () => {
     return map;
   }, [trips]);
 
+  // Cantidades de material por día (suma de qty_arenas_a + qty_arenas_b, qty_tortas, qty_sulfatos)
+  const materialDayMap = useMemo(() => {
+    const map = new Map<string, { arenas: number; tortas: number; sulfatos: number }>();
+    trips.forEach((trip) => {
+      const cur = map.get(trip.trip_date) ?? { arenas: 0, tortas: 0, sulfatos: 0 };
+      cur.arenas += Number(trip.qty_arenas_a || 0) + Number(trip.qty_arenas_b || 0);
+      cur.tortas += Number(trip.qty_tortas || 0);
+      cur.sulfatos += Number(trip.qty_sulfatos || 0);
+      map.set(trip.trip_date, cur);
+    });
+    return map;
+  }, [trips]);
+
+  const materialTotals = useMemo(() => {
+    let arenas = 0, tortas = 0, sulfatos = 0;
+    materialDayMap.forEach((v) => { arenas += v.arenas; tortas += v.tortas; sulfatos += v.sulfatos; });
+    return { arenas, tortas, sulfatos, total: arenas + tortas + sulfatos };
+  }, [materialDayMap]);
+
   const totalViajes = trips.length;
   const totalKg = trips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
   const avgKg = totalViajes > 0 ? totalKg / totalViajes : 0;
