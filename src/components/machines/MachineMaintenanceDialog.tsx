@@ -200,34 +200,79 @@ const MachineMaintenanceDialog = ({ open, machineId, machineName, onOpenChange }
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando…</div>
           ) : (
-            <div className="space-y-2 rounded-lg border border-border p-3">
-              {ITEMS.map((item) => {
-                const value = form[item.key];
-                return (
-                  <div key={item.key} className={cn("flex items-center gap-3 rounded-md p-2 transition-colors", value.done && "bg-success/5")}>
-                    <Checkbox
-                      checked={value.done}
-                      onCheckedChange={(checked) =>
-                        setForm((cur) => ({ ...cur, [item.key]: { ...cur[item.key], done: Boolean(checked) } }))
-                      }
-                    />
-                    <span className="flex-1 text-sm font-medium text-foreground">{item.label}</span>
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.1"
-                      value={value.liters}
-                      placeholder="Litros"
-                      onChange={(e) =>
-                        setForm((cur) => ({ ...cur, [item.key]: { ...cur[item.key], liters: e.target.value } }))
-                      }
-                      className="w-28"
-                      disabled={!value.done}
-                    />
-                    <span className="w-6 text-xs text-muted-foreground">L</span>
-                  </div>
-                );
-              })}
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Checklist de mantenimiento</p>
+                <p className="text-xs text-muted-foreground">Marca lo realizado y anota los litros usados.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                {ITEMS.map((item) => {
+                  const value = form[item.key];
+                  const Icon = item.Icon;
+                  const missingLiters = value.done && !value.liters;
+                  return (
+                    <div
+                      key={item.key}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md border border-transparent p-2 transition-colors",
+                        value.done && "bg-success/5 border-success/30",
+                      )}
+                    >
+                      <Checkbox
+                        className="h-5 w-5"
+                        checked={value.done}
+                        onCheckedChange={(checked) =>
+                          setForm((cur) => ({ ...cur, [item.key]: { ...cur[item.key], done: Boolean(checked) } }))
+                        }
+                      />
+                      <Icon className={cn("h-4 w-4", value.done ? "text-primary" : "text-muted-foreground")} />
+                      <span className="flex-1 text-sm font-medium text-foreground">{item.label}</span>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.1"
+                        value={value.liters}
+                        placeholder="Litros"
+                        onChange={(e) =>
+                          setForm((cur) => ({ ...cur, [item.key]: { ...cur[item.key], liters: e.target.value } }))
+                        }
+                        className={cn(
+                          "w-24 transition-colors",
+                          !value.done && "opacity-50",
+                          missingLiters && "border-warning ring-1 ring-warning/40",
+                        )}
+                        disabled={!value.done}
+                      />
+                      <span className="w-4 text-xs text-muted-foreground">L</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-1.5 border-t border-border pt-2">
+                {EXTRAS.map((item) => {
+                  const Icon = item.Icon;
+                  const checked = extras[item.key];
+                  return (
+                    <div
+                      key={item.key}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md border border-transparent p-2 transition-colors",
+                        checked && "bg-success/5 border-success/30",
+                      )}
+                    >
+                      <Checkbox
+                        className="h-5 w-5"
+                        checked={checked}
+                        onCheckedChange={(c) => setExtras((cur) => ({ ...cur, [item.key]: Boolean(c) }))}
+                      />
+                      <Icon className={cn("h-4 w-4", checked ? "text-primary" : "text-muted-foreground")} />
+                      <span className="flex-1 text-sm font-medium text-foreground">{item.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
