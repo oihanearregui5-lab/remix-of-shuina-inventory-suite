@@ -171,13 +171,13 @@ const MyAccountDialog = ({
                   Oculta o reordena las secciones a tu gusto.
                 </p>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => reset()} className="gap-1 text-xs" title="Restaurar predeterminado">
+              <Button size="sm" variant="ghost" onClick={handleResetDraft} className="gap-1 text-xs" title="Restaurar predeterminado">
                 <RotateCcw className="h-3.5 w-3.5" /> Restaurar
               </Button>
             </div>
             <ul className="space-y-1.5">
               {orderedSections.map((section, index) => {
-                const isHidden = prefs.hidden.includes(section.key);
+                const isHidden = draft.hidden.includes(section.key);
                 return (
                   <li
                     key={section.key}
@@ -186,7 +186,7 @@ const MyAccountDialog = ({
                     <div className="flex flex-col">
                       <button
                         type="button"
-                        onClick={() => moveSection(section.key, "up", allKeys)}
+                        onClick={() => moveSectionDraft(section.key, "up")}
                         disabled={index === 0}
                         aria-label={`Subir ${section.label}`}
                         className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
@@ -195,7 +195,7 @@ const MyAccountDialog = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => moveSection(section.key, "down", allKeys)}
+                        onClick={() => moveSectionDraft(section.key, "down")}
                         disabled={index === orderedSections.length - 1}
                         aria-label={`Bajar ${section.label}`}
                         className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
@@ -209,13 +209,20 @@ const MyAccountDialog = ({
                     {isHidden ? <EyeOff className="h-3.5 w-3.5 text-muted-foreground" /> : <Eye className="h-3.5 w-3.5 text-primary" />}
                     <Switch
                       checked={!isHidden}
-                      onCheckedChange={() => toggleHidden(section.key)}
+                      onCheckedChange={() => toggleHiddenDraft(section.key)}
                       aria-label={isHidden ? `Mostrar ${section.label}` : `Ocultar ${section.label}`}
                     />
                   </li>
                 );
               })}
             </ul>
+            <Button
+              onClick={handleSave}
+              disabled={!isDirty}
+              className="mt-3 w-full gap-2"
+            >
+              <Save className="h-4 w-4" /> Guardar cambios
+            </Button>
           </div>
         )}
 
