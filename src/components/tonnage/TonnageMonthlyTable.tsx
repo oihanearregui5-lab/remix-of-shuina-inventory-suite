@@ -266,7 +266,7 @@ const TonnageMonthlyTable = () => {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
 
     // Anchos de columna
-    const colWidths = [{ wch: 6 }, ...trucks.map(() => ({ wch: 12 })), { wch: 10 }, { wch: 12 }, { wch: 10 }];
+    const colWidths = [{ wch: 6 }, ...trucks.map(() => ({ wch: 12 })), { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 10 }];
     ws["!cols"] = colWidths;
 
     // Combinar la fila del título
