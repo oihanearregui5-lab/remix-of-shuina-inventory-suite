@@ -46,6 +46,7 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "vacations", label: "Calendario", description: "Vacaciones, jornadas y calendario global.", icon: CalendarRange, workspace: "admin" },
   { key: "albaranes", label: "Albaranes", description: "Registro de pedidos por proveedor, destino y máquina.", icon: ReceiptText, workspace: "admin" },
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
+  { key: "analytics", label: "Analítica", description: "KPIs, gráficas y alertas operativas.", icon: BarChart3, workspace: "admin", adminOnly: true },
 ];
 
 const WORKSPACE_KEY = "transtubari-workspace-mode";
