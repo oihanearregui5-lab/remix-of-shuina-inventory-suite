@@ -26,6 +26,8 @@ interface AppShellProps<T extends string> {
   onSectionChange: (section: T) => void;
   onSectionPrefetch?: (section: T) => void;
   sections: AppShellSection<T>[];
+  /** Todas las secciones permitidas (sin filtrar ocultas), para el panel "Personalizar menú". */
+  allSections?: AppShellSection<T>[];
   canViewAdmin: boolean;
   isAdmin: boolean;
   workspaceMode: "worker" | "admin";
