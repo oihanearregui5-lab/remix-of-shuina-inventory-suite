@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
+import WelcomeBanner from "@/components/shared/WelcomeBanner";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import MachineExpiriesWidget from "@/components/dashboard/MachineExpiriesWidget";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
@@ -106,6 +107,7 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      <WelcomeBanner />
       <PageHeader
         eyebrow="Bandeja de entrada"
         title={greeting}
@@ -155,6 +157,9 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
             </>
           )}
         </Button>
+        <p className="mt-2 text-center text-[11px] text-muted-foreground">
+          💡 Tu fichaje queda registrado con fecha y hora. Si te equivocas, avisa a Raquel.
+        </p>
 
         {!isSimple && (
           <div className="mt-4 grid gap-3 md:grid-cols-2">
