@@ -44,22 +44,61 @@ const MyAccountDialog = ({
   availableSections = [],
 }: MyAccountDialogProps) => {
   const { isSimple, toggleMode } = useUIMode();
-  const { prefs, toggleHidden, moveSection, reset } = useNavPreferences();
+  const { prefs, savePrefs, reset } = useNavPreferences();
 
-  // Construir orden actual aplicando preferencias.
+  // Estado borrador local: los cambios sólo se aplican al pulsar "Guardar".
+  const [draft, setDraft] = useState(prefs);
+  useEffect(() => {
+    if (open) setDraft(prefs);
+  }, [open, prefs]);
+
+  const allKeys = availableSections.map((s) => s.key);
+
+  // Construir orden actual aplicando el borrador.
   const orderedSections = useMemo(() => {
-    const allKeys = availableSections.map((s) => s.key);
     const ordered: string[] = [];
-    for (const k of prefs.order) {
+    for (const k of draft.order) {
       if (allKeys.includes(k) && !ordered.includes(k)) ordered.push(k);
     }
     for (const k of allKeys) {
       if (!ordered.includes(k)) ordered.push(k);
     }
     return ordered.map((k) => availableSections.find((s) => s.key === k)!).filter(Boolean);
-  }, [availableSections, prefs.order]);
+  }, [availableSections, draft.order, allKeys]);
 
-  const allKeys = availableSections.map((s) => s.key);
+  const isDirty =
+    JSON.stringify(draft.hidden) !== JSON.stringify(prefs.hidden) ||
+    JSON.stringify(draft.order) !== JSON.stringify(prefs.order);
+
+  const toggleHiddenDraft = (key: string) => {
+    setDraft((d) => ({
+      ...d,
+      hidden: d.hidden.includes(key) ? d.hidden.filter((k) => k !== key) : [...d.hidden, key],
+    }));
+  };
+
+  const moveSectionDraft = (key: string, direction: "up" | "down") => {
+    const current = [
+      ...draft.order.filter((k) => allKeys.includes(k)),
+      ...allKeys.filter((k) => !draft.order.includes(k)),
+    ];
+    const idx = current.indexOf(key);
+    if (idx < 0) return;
+    const target = direction === "up" ? idx - 1 : idx + 1;
+    if (target < 0 || target >= current.length) return;
+    const next = [...current];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setDraft((d) => ({ ...d, order: next }));
+  };
+
+  const handleSave = async () => {
+    await savePrefs(draft);
+    toast({ title: "Menú guardado", description: "Tus cambios ya se ven en la barra de navegación." });
+  };
+
+  const handleResetDraft = () => {
+    setDraft({ hidden: [], order: [] });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
