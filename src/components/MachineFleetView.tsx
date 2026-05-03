@@ -208,13 +208,30 @@ const MachineFleetView = ({ defaultStatusFilter = "all", hideHeader = false }: M
     const { data } = await db.from("work_reports").select("id, machine, worker_name, started_at, ended_at").order("started_at", { ascending: false }).limit(500);
     setWorkReports((data ?? []) as WorkReportItem[]);
   };
+  const [photoCovers, setPhotoCoversInner] = useState<Record<string, string>>({});
   const fetchPhotoCounts = async () => {
-    const { data } = await db.from("machine_photos").select("machine_id");
+    const { data } = await db
+      .from("machine_attachments")
+      .select("machine_id, storage_path, created_at")
+      .order("created_at", { ascending: false });
     const counts: Record<string, number> = {};
-    ((data ?? []) as Array<{ machine_id: string }>).forEach((row) => {
+    const firstByMachine: Record<string, string> = {};
+    ((data ?? []) as Array<{ machine_id: string; storage_path: string }>).forEach((row) => {
       counts[row.machine_id] = (counts[row.machine_id] ?? 0) + 1;
+      // como vienen ordenadas DESC, la primera vista es la más reciente
+      if (!firstByMachine[row.machine_id]) firstByMachine[row.machine_id] = row.storage_path;
     });
     setPhotoCounts(counts);
+    // genera signed URLs para la portada
+    const entries = await Promise.all(
+      Object.entries(firstByMachine).map(async ([machineId, path]) => {
+        const { data: urlData } = await supabase.storage.from("machine-photos").createSignedUrl(path, 3600);
+        return [machineId, urlData?.signedUrl ?? ""] as const;
+      }),
+    );
+    const covers: Record<string, string> = {};
+    entries.forEach(([id, url]) => { if (url) covers[id] = url; });
+    setPhotoCoversInner(covers);
   };
 
   const openCreate = () => {
