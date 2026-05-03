@@ -333,7 +333,7 @@ const MachineFleetView = ({ defaultStatusFilter = "all", hideHeader = false }: M
           worstSeverity,
         };
       }),
-    [incidents, machines, notes, services, workReports, photoCounts],
+    [incidents, machines, notes, services, workReports, photoCounts, photoCovers],
   );
 
   const fleetSummary = useMemo(
