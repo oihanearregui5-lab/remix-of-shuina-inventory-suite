@@ -30,8 +30,6 @@ interface DailyHighlight { id: string; title: string; summary: string | null; ca
 interface VacationReviewItem { id: string; request_type: string; start_date: string; end_date: string; reason: string | null; requester_user_id: string; requester_name?: string | null; status?: string; admin_response?: string | null }
 interface CompanyCalendarDay { id: string; calendar_date: string; title: string; day_type: string; color_tag: string | null; notes: string | null }
 
-const excelVacationLegend = ["ADRIAN", "AITOR", "ANDRIY", "FRAN", "HAMID", "JUAN", "LYUBEN", "MANUEL", "MISAEL", "NELO", "OLEK", "RAQUEL", "SILVIO"];
-
 const AdminHubView = () => {
   const { canViewAdmin } = useAuth();
   const { items: liveWorkers, loading: liveWorkersLoading, summary: liveSummary } = useWorkerLiveStatus();
