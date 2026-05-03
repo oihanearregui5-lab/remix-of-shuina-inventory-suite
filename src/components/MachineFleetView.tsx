@@ -319,7 +319,7 @@ const MachineFleetView = ({ defaultStatusFilter = "all", hideHeader = false }: M
 
         return {
           ...machine,
-          visual: machine.photo_url || resolveMachineImage(machine) || null,
+          visual: photoCovers[machine.id] || machine.photo_url || null,
           noteItems,
           serviceItems,
           incidentItems,
