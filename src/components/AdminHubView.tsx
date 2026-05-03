@@ -99,7 +99,7 @@ const AdminHubView = () => {
     return [...holidays, ...closures, ...companyDay];
   }, [calendarDays, calendarYear, selectedDate]);
 
-  const vacationLegend = useMemo(() => excelVacationLegend.map((name) => ({ name, color: resolveWorkerColor(name) })), []);
+  
   const adminAlerts = useMemo(() => {
     const alerts: Array<{ title: string; detail: string }> = [];
     if (metrics.activeClockings > metrics.activeWorkReports) alerts.push({ title: "Jornadas sin parte activo", detail: `${Math.max(0, metrics.activeClockings - metrics.activeWorkReports)} personas tienen fichaje abierto sin parte en curso.` });
