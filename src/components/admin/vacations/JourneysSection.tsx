@@ -293,7 +293,7 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/30 px-5 py-4">
           <span className="mr-1 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Trabajadores</span>
           <button type="button" onClick={() => setSelectedWorkerId(null)} className={!selectedWorkerId ? "rounded-full border border-primary bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground" : "rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground"}>Todos</button>
-          {excelWorkers.map((worker) => (
+          {allWorkers.map((worker) => (
             <button key={worker.id} type="button" onClick={() => openWorker(worker.id)} className={selectedWorkerId === worker.id ? "inline-flex items-center gap-2 rounded-full border border-primary bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground" : "inline-flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1.5 text-xs font-semibold text-foreground"}>
               <span className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-extrabold text-white" style={{ backgroundColor: worker.color }}>{worker.initials.slice(0, 1)}</span>
               {worker.name}
