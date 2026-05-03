@@ -369,7 +369,7 @@ const AdminFichajes = () => {
             <h2 className="text-base font-semibold text-foreground">Balance por trabajador</h2>
             <p className="mt-1 text-sm text-muted-foreground">Lectura rápida del rango seleccionado.</p>
           </div>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(byEmployee).map(([userId, { name, entries: empEntries }]) => {
               const personSummary = summarizeEntriesForRange(empEntries, new Date(`${dateFrom}T00:00:00`), new Date(`${dateTo}T23:59:59`));
               const staffInfo = staffColors.get(userId);
@@ -379,21 +379,23 @@ const AdminFichajes = () => {
                   key={userId}
                   onDoubleClick={() => staffInfo && setSelectedWorkerId(staffInfo.staffId)}
                   title={staffInfo ? "Doble clic para ver ficha completa" : undefined}
-                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-background px-4 py-3 pl-5 transition-colors hover:bg-muted/30"
-                  style={{ borderLeft: `4px solid ${color}` }}
+                  className="group relative cursor-pointer overflow-hidden rounded-xl border border-l-2 border-border bg-background p-3 transition-colors hover:bg-muted/30"
+                  style={{ borderLeftColor: color, borderLeftWidth: "3px" }}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-start gap-2">
                       <span
-                        className="mt-1.5 h-2.5 w-2.5 flex-none rounded-full"
+                        className="mt-1 h-2 w-2 flex-none rounded-full"
                         style={{ backgroundColor: color }}
                       />
-                      <div>
-                        <p className="font-semibold text-foreground">{name}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">Trabajadas {formatMinutes(personSummary.workedMinutes)} · Extra {formatMinutes(personSummary.overtimeMinutes)} · Faltantes {formatMinutes(personSummary.missingMinutes)}</p>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Trab. {formatMinutes(personSummary.workedMinutes)} · Ext. {formatMinutes(personSummary.overtimeMinutes)} · Falt. {formatMinutes(personSummary.missingMinutes)}
+                        </p>
                       </div>
                     </div>
-                    <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
                       {formatMinutes(personSummary.balanceMinutes)}
                     </span>
                   </div>
