@@ -317,9 +317,11 @@ const PersonalNotesView = () => {
                     <Button variant="outline" size="icon" onClick={() => void toggleCompleted(note)} aria-label="Completar nota">
                       <CheckCircle2 className={cn("h-4 w-4", note.is_completed && "fill-current text-primary")} />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => void convertToTask(note)} aria-label="Convertir en tarea">
-                      <ClipboardPlus className="h-4 w-4" />
-                    </Button>
+                    {isAdmin ? (
+                      <Button variant="outline" size="icon" onClick={() => void convertToTask(note)} aria-label="Convertir en tarea">
+                        <ClipboardPlus className="h-4 w-4" />
+                      </Button>
+                    ) : null}
                     <Button variant="outline" size="icon" onClick={() => handleEdit(note)} aria-label="Editar nota">
                       <NotebookPen className="h-4 w-4" />
                     </Button>
