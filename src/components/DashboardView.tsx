@@ -137,13 +137,17 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
   const hours = Math.floor(workedTodayMinutes / 60);
   const minutes = workedTodayMinutes % 60;
 
+  const visibleTasks = useMemo(
+    () => tasks.filter((task) => task.status !== "completed" && !completedAssignmentTaskIds.has(task.id)),
+    [tasks, completedAssignmentTaskIds],
+  );
   const tasksToday = useMemo(
-    () => tasks.filter((task) => task.due_date && isSameDay(new Date(task.due_date), today) && task.status !== "completed"),
-    [tasks, today],
+    () => visibleTasks.filter((task) => task.due_date && isSameDay(new Date(task.due_date), today)),
+    [visibleTasks, today],
   );
   const pendingTasks = useMemo(
-    () => tasks.filter((task) => task.status !== "completed" && !tasksToday.includes(task)).slice(0, isSimple ? 3 : 6),
-    [tasks, tasksToday, isSimple],
+    () => visibleTasks.filter((task) => !tasksToday.includes(task)).slice(0, isSimple ? 3 : 6),
+    [visibleTasks, tasksToday, isSimple],
   );
   const todayHighlights = useMemo(() => highlights.filter((item) => isSameDay(new Date(item.highlight_date), today)), [highlights, today]);
 
