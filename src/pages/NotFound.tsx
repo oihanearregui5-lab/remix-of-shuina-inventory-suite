@@ -17,7 +17,7 @@ const NotFound = () => {
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="hero-surface w-full max-w-lg rounded-[28px] px-8 py-12 text-center">
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 shadow-[var(--shadow-elevated)]">
-          <img src="/favicon.svg" alt="Transtubari" className="h-10 w-10 object-contain" />
+          <img src="/favicon.png" alt="Transtubari" className="h-10 w-10 object-contain" />
         </div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Error 404</p>
         <h1 className="mt-3 text-3xl font-bold text-foreground md:text-4xl">Página no encontrada</h1>

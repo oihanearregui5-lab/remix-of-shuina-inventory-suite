@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "robots.txt"],
+      includeAssets: ["favicon.png", "apple-touch-icon.png", "robots.txt"],
       manifest: {
         name: "Transtubari · Control horario",
         short_name: "Transtubari",
@@ -30,7 +30,10 @@ export default defineConfig(({ mode }) => ({
         scope: "/",
         lang: "es",
         orientation: "portrait",
-        icons: [{ src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" }],
+        icons: [
+          { src: "/favicon.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/favicon.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+        ],
       },
       workbox: {
         navigateFallbackDenylist: [/^\/auth/, /^\/~oauth/, /^\/api\//],
