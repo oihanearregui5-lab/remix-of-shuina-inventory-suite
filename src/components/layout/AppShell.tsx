@@ -115,7 +115,7 @@ const AppShell = <T extends string>({
       >
         <div className={cn("flex items-center", isCollapsedDesktop ? "justify-center" : "justify-between")}>
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sidebar-border/80 bg-sidebar-accent/60">
-            <img src="/favicon.svg" alt="Abeja Transtubari" className="h-8 w-8 object-contain" />
+            <img src="/favicon.png" alt="Abeja Transtubari" className="h-8 w-8 object-contain" />
           </div>
           {showCollapseToggle && (
             <button

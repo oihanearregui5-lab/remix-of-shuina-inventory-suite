@@ -17,7 +17,7 @@ const WorkspaceSelector = ({ profileName, canViewAdmin, onSelect, onSignOut }: W
         <header className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/70 bg-card">
-              <img src="/favicon.svg" alt="Transtubari" className="h-7 w-7 object-contain" />
+              <img src="/favicon.png" alt="Transtubari" className="h-7 w-7 object-contain" />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Transtubari</p>
