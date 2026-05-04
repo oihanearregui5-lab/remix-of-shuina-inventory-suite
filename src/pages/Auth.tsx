@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { LogIn, ShieldCheck, KeyRound, Truck } from "lucide-react";
+import { LogIn, KeyRound, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 
-type View = "login" | "change-pin" | "enroll-mfa" | "verify-mfa";
+type View = "login" | "change-pin";
 
 const LOCK_KEY = "transtubari-auth-locked";
 const ATTEMPTS_KEY = "transtubari-auth-attempts";
@@ -69,12 +69,6 @@ const Auth = () => {
   const [newPin2, setNewPin2] = useState("");
   const initialPinRef = useRef<string>("");
 
-  // MFA
-  const [factorId, setFactorId] = useState<string | null>(null);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [secret, setSecret] = useState<string | null>(null);
-  const [mfaCode, setMfaCode] = useState("");
-
   // Lock
   const [lockedUntil, setLockedUntil] = useState<number | null>(checkLocked());
   const [now, setNow] = useState(Date.now());
@@ -97,41 +91,9 @@ const Auth = () => {
     return Math.max(0, Math.ceil((lockedUntil - now) / 1000));
   }, [lockedUntil, now]);
 
-  const checkRoleAndContinue = async (userId: string) => {
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    const roleSet = new Set((roles ?? []).map((r: any) => r.role));
-    const isAdmin = roleSet.has("admin") || roleSet.has("secretary");
-
-    if (!isAdmin) {
-      await bootstrapUser();
-      navigate("/");
-      return;
-    }
-
-    const { data: factors, error: factorsErr } = await supabase.auth.mfa.listFactors();
-    if (factorsErr) {
-      setError(mapAuthError(factorsErr.message));
-      return;
-    }
-    const verifiedTotp = factors?.totp?.find((f) => f.status === "verified");
-    if (verifiedTotp) {
-      setFactorId(verifiedTotp.id);
-      setView("verify-mfa");
-    } else {
-      // Enroll new factor
-      const { data, error: enrollErr } = await supabase.auth.mfa.enroll({ factorType: "totp" });
-      if (enrollErr) {
-        setError(mapAuthError(enrollErr.message));
-        return;
-      }
-      setFactorId(data.id);
-      setQrCode(data.totp.qr_code);
-      setSecret(data.totp.secret);
-      setView("enroll-mfa");
-    }
+  const goToDashboard = async () => {
+    await bootstrapUser();
+    navigate("/");
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -166,7 +128,7 @@ const Auth = () => {
         setView("change-pin");
         return;
       }
-      if (user) await checkRoleAndContinue(user.id);
+      await goToDashboard();
     } catch (err: any) {
       setError(mapAuthError(err?.message));
     } finally {
@@ -191,7 +153,7 @@ const Auth = () => {
     }
     setLoading(true);
     try {
-      const { data, error: updErr } = await supabase.auth.updateUser({
+      const { error: updErr } = await supabase.auth.updateUser({
         password: newPin,
         data: { force_password_change: false },
       });
@@ -211,43 +173,7 @@ const Auth = () => {
         }
         return;
       }
-      if (data.user) await checkRoleAndContinue(data.user.id);
-    } catch (err: any) {
-      setError(mapAuthError(err?.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyMfa = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!factorId) {
-      setError("No se ha podido obtener el segundo factor. Vuelve a intentarlo.");
-      return;
-    }
-    if (!/^\d{6}$/.test(mfaCode)) {
-      setError("Introduce el código de 6 dígitos.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const { data: chal, error: chalErr } = await supabase.auth.mfa.challenge({ factorId });
-      if (chalErr || !chal) {
-        setError("No se ha podido generar el reto. Inténtalo de nuevo.");
-        return;
-      }
-      const { error: verErr } = await supabase.auth.mfa.verify({
-        factorId,
-        challengeId: chal.id,
-        code: mfaCode,
-      });
-      if (verErr) {
-        setError("Código incorrecto, prueba otra vez");
-        return;
-      }
-      await bootstrapUser();
-      navigate("/");
+      await goToDashboard();
     } catch (err: any) {
       setError(mapAuthError(err?.message));
     } finally {
@@ -335,83 +261,6 @@ const Auth = () => {
     </form>
   );
 
-  const renderEnrollMfa = () => (
-    <form onSubmit={handleVerifyMfa} className="space-y-4">
-      <div className="space-y-2">
-        <h2 className="text-xl font-semibold text-foreground">Configura el segundo factor</h2>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Como administrador, necesitas activar un segundo factor para entrar. Instala una app Authenticator en tu móvil (recomendamos Microsoft Authenticator, Google Authenticator o Authy) y escanea este código QR.
-        </p>
-      </div>
-      {qrCode && (
-        <div className="flex justify-center rounded-2xl border border-border bg-card p-4">
-          <img src={qrCode} alt="Código QR del segundo factor" className="h-48 w-48" />
-        </div>
-      )}
-      {secret && (
-        <div className="space-y-2 rounded-xl border border-border bg-muted/40 p-3">
-          <p className="text-xs text-muted-foreground">Si no puedes escanear el QR, escribe este código en la app:</p>
-          <code className="block break-all text-base font-semibold tracking-wider text-foreground">{secret}</code>
-        </div>
-      )}
-      <div className="space-y-2">
-        <Label htmlFor="mfa">Código de 6 dígitos</Label>
-        <Input
-          id="mfa"
-          type="text"
-          inputMode="numeric"
-          maxLength={6}
-          value={mfaCode}
-          onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
-          required
-        />
-      </div>
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      <Button type="submit" variant="premium" size="xl" className="w-full" disabled={loading}>
-        {loading ? "Verificando…" : (<><ShieldCheck className="w-4 h-4" /> Verificar</>)}
-      </Button>
-    </form>
-  );
-
-  const renderVerifyMfa = () => (
-    <form onSubmit={handleVerifyMfa} className="space-y-4">
-      <div className="space-y-2">
-        <h2 className="text-xl font-semibold text-foreground">Verifica tu identidad</h2>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Introduce el código de 6 dígitos de tu app Authenticator
-        </p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="mfa">Código</Label>
-        <Input
-          id="mfa"
-          type="text"
-          inputMode="numeric"
-          maxLength={6}
-          value={mfaCode}
-          onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
-          autoFocus
-          required
-        />
-      </div>
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      <Button type="submit" variant="premium" size="xl" className="w-full" disabled={loading}>
-        {loading ? "Verificando…" : (<><ShieldCheck className="w-4 h-4" /> Verificar</>)}
-      </Button>
-      <p className="text-center text-xs text-muted-foreground">
-        He perdido mi móvil — pídele a Raquel que te resetee el segundo factor.
-      </p>
-    </form>
-  );
-
   return (
     <div className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md items-center justify-center">
@@ -428,8 +277,6 @@ const Auth = () => {
 
           {view === "login" && renderLogin()}
           {view === "change-pin" && renderChangePin()}
-          {view === "enroll-mfa" && renderEnrollMfa()}
-          {view === "verify-mfa" && renderVerifyMfa()}
         </div>
       </div>
     </div>
