@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { LogIn, KeyRound, Truck } from "lucide-react";
+import { LogIn, KeyRound } from "lucide-react";
+import logoIcon from "@/assets/logo-transtubari-icon.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -266,9 +267,11 @@ const Auth = () => {
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md items-center justify-center">
         <div className="panel-surface w-full p-6 md:p-8">
           <div className="mb-8 flex flex-col items-center gap-3 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-soft)]">
-              <Truck className="h-8 w-8" />
-            </div>
+            <img
+              src={logoIcon}
+              alt="Transtubari"
+              className="h-20 w-20 object-contain drop-shadow-[var(--shadow-soft)]"
+            />
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">TRANSTUBARI</h1>
               <p className="mt-1 text-sm text-muted-foreground">Acceso al sistema</p>
