@@ -1,6 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import * as XLSX from "xlsx";
-import { AlertTriangle, CalendarDays, Camera, CarFront, CreditCard, Download, FileText, Fuel, MapPinned, PencilLine } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import {
+  AlertTriangle,
+  CalendarDays,
+  Camera,
+  CarFront,
+  CreditCard,
+  Fuel,
+  History,
+  PencilLine,
+  Plus,
+  Settings2,
+  Wallet,
+} from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -8,533 +22,599 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { buildGasolineAlerts, getFuelUnitPrice, parseFuelNumber, validateFuelDraft } from "@/lib/gasoline-alerts";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-type GasolineRecord = {
+interface FuelCard {
   id: string;
-  cardId: string;
-  date: string;
+  alias: string; // matrícula
+  is_active: boolean;
+  sort_order: number;
+}
+interface FuelRecord {
+  id: string;
+  card_id: string;
+  record_date: string;
   station: string;
-  amount: string;
-  liters: string;
-  vehicle: string;
-  observations: string;
-  receiptPhotoName: string;
-  extraInfo: string;
-};
+  amount: number;
+  liters: number | null;
+  kilometers: number | null;
+  vehicle: string | null;
+  observations: string | null;
+  receipt_photo_path: string | null;
+  receipt_photo_name: string | null;
+  created_by_user_id: string;
+  created_at: string;
+}
+interface FuelRecharge {
+  id: string;
+  amount_eur: number;
+  recharge_date: string;
+  notes: string | null;
+  created_by_user_id: string;
+  created_at: string;
+  author_name?: string;
+}
+interface BalanceInfo {
+  current_balance: number;
+  last_recharge_date: string | null;
+  last_recharge_amount: number | null;
+  is_below_threshold: boolean;
+  is_negative: boolean;
+  threshold: number;
+}
 
-const STORAGE_KEY = "transtubari-gasoline-records";
-
-const creditCards = Array.from({ length: 14 }, (_, index) => ({
-  id: `card-${index + 1}`,
-  alias: `Tarjeta ${String(index + 1).padStart(2, "0")}`,
-  masked: `.... .... .... ${String(1001 + index).slice(-4)}`,
-}));
-
-const emptyForm = (cardId: string): GasolineRecord => ({
-  id: "",
-  cardId,
-  date: new Date().toISOString().slice(0, 10),
-  station: "",
-  amount: "",
-  liters: "",
-  vehicle: "",
-  observations: "",
-  receiptPhotoName: "",
-  extraInfo: "",
-});
+const fmtEUR = (n: number) =>
+  new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
 
 interface GasolineHubViewProps {
   isAdminView?: boolean;
 }
 
+const emptyDraft = (cardId: string) => ({
+  card_id: cardId,
+  record_date: format(new Date(), "yyyy-MM-dd"),
+  station: "",
+  amount: "",
+  liters: "",
+  kilometers: "",
+  observations: "",
+});
+
 const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
-  const [records, setRecords] = useState<GasolineRecord[]>([]);
-  const [selectedCardId, setSelectedCardId] = useState<string>(creditCards[0].id);
-  const [draft, setDraft] = useState<GasolineRecord>(() => emptyForm(creditCards[0].id));
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [cardsOpen, setCardsOpen] = useState<boolean>(isAdminView);
-  const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const { user, isAdmin } = useAuth();
+  const qc = useQueryClient();
+  const showAdmin = isAdminView && isAdmin;
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored) as GasolineRecord[];
-      setRecords(parsed);
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
+  // ----- queries -----
+  const { data: cards = [] } = useQuery({
+    queryKey: ["fuel_cards"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fuel_cards")
+        .select("id, alias, is_active, sort_order")
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("alias");
+      if (error) throw error;
+      return (data ?? []) as FuelCard[];
+    },
+  });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-  }, [records]);
+  const { data: records = [] } = useQuery({
+    queryKey: ["fuel_records", showAdmin ? "all" : user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fuel_records")
+        .select("id, card_id, record_date, station, amount, liters, kilometers, vehicle, observations, receipt_photo_path, receipt_photo_name, created_by_user_id, created_at")
+        .order("record_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []) as FuelRecord[];
+    },
+  });
 
-  useEffect(() => {
-    setDraft((current) => {
-      if (editingId) return current;
-      return emptyForm(selectedCardId);
-    });
-  }, [selectedCardId, editingId]);
+  const { data: balance } = useQuery({
+    queryKey: ["fuel_balance"],
+    enabled: showAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_fuel_balance");
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return row as BalanceInfo;
+    },
+  });
 
-  const selectedCard = creditCards.find((card) => card.id === selectedCardId) ?? creditCards[0];
-  const cardRecords = useMemo(
-    () => records.filter((record) => record.cardId === selectedCardId).sort((a, b) => b.date.localeCompare(a.date)),
-    [records, selectedCardId],
-  );
-  const alerts = useMemo(() => buildGasolineAlerts(records), [records]);
-  const selectedCardAlerts = useMemo(() => alerts.filter((alert) => alert.cardId === selectedCardId), [alerts, selectedCardId]);
-
-  const cardSummaries = useMemo(
-    () =>
-      creditCards.map((card) => {
-        const cardEntries = records.filter((record) => record.cardId === card.id);
-        const totalAmount = cardEntries.reduce((sum, record) => sum + Number(record.amount || 0), 0);
-        return {
-          ...card,
-          entries: cardEntries.length,
-          totalAmount,
-          lastDate: cardEntries.sort((a, b) => b.date.localeCompare(a.date))[0]?.date ?? null,
-        };
-      }),
-    [records],
-  );
-
-  const handleSave = () => {
-    if (isAdminView) {
-      const validationError = validateFuelDraft(draft);
-      if (validationError) {
-        toast.error(validationError);
-        return;
+  const { data: recharges = [] } = useQuery({
+    queryKey: ["fuel_recharges"],
+    enabled: showAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fuel_recharges")
+        .select("id, amount_eur, recharge_date, notes, created_by_user_id, created_at")
+        .order("recharge_date", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      const list = (data ?? []) as FuelRecharge[];
+      const ids = Array.from(new Set(list.map((r) => r.created_by_user_id)));
+      if (ids.length) {
+        const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+        const map = new Map((profiles ?? []).map((p: any) => [p.user_id, p.full_name]));
+        list.forEach((r) => { r.author_name = map.get(r.created_by_user_id) ?? "—"; });
       }
-    } else {
-      // Validación mínima para trabajador (sin importe)
-      if (!draft.date) { toast.error("Indica la fecha"); return; }
-      if (!draft.station.trim()) { toast.error("Indica la gasolinera"); return; }
-      if (!draft.vehicle.trim()) { toast.error("Indica el vehículo o matrícula"); return; }
+      return list;
+    },
+  });
+
+  // ----- state -----
+  const [refuelOpen, setRefuelOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState(() => emptyDraft(""));
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+
+  const [rechargeOpen, setRechargeOpen] = useState(false);
+  const [rechargeDraft, setRechargeDraft] = useState({ amount_eur: "", recharge_date: format(new Date(), "yyyy-MM-dd"), notes: "" });
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [thresholdDraft, setThresholdDraft] = useState("500");
+
+  useEffect(() => {
+    if (balance?.threshold != null) setThresholdDraft(String(balance.threshold));
+  }, [balance?.threshold]);
+
+  // Selección automática de tarjeta si solo es worker
+  useEffect(() => {
+    if (!draft.card_id && cards.length > 0) {
+      setDraft((d) => ({ ...d, card_id: cards[0].id }));
     }
+  }, [cards, draft.card_id]);
 
-    const payload = {
-      ...draft,
-      id: editingId ?? crypto.randomUUID(),
-      cardId: selectedCardId,
-    };
+  // ----- mutations -----
+  const saveRefuel = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("No autenticado");
+      if (!draft.card_id) throw new Error("Selecciona la matrícula");
+      const amount = Number(draft.amount.replace(",", "."));
+      const liters = draft.liters ? Number(draft.liters.replace(",", ".")) : null;
+      const km = draft.kilometers ? parseInt(draft.kilometers, 10) : null;
+      if (!draft.record_date) throw new Error("Indica la fecha");
+      if (!draft.station.trim()) throw new Error("Indica la gasolinera");
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error("Importe inválido");
 
-    if (editingId) {
-      setRecords((current) => current.map((item) => (item.id === editingId ? payload : item)));
+      let receiptPath: string | null = null;
+      let receiptName: string | null = null;
+      if (receiptFile) {
+        const ext = receiptFile.name.split(".").pop() ?? "jpg";
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("fuel-receipts").upload(path, receiptFile, { upsert: false });
+        if (upErr) throw upErr;
+        receiptPath = path;
+        receiptName = receiptFile.name;
+      }
+
+      const card = cards.find((c) => c.id === draft.card_id);
+      const payload = {
+        card_id: draft.card_id,
+        record_date: draft.record_date,
+        station: draft.station.trim(),
+        amount,
+        liters,
+        kilometers: km,
+        vehicle: card?.alias ?? null,
+        observations: draft.observations.trim() || null,
+        receipt_photo_path: receiptPath,
+        receipt_photo_name: receiptName,
+      };
+
+      if (editingId) {
+        const { error } = await supabase.from("fuel_records").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("fuel_records").insert({ ...payload, created_by_user_id: user.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: async () => {
+      toast.success(editingId ? "Repostaje actualizado" : "Repostaje registrado");
+      setRefuelOpen(false);
       setEditingId(null);
-    } else {
-      setRecords((current) => [payload, ...current]);
-    }
+      setReceiptFile(null);
+      setDraft(emptyDraft(cards[0]?.id ?? ""));
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["fuel_records"] }),
+        qc.invalidateQueries({ queryKey: ["fuel_balance"] }),
+      ]);
+      // Comprobar alarma post-insert
+      if (isAdmin) {
+        const { data } = await supabase.rpc("get_fuel_balance");
+        const row: BalanceInfo | undefined = Array.isArray(data) ? data[0] : data;
+        if (row?.is_negative) {
+          await supabase.from("notifications").insert({
+            user_id: user!.id,
+            kind: "fuel_alert",
+            title: "Saldo de gasolina negativo",
+            body: `Saldo actual: ${fmtEUR(Number(row.current_balance))}. Recarga inmediata.`,
+            link: "gasoline",
+          });
+        } else if (row?.is_below_threshold) {
+          await supabase.from("notifications").insert({
+            user_id: user!.id,
+            kind: "fuel_alert",
+            title: "Saldo de gasolina bajo",
+            body: `Quedan ${fmtEUR(Number(row.current_balance))} (umbral ${fmtEUR(row.threshold)}).`,
+            link: "gasoline",
+          });
+        }
+      }
+    },
+    onError: (err: any) => toast.error(err.message ?? "Error al guardar"),
+  });
 
-    setDraft(emptyForm(selectedCardId));
-    toast.success(editingId ? "Gasto actualizado" : "Gasto guardado");
+  const saveRecharge = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("No autenticado");
+      const amount = Number(rechargeDraft.amount_eur.replace(",", "."));
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error("Importe inválido");
+      const { error } = await supabase.from("fuel_recharges").insert({
+        amount_eur: amount,
+        recharge_date: new Date(rechargeDraft.recharge_date + "T12:00:00").toISOString(),
+        notes: rechargeDraft.notes.trim() || null,
+        created_by_user_id: user.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Recarga registrada");
+      setRechargeOpen(false);
+      setRechargeDraft({ amount_eur: "", recharge_date: format(new Date(), "yyyy-MM-dd"), notes: "" });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["fuel_recharges"] }),
+        qc.invalidateQueries({ queryKey: ["fuel_balance"] }),
+      ]);
+    },
+    onError: (err: any) => toast.error(err.message ?? "Error"),
+  });
+
+  const saveThreshold = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("No autenticado");
+      const t = parseInt(thresholdDraft, 10);
+      if (!Number.isFinite(t) || t < 0) throw new Error("Umbral inválido");
+      const { error } = await supabase.from("fuel_settings").update({
+        threshold_warning: t,
+        updated_at: new Date().toISOString(),
+        updated_by_user_id: user.id,
+      }).eq("id", 1);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Umbral actualizado");
+      setSettingsOpen(false);
+      await qc.invalidateQueries({ queryKey: ["fuel_balance"] });
+    },
+    onError: (err: any) => toast.error(err.message ?? "Error"),
+  });
+
+  // ----- derived per card -----
+  const monthPrefix = new Date().toISOString().slice(0, 7);
+  const cardSummaries = useMemo(() => cards.map((card) => {
+    const cardRecs = records.filter((r) => r.card_id === card.id);
+    const monthTotal = cardRecs
+      .filter((r) => r.record_date.startsWith(monthPrefix))
+      .reduce((s, r) => s + Number(r.amount || 0), 0);
+    const last = cardRecs[0];
+    return { card, monthTotal, count: cardRecs.length, lastDate: last?.record_date ?? null };
+  }), [cards, records, monthPrefix]);
+
+  // ----- handlers -----
+  const openNewRefuel = (cardId?: string) => {
+    setEditingId(null);
+    setReceiptFile(null);
+    setDraft(emptyDraft(cardId ?? cards[0]?.id ?? ""));
+    setRefuelOpen(true);
   };
 
-  const handleEdit = (record: GasolineRecord) => {
-    setSelectedCardId(record.cardId);
-    setDraft(record);
-    setEditingId(record.id);
+  const openEditRefuel = (rec: FuelRecord) => {
+    setEditingId(rec.id);
+    setReceiptFile(null);
+    setDraft({
+      card_id: rec.card_id,
+      record_date: rec.record_date,
+      station: rec.station,
+      amount: String(rec.amount ?? ""),
+      liters: rec.liters != null ? String(rec.liters) : "",
+      kilometers: rec.kilometers != null ? String(rec.kilometers) : "",
+      observations: rec.observations ?? "",
+    });
+    setRefuelOpen(true);
   };
 
-  const handleExport = () => {
-    const workbook = XLSX.utils.book_new();
-    const rows = records.map((record) => ({
-      Tarjeta: creditCards.find((card) => card.id === record.cardId)?.alias ?? record.cardId,
-      Fecha: record.date,
-      Gasolinera: record.station,
-      Importe: record.amount,
-      Litros: record.liters,
-      Vehiculo: record.vehicle,
-      Observaciones: record.observations,
-      Ticket: record.receiptPhotoName,
-      Extra: record.extraInfo,
-    }));
-    const sheet = XLSX.utils.json_to_sheet(rows);
-    sheet["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 28 }, { wch: 20 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(workbook, sheet, "Gasolina");
-    XLSX.writeFile(workbook, "Gasolina_registros.xlsx");
-  };
-
-  const totalAmount = cardRecords.reduce((sum, record) => sum + Number(record.amount || 0), 0);
-  const totalLiters = cardRecords.reduce((sum, record) => sum + parseFuelNumber(record.liters), 0);
-  const averagePrice = totalAmount > 0 && totalLiters > 0 ? totalAmount / totalLiters : null;
-
-  const renderCardsAccordion = () => (
-    <Accordion
-      type="single"
-      collapsible
-      value={selectedCardId}
-      onValueChange={(value) => {
-        if (!value) return;
-        setEditingId(null);
-        setSelectedCardId(value);
-      }}
-      className="divide-y divide-border"
-    >
-      {cardSummaries.map((card) => {
-        const monthPrefix = new Date().toISOString().slice(0, 7);
-        const monthEntries = records.filter((record) => record.cardId === card.id && record.date.startsWith(monthPrefix));
-        const monthTotal = monthEntries.reduce((sum, record) => sum + Number(record.amount || 0), 0);
-        const lastFive = records
-          .filter((record) => record.cardId === card.id)
-          .sort((a, b) => b.date.localeCompare(a.date))
-          .slice(0, 5);
-        return (
-          <AccordionItem key={card.id} value={card.id} className="border-b-0">
-            <AccordionTrigger className="px-2 py-3 hover:no-underline">
-              <div className="flex flex-1 items-center justify-between gap-3 pr-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-secondary/25 text-secondary-foreground">
-                    <CreditCard className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 text-left">
-                    <p className="truncate text-sm font-semibold text-foreground">{card.alias} · <span className="font-mono text-xs text-muted-foreground">{card.masked.slice(-9)}</span></p>
-                    <p className="text-[11px] text-muted-foreground">{card.entries} mov. · {card.lastDate ?? "sin uso"}</p>
-                  </div>
-                </div>
-                {isAdminView && (
-                  <span className="flex-none rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-foreground">{monthTotal.toFixed(2)} € / mes</span>
-                )}
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-3 pb-3">
-              <div className="space-y-3">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setEditingId(null);
-                    setSelectedCardId(card.id);
-                    setDraft(emptyForm(card.id));
-                    document.getElementById("gas-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                >
-                  <Fuel className="h-4 w-4" /> Registrar repostaje
-                </Button>
-                {lastFive.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Sin movimientos todavía.</p>
-                ) : (
-                  <ul className="space-y-1.5">
-                    {lastFive.map((record) => (
-                      <li key={record.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-foreground">{record.station || "Sin gasolinera"}</p>
-                          <p className="text-[11px] text-muted-foreground">{record.date}{record.vehicle ? ` · ${record.vehicle}` : ""}</p>
-                        </div>
-                        {isAdminView ? (
-                          <span className="flex-none font-semibold text-foreground">{record.amount ? `${Number(record.amount).toFixed(2)} €` : "—"}</span>
-                        ) : (
-                          <span className="flex-none text-[11px] text-muted-foreground">{record.station ? "✓" : ""}</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        );
-      })}
-    </Accordion>
-  );
+  const balanceColor = balance?.is_negative
+    ? "text-destructive"
+    : balance?.is_below_threshold
+    ? "text-amber-600 dark:text-amber-400"
+    : "text-emerald-600 dark:text-emerald-400";
 
   return (
     <div className="space-y-5 animate-fade-in">
       <PageHeader
-        eyebrow={isAdminView ? "Administración" : "Operativa"}
+        eyebrow={showAdmin ? "Administración" : "Operativa"}
         title="Gasolina"
-        description={isAdminView ? "Control visual de tarjetas y registros de repostajes, listo para revisión y descarga." : "Acceso rápido a las tarjetas y a los repostajes asociados a cada una."}
-        actions={isAdminView ? <Button onClick={handleExport}><Download className="h-4 w-4" /> Exportar Excel</Button> : undefined}
+        description={showAdmin ? "Saldo común de la cuenta de combustible, recargas y repostajes por matrícula." : "Registra el repostaje de tu vehículo."}
+        actions={<Button onClick={() => openNewRefuel()}><Fuel className="h-4 w-4" /> Registrar repostaje</Button>}
       />
 
-      <section className="panel-surface p-2 sm:p-3">
-        <div>
-          <div className="mb-3 flex items-center gap-3 px-1">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <CreditCard className="h-5 w-5" />
+      {/* Banner de alarma */}
+      {showAdmin && balance && (balance.is_negative || balance.is_below_threshold) ? (
+        <Alert variant={balance.is_negative ? "destructive" : "default"} className={cn(!balance.is_negative && "border-amber-500/40 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200")}>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{balance.is_negative ? "Saldo negativo" : "Saldo bajo"}</AlertTitle>
+          <AlertDescription>
+            {balance.is_negative
+              ? `El saldo común está en ${fmtEUR(Number(balance.current_balance))}. Recarga inmediata.`
+              : `Quedan ${fmtEUR(Number(balance.current_balance))} en la cuenta común (umbral ${fmtEUR(balance.threshold)}).`}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {/* Saldo común */}
+      {showAdmin && (
+        <Card className="border-border/80 shadow-[var(--shadow-soft)]">
+          <CardContent className="grid gap-4 p-5 md:grid-cols-[1fr_auto] md:items-center">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Wallet className="h-7 w-7" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Saldo común</p>
+                <p className={cn("text-3xl font-extrabold", balanceColor)}>
+                  {balance ? fmtEUR(Number(balance.current_balance)) : "—"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {balance?.last_recharge_date
+                    ? `Última recarga: ${format(new Date(balance.last_recharge_date), "dd MMM yyyy", { locale: es })} · ${fmtEUR(Number(balance.last_recharge_amount ?? 0))}`
+                    : "Aún no hay recargas registradas"}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Tarjetas</p>
-              <p className="text-[11px] text-muted-foreground">{creditCards.length} disponibles · pulsa una para abrir</p>
+            <div className="flex flex-wrap gap-2 md:justify-end">
+              <Button onClick={() => setRechargeOpen(true)}><Plus className="h-4 w-4" /> Recargar saldo</Button>
+              <Button variant="outline" onClick={() => setSettingsOpen(true)}><Settings2 className="h-4 w-4" /> Umbral</Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tarjetas (matrículas) */}
+      <section className="panel-surface p-3 sm:p-4">
+        <div className="mb-3 flex items-center gap-3 px-1">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <CreditCard className="h-5 w-5" />
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-            {cardSummaries.map((card) => {
-              const monthPrefix = new Date().toISOString().slice(0, 7);
-              const monthTotal = records
-                .filter((r) => r.cardId === card.id && r.date.startsWith(monthPrefix))
-                .reduce((sum, r) => sum + Number(r.amount || 0), 0);
-              return (
-                <button
-                  key={card.id}
-                  type="button"
-                  onClick={() => { setSelectedCardId(card.id); setOpenCardId(card.id); }}
-                  className="group flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-                >
-                  <div className="flex w-full items-start justify-between gap-2">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/25 text-secondary-foreground">
-                      <CreditCard className="h-4 w-4" />
-                    </div>
-                    {isAdminView && (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-foreground">{monthTotal.toFixed(2)} €</span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-foreground">{card.alias}</p>
-                    <p className="truncate font-mono text-[10px] text-muted-foreground">{card.masked.slice(-9)}</p>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">{card.entries} mov. · {card.lastDate ?? "sin uso"}</p>
-                </button>
-              );
-            })}
+          <div>
+            <p className="text-sm font-semibold text-foreground">Tarjetas / Matrículas</p>
+            <p className="text-[11px] text-muted-foreground">{cards.length} vehículos · pulsa una para registrar repostaje</p>
           </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+          {cardSummaries.map(({ card, monthTotal, count, lastDate }) => (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => openNewRefuel(card.id)}
+              className="group flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+            >
+              <div className="flex w-full items-start justify-between gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/25 text-secondary-foreground">
+                  <CarFront className="h-4 w-4" />
+                </div>
+                {showAdmin && (
+                  <Badge variant="secondary" className="text-[10px]">{fmtEUR(monthTotal)}</Badge>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate font-mono text-sm font-bold text-foreground">{card.alias}</p>
+                <p className="text-[10px] text-muted-foreground">{count} repostaje{count === 1 ? "" : "s"} · {lastDate ?? "sin uso"}</p>
+              </div>
+            </button>
+          ))}
         </div>
       </section>
 
-      {openCardId && (() => {
-        const card = cardSummaries.find((c) => c.id === openCardId);
-        if (!card) return null;
-        const cardRecords = records
-          .filter((r) => r.cardId === card.id)
-          .sort((a, b) => b.date.localeCompare(a.date));
-        const monthPrefix = new Date().toISOString().slice(0, 7);
-        const monthEntries = cardRecords.filter((r) => r.date.startsWith(monthPrefix));
-        const monthCount = monthEntries.length;
-        const monthTotal = monthEntries.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-        return (
-          <div
-            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-primary/35 px-4 py-8 backdrop-blur-sm"
-            onClick={(event) => { if (event.target === event.currentTarget) setOpenCardId(null); }}
-          >
-            <div className="w-full max-w-4xl overflow-hidden rounded-2xl bg-card shadow-2xl">
-              <div
-                className="grid gap-4 border-b border-border px-6 py-6 md:grid-cols-[auto_1fr_auto] md:items-center"
-                style={{ background: `linear-gradient(120deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 180%)` }}
-              >
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white/20 text-white">
-                  <CreditCard className="h-7 w-7" />
-                </div>
-                <div>
-                  <h4 className="text-2xl font-extrabold text-white">{card.alias}</h4>
-                  <p className="mt-1 font-mono text-sm text-white/80">{card.masked}</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setEditingId(null);
-                      setSelectedCardId(card.id);
-                      setDraft(emptyForm(card.id));
-                      setOpenCardId(null);
-                      setTimeout(() => document.getElementById("gas-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-                    }}
-                  >
-                    <Fuel className="h-4 w-4" /> Registrar repostaje
-                  </Button>
-                  <Button variant="ghost" className="text-white hover:bg-white/10" onClick={() => setOpenCardId(null)}>Cerrar</Button>
-                </div>
-              </div>
-
-              <div className="space-y-4 px-6 py-5">
-                <div className={`grid grid-cols-2 gap-3 ${isAdminView ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
-                  <div className="rounded-lg border border-border bg-muted/30 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Movimientos</p>
-                    <p className="mt-1 text-xl font-bold text-foreground">{card.entries}</p>
-                  </div>
-                  <div className="rounded-lg border border-border bg-muted/30 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Este mes</p>
-                    <p className="mt-1 text-xl font-bold text-foreground">{monthCount}</p>
-                  </div>
-                  <div className="rounded-lg border border-border bg-muted/30 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Último uso</p>
-                    <p className="mt-1 text-xl font-bold text-foreground">{card.lastDate ?? "—"}</p>
-                  </div>
-                  {isAdminView && (
-                    <div className="rounded-lg border border-border bg-muted/30 p-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Importe mes</p>
-                      <p className="mt-1 text-xl font-bold text-foreground">{monthTotal.toFixed(2)} €</p>
+      {/* Lista de repostajes */}
+      <Card className="border-border/80 shadow-[var(--shadow-soft)]">
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+          <CardTitle className="flex items-center gap-2 text-lg"><History className="h-5 w-5 text-primary" /> {showAdmin ? "Repostajes" : "Mis repostajes"}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {records.length === 0 ? (
+            <EmptyState icon={Fuel} title="Sin repostajes todavía" description="Registra tu primer repostaje desde el botón superior." />
+          ) : (
+            <div className="space-y-2">
+              {records.slice(0, 50).map((r) => {
+                const card = cards.find((c) => c.id === r.card_id);
+                const ownsRecord = r.created_by_user_id === user?.id;
+                return (
+                  <article key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background p-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-muted text-foreground">
+                        <Fuel className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground">
+                          <span className="font-mono text-sm">{card?.alias ?? "—"}</span>
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">{r.station}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          <CalendarDays className="mr-1 inline h-3 w-3" />
+                          {format(new Date(r.record_date), "dd MMM yyyy", { locale: es })}
+                          {r.liters ? ` · ${r.liters} L` : ""}
+                          {r.kilometers ? ` · ${r.kilometers} km` : ""}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-semibold text-foreground">Historial</p>
-                  {cardRecords.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground">Sin movimientos todavía.</p>
-                  ) : (
-                    <ul className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
-                      {cardRecords.map((record) => (
-                        <li key={record.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs">
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-foreground">{record.station || "Sin gasolinera"}</p>
-                            <p className="text-[11px] text-muted-foreground">{record.date}{record.vehicle ? ` · ${record.vehicle}` : ""}</p>
-                          </div>
-                          {isAdminView ? (
-                            <span className="flex-none font-semibold text-foreground">{record.amount ? `${Number(record.amount).toFixed(2)} €` : "—"}</span>
-                          ) : (
-                            <span className="flex-none text-[11px] text-muted-foreground">{record.station ? "✓" : ""}</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-foreground">{fmtEUR(Number(r.amount))}</span>
+                      {(showAdmin || ownsRecord) && (
+                        <Button size="sm" variant="ghost" onClick={() => openEditRefuel(r)}>
+                          <PencilLine className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
-          </div>
-        );
-      })()}
+          )}
+        </CardContent>
+      </Card>
 
-      {isAdminView && selectedCardAlerts.length > 0 ? (
-        <section className="panel-surface p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <AlertTriangle className="h-4.5 w-4.5 text-primary" />
-            <div>
-              <h2 className="text-base font-semibold text-foreground">Alertas de revisión</h2>
-              <p className="text-sm text-muted-foreground">Movimientos de esta tarjeta que conviene revisar.</p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {selectedCardAlerts.slice(0, 4).map((alert) => (
-              <article key={alert.id} className={cn("rounded-xl border p-4", alert.severity === "danger" ? "border-destructive/20 bg-destructive/5" : "border-primary/20 bg-primary/5")}>
-                <p className="font-semibold text-foreground">{alert.title}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{alert.description}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section className={cn("grid gap-4", isAdminView && "xl:grid-cols-[0.95fr_1.05fr]") }>
-        {isAdminView && (
-        <Card className="border-border/80 shadow-[var(--shadow-soft)] xl:order-2">
-          <CardHeader className="space-y-2">
-            <CardTitle className="flex items-center gap-2 text-lg"><CalendarDays className="h-5 w-5 text-primary" /> Movimientos de la tarjeta</CardTitle>
-            <p className="text-sm text-muted-foreground">Lista simple para revisar y corregir gastos sin perder tiempo.</p>
+      {/* Histórico de recargas (admin) */}
+      {showAdmin && (
+        <Card className="border-border/80 shadow-[var(--shadow-soft)]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg"><Plus className="h-5 w-5 text-primary" /> Histórico de recargas</CardTitle>
           </CardHeader>
           <CardContent>
-            {cardRecords.length === 0 ? (
-              <EmptyState icon={Fuel} title="Sin movimientos todavía" description="Cuando registres el primer gasto aparecerá aquí con acceso rápido para editarlo." />
+            {recharges.length === 0 ? (
+              <EmptyState icon={Wallet} title="Sin recargas todavía" description="Cuando registres una recarga, aparecerá aquí." />
             ) : (
-              <div className="space-y-3">
-                {cardRecords.map((record) => (
-                  <article key={record.id} className="rounded-2xl border border-border bg-background p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="font-semibold text-foreground">{record.station || "Gasolinera sin nombre"}</p>
-                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> {record.date}</span>
-                          {record.vehicle ? <span className="inline-flex items-center gap-1"><MapPinned className="h-3.5 w-3.5" /> {record.vehicle}</span> : null}
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(record)}><PencilLine className="h-4 w-4" /> Editar</Button>
+              <div className="space-y-2">
+                {recharges.map((r) => (
+                  <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-background p-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-emerald-600 dark:text-emerald-400">+ {fmtEUR(Number(r.amount_eur))}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(r.recharge_date), "dd MMM yyyy HH:mm", { locale: es })} · {r.author_name}
+                      </p>
+                      {r.notes ? <p className="mt-1 text-xs text-muted-foreground">{r.notes}</p> : null}
                     </div>
-                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                      <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Importe</span><p className="mt-1 font-semibold text-foreground">{record.amount || "—"} €</p></div>
-                      <div className="rounded-xl bg-muted/45 px-3 py-2"><span className="text-muted-foreground">Litros</span><p className="mt-1 font-semibold text-foreground">{record.liters || "—"}</p></div>
-                      <div className="rounded-xl bg-muted/45 px-3 py-2 sm:col-span-2"><span className="text-muted-foreground">Precio medio</span><p className="mt-1 font-semibold text-foreground">{getFuelUnitPrice(record) ? `${getFuelUnitPrice(record)?.toFixed(2)} €/l` : "Sin cálculo"}</p></div>
-                    </div>
-                    {alerts.some((alert) => alert.recordId === record.id) ? <p className="mt-3 text-xs font-medium text-primary">Requiere revisión por patrón anómalo</p> : null}
-                    {record.observations ? <p className="mt-3 text-sm text-muted-foreground">{record.observations}</p> : null}
-                    {record.receiptPhotoName ? <p className="mt-2 text-xs text-muted-foreground">Ticket: {record.receiptPhotoName}</p> : null}
-                  </article>
+                  </div>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
-        )}
+      )}
 
-        <Card id="gas-form" className="border-border/80 shadow-[var(--shadow-soft)] scroll-mt-24">
-          <CardHeader className="space-y-2">
-            <CardTitle className="flex items-center gap-2 text-lg"><Fuel className="h-5 w-5 text-primary" /> {selectedCard.alias}</CardTitle>
-            <p className="text-sm text-muted-foreground">Formulario compacto para añadir o corregir un gasto de forma rápida.</p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isAdminView && (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Tarjeta</p><p className="mt-1 font-semibold text-foreground">{selectedCard.masked}</p></div>
-                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Registros</p><p className="mt-1 font-semibold text-foreground">{cardRecords.length}</p></div>
-                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Importe acumulado</p><p className="mt-1 font-semibold text-foreground">{totalAmount.toFixed(2)} €</p></div>
-                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Litros acumulados</p><p className="mt-1 font-semibold text-foreground">{totalLiters.toFixed(2)}</p></div>
-                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Precio medio</p><p className="mt-1 font-semibold text-foreground">{averagePrice ? `${averagePrice.toFixed(2)} €/l` : "—"}</p></div>
-                <div className="rounded-xl bg-muted/45 px-4 py-3"><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Alertas</p><p className="mt-1 font-semibold text-foreground">{selectedCardAlerts.length}</p></div>
+      {/* Diálogo: Registrar repostaje */}
+      <Dialog open={refuelOpen} onOpenChange={setRefuelOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Editar repostaje" : "Registrar repostaje"}</DialogTitle>
+            <DialogDescription>Completa los datos del repostaje. Los kilómetros son opcionales.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-1.5">
+              <Label>Matrícula</Label>
+              <Select value={draft.card_id} onValueChange={(v) => setDraft((d) => ({ ...d, card_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecciona matrícula" /></SelectTrigger>
+                <SelectContent>
+                  {cards.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.alias}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Fecha</Label>
+                <Input type="date" value={draft.record_date} onChange={(e) => setDraft((d) => ({ ...d, record_date: e.target.value }))} />
               </div>
-            )}
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="gas-date">Fecha</Label>
-                <Input id="gas-date" type="date" value={draft.date} onChange={(event) => setDraft((current) => ({ ...current, date: event.target.value }))} />
+              <div className="space-y-1.5">
+                <Label>Gasolinera</Label>
+                <Input value={draft.station} onChange={(e) => setDraft((d) => ({ ...d, station: e.target.value }))} placeholder="Repsol, Cepsa…" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="gas-station">Gasolinera</Label>
-                <Input id="gas-station" placeholder="Repsol, Cepsa, BP..." value={draft.station} onChange={(event) => setDraft((current) => ({ ...current, station: event.target.value }))} />
+              <div className="space-y-1.5">
+                <Label>Litros</Label>
+                <Input type="number" step="0.01" value={draft.liters} onChange={(e) => setDraft((d) => ({ ...d, liters: e.target.value }))} placeholder="0,00" />
               </div>
-              {isAdminView && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="gas-amount">Importe</Label>
-                    <Input id="gas-amount" type="number" min="0" step="0.01" placeholder="0,00" value={draft.amount} onChange={(event) => setDraft((current) => ({ ...current, amount: event.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gas-liters">Litros / cantidad</Label>
-                    <Input id="gas-liters" type="number" min="0" step="0.01" placeholder="Opcional" value={draft.liters} onChange={(event) => setDraft((current) => ({ ...current, liters: event.target.value }))} />
-                  </div>
-                </>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="gas-vehicle">Matrícula o vehículo</Label>
-                <div className="relative">
-                  <CarFront className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="gas-vehicle" className="pl-10" placeholder="7050 KCZ, Volvo 360..." value={draft.vehicle} onChange={(event) => setDraft((current) => ({ ...current, vehicle: event.target.value }))} />
-                </div>
+              <div className="space-y-1.5">
+                <Label>Importe (€)</Label>
+                <Input type="number" step="0.01" value={draft.amount} onChange={(e) => setDraft((d) => ({ ...d, amount: e.target.value }))} placeholder="0,00" />
               </div>
-              <div className="space-y-2 hide-on-simple">
-                <Label htmlFor="gas-extra">Campo útil adicional</Label>
-                <Input id="gas-extra" placeholder="Km, centro de coste, ruta..." value={draft.extraInfo} onChange={(event) => setDraft((current) => ({ ...current, extraInfo: event.target.value }))} />
+              <div className="space-y-1.5 col-span-2">
+                <Label>Kilómetros del vehículo</Label>
+                <Input type="number" value={draft.kilometers} onChange={(e) => setDraft((d) => ({ ...d, kilometers: e.target.value }))} placeholder="Opcional" />
               </div>
             </div>
-
-            <div className="space-y-2 hide-on-simple">
-              <Label htmlFor="gas-observations">Observaciones</Label>
-              <Textarea id="gas-observations" placeholder="Incidencia, motivo, detalle del repostaje..." value={draft.observations} onChange={(event) => setDraft((current) => ({ ...current, observations: event.target.value }))} />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-              <div className="space-y-2">
-                <Label htmlFor="gas-receipt">Foto del ticket / albarán</Label>
-                <div className="relative">
-                  <Camera className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="gas-receipt"
-                    className="pl-10"
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) => {
-                      const fileName = event.target.files?.[0]?.name ?? "";
-                      setDraft((current) => ({ ...current, receiptPhotoName: fileName }));
-                    }}
-                  />
-                </div>
-                {draft.receiptPhotoName ? <p className="text-xs text-muted-foreground">Archivo seleccionado: {draft.receiptPhotoName}</p> : null}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {editingId ? (
-                  <Button variant="outline" onClick={() => { setEditingId(null); setDraft(emptyForm(selectedCardId)); }}>Cancelar</Button>
-                ) : null}
-                <Button onClick={handleSave}>{editingId ? <PencilLine className="h-4 w-4" /> : <FileText className="h-4 w-4" />}{editingId ? "Guardar cambios" : "Añadir gasto"}</Button>
+            <div className="space-y-1.5">
+              <Label>Foto del ticket</Label>
+              <div className="relative">
+                <Camera className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-10" type="file" accept="image/*" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </section>
+            <div className="space-y-1.5">
+              <Label>Notas</Label>
+              <Textarea rows={2} value={draft.observations} onChange={(e) => setDraft((d) => ({ ...d, observations: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefuelOpen(false)}>Cancelar</Button>
+            <Button onClick={() => saveRefuel.mutate()} disabled={saveRefuel.isPending}>
+              {saveRefuel.isPending ? "Guardando…" : editingId ? "Guardar cambios" : "Registrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo: Recargar saldo */}
+      <Dialog open={rechargeOpen} onOpenChange={setRechargeOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recargar saldo</DialogTitle>
+            <DialogDescription>Registra el importe que se ha ingresado en la cuenta común.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-1.5">
+              <Label>Importe (€)</Label>
+              <Input type="number" step="0.01" value={rechargeDraft.amount_eur} onChange={(e) => setRechargeDraft((d) => ({ ...d, amount_eur: e.target.value }))} placeholder="0,00" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Fecha</Label>
+              <Input type="date" value={rechargeDraft.recharge_date} onChange={(e) => setRechargeDraft((d) => ({ ...d, recharge_date: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Notas</Label>
+              <Textarea rows={2} value={rechargeDraft.notes} onChange={(e) => setRechargeDraft((d) => ({ ...d, notes: e.target.value }))} placeholder="Opcional" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRechargeOpen(false)}>Cancelar</Button>
+            <Button onClick={() => saveRecharge.mutate()} disabled={saveRecharge.isPending}>
+              {saveRecharge.isPending ? "Guardando…" : "Registrar recarga"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo: Configurar umbral */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Umbral de alarma</DialogTitle>
+            <DialogDescription>Cuando el saldo común baje de este importe, se mostrará una alarma.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Umbral (€)</Label>
+            <Input type="number" min="0" value={thresholdDraft} onChange={(e) => setThresholdDraft(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancelar</Button>
+            <Button onClick={() => saveThreshold.mutate()} disabled={saveThreshold.isPending}>
+              {saveThreshold.isPending ? "Guardando…" : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
