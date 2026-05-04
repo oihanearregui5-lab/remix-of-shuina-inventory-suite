@@ -164,7 +164,13 @@ const CellDialog = ({ open, date, truck, trips, onOpenChange, onAdd, onUpdate, o
 
 const TonnageMonthlyTable = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
-  const { trucks, trips, loading, addTrip, updateTrip, deleteTrip } = useTonnage(currentMonth, { includeInactive: true });
+  const { trucks: allTrucks, trips, loading, addTrip, updateTrip, deleteTrip } = useTonnage(currentMonth, { includeInactive: true });
+
+  // Solo mostramos camiones que tengan al menos un viaje en el mes seleccionado.
+  const trucks = useMemo(() => {
+    const truckIdsWithTrips = new Set(trips.map((t) => t.truck_id));
+    return allTrucks.filter((t) => truckIdsWithTrips.has(t.id));
+  }, [allTrucks, trips]);
 
   const [cellDialog, setCellDialog] = useState<{ date: string; truckId: string } | null>(null);
 
