@@ -35,7 +35,7 @@ const emptyDraft: NoteDraft = {
 };
 
 const PersonalNotesView = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const db = supabase as any;
   const [notes, setNotes] = useState<PersonalNote[]>([]);
   const [ownStaffId, setOwnStaffId] = useState<string | null>(null);
