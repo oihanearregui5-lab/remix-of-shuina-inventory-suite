@@ -1322,6 +1322,49 @@ export type Database = {
         }
         Relationships: []
       }
+      task_assignments: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          staff_id: string
+          task_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          staff_id: string
+          task_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          staff_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_assignments_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_assignments_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_checklists: {
         Row: {
           created_at: string
@@ -1363,6 +1406,7 @@ export type Database = {
       tasks: {
         Row: {
           assigned_staff_id: string | null
+          assignment_mode: Database["public"]["Enums"]["task_assignment_mode"]
           category: string | null
           completed_at: string | null
           created_at: string
@@ -1382,6 +1426,7 @@ export type Database = {
         }
         Insert: {
           assigned_staff_id?: string | null
+          assignment_mode?: Database["public"]["Enums"]["task_assignment_mode"]
           category?: string | null
           completed_at?: string | null
           created_at?: string
@@ -1401,6 +1446,7 @@ export type Database = {
         }
         Update: {
           assigned_staff_id?: string | null
+          assignment_mode?: Database["public"]["Enums"]["task_assignment_mode"]
           category?: string | null
           completed_at?: string | null
           created_at?: string
@@ -2124,6 +2170,7 @@ export type Database = {
         Args: { p_channel_id: string; p_user_id: string }
         Returns: boolean
       }
+      is_task_private: { Args: { _task_id: string }; Returns: boolean }
       mark_channel_read: { Args: { p_channel_id: string }; Returns: undefined }
       next_delivery_note_number: { Args: never; Returns: string }
       set_journey_assignment: {
@@ -2196,6 +2243,7 @@ export type Database = {
         | "course"
         | "note"
       staff_kind: "worker" | "manager" | "admin_support"
+      task_assignment_mode: "individual" | "group" | "all"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_scope: "personal" | "general"
       task_status:
@@ -2391,6 +2439,7 @@ export const Constants = {
         "note",
       ],
       staff_kind: ["worker", "manager", "admin_support"],
+      task_assignment_mode: ["individual", "group", "all"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_scope: ["personal", "general"],
       task_status: [
