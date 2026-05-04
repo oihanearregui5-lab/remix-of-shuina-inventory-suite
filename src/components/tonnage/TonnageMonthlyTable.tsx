@@ -213,69 +213,92 @@ const TonnageMonthlyTable = () => {
   const avgKg = totalViajes > 0 ? totalKg / totalViajes : 0;
 
   const exportExcel = () => {
-    // Construye los datos como array de arrays (más fácil para hojas tipo plantilla)
+    // Formato del cliente: A=día · B..AT (45 slots)=peso de cada viaje del día
+    // ordenado por hora · AU=Nº viajes · AV=Peso medio · AW=arenas · AX=tortas · AY=sulfatos
+    const SLOTS = 45;
     const aoa: (string | number)[][] = [];
 
-    // Cabecera (fila 1): título del mes
-    aoa.push([`${monthLabel.toUpperCase()} ${year}`]);
-    // Fila vacía
+    // Fila 1: vacía
     aoa.push([]);
-    // Cabecera (fila 3): "Día" + nombres de camiones + métricas
-    const header = ["Día", ...trucks.map((t) => `#${t.truck_number} ${t.label}`), "Nº VIAJES", "Peso total", "Media", "Arenas", "Tortas", "Sulfatos", "Total mat."];
-    aoa.push(header);
+    // Fila 2: cabecera de bloques
+    const blockHeader: (string | number)[] = new Array(SLOTS + 7).fill("");
+    blockHeader[0] = `${monthLabel.toUpperCase()} ${String(year).slice(-2)}`;
+    blockHeader[1] = "Camiones";
+    blockHeader[SLOTS + 1] = "Nº VIAJES"; // tras los 45 slots
+    blockHeader[SLOTS + 2] = "Peso medio";
+    blockHeader[SLOTS + 4] = "Arenas";
+    blockHeader[SLOTS + 5] = "Tortas";
+    blockHeader[SLOTS + 6] = "Sulfatos";
+    aoa.push(blockHeader);
 
-    // Filas día a día
+    // Fila 3: cabecera de columnas (Día + 1..45 + métricas)
+    const colHeader: (string | number)[] = ["Día"];
+    for (let i = 1; i <= SLOTS; i++) colHeader.push(i);
+    colHeader.push("Nº viajes", "Peso medio", "", "Arenas", "Tortas", "Sulfatos");
+    aoa.push(colHeader);
+
+    // Indexar viajes por día ordenados por trip_time / created_at
+    const tripsByDay = new Map<string, TonnageTrip[]>();
+    trips.forEach((t) => {
+      const arr = tripsByDay.get(t.trip_date) ?? [];
+      arr.push(t);
+      tripsByDay.set(t.trip_date, arr);
+    });
+    tripsByDay.forEach((arr) => {
+      arr.sort((a, b) => {
+        const ta = a.trip_time ?? "";
+        const tb = b.trip_time ?? "";
+        if (ta && tb) return ta.localeCompare(tb);
+        if (ta) return -1;
+        if (tb) return 1;
+        return a.created_at.localeCompare(b.created_at);
+      });
+    });
+
+    let monthArenas = 0, monthTortas = 0, monthSulfatos = 0;
+
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = format(new Date(year, monthIdx, day), "yyyy-MM-dd");
-      const dayCells = cellMap.get(dateStr);
+      const dayTrips = (tripsByDay.get(dateStr) ?? []).slice(0, SLOTS);
       const row: (string | number)[] = [day];
-      let dayTotal = 0;
-      let dayCount = 0;
-      for (const truck of trucks) {
-        const cell = dayCells?.get(truck.id);
-        if (cell) {
-          row.push(Math.round(cell.kg));
-          dayTotal += cell.kg;
-          dayCount += cell.count;
+      let dayKg = 0;
+      for (let i = 0; i < SLOTS; i++) {
+        const trip = dayTrips[i];
+        if (trip) {
+          const kg = Number(trip.weight_kg);
+          row.push(kg);
+          dayKg += kg;
         } else {
           row.push("");
         }
       }
-      row.push(dayCount);
-      row.push(Math.round(dayTotal));
-      row.push(dayCount > 0 ? Math.round(dayTotal / dayCount) : "");
+      const count = dayTrips.length;
+      row.push(count || "");
+      row.push(count > 0 ? Math.round(dayKg / count) : "");
+      row.push("");
       const m = materialDayMap.get(dateStr);
-      const ar = m?.arenas ?? 0; const to = m?.tortas ?? 0; const su = m?.sulfatos ?? 0;
-      row.push(ar || ""); row.push(to || ""); row.push(su || ""); row.push((ar + to + su) || "");
+      const ar = m?.arenas ?? 0, to = m?.tortas ?? 0, su = m?.sulfatos ?? 0;
+      monthArenas += ar; monthTortas += to; monthSulfatos += su;
+      row.push(ar || "", to || "", su || "");
       aoa.push(row);
     }
 
-    // Fila final: totales
+    // Fila final totales
     const totalRow: (string | number)[] = ["Total"];
-    for (const ts of truckSummaries) totalRow.push(Math.round(ts.totalKg));
+    for (let i = 0; i < SLOTS; i++) totalRow.push("");
     totalRow.push(totalViajes);
-    totalRow.push(Math.round(totalKg));
-    totalRow.push(totalViajes > 0 ? Math.round(avgKg) : "");
-    totalRow.push(materialTotals.arenas || "");
-    totalRow.push(materialTotals.tortas || "");
-    totalRow.push(materialTotals.sulfatos || "");
-    totalRow.push(materialTotals.total || "");
+    totalRow.push(totalViajes > 0 ? Math.round(totalKg / totalViajes) : "");
+    totalRow.push("");
+    totalRow.push(monthArenas || "", monthTortas || "", monthSulfatos || "");
     aoa.push(totalRow);
 
-    // Crear libro
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-    // Anchos de columna
-    const colWidths = [{ wch: 6 }, ...trucks.map(() => ({ wch: 12 })), { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 10 }];
+    const colWidths = [{ wch: 6 }, ...Array.from({ length: SLOTS }, () => ({ wch: 8 })), { wch: 10 }, { wch: 11 }, { wch: 2 }, { wch: 9 }, { wch: 9 }, { wch: 9 }];
     ws["!cols"] = colWidths;
 
-    // Combinar la fila del título
-    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: header.length - 1 } }];
-
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `${monthLabel.slice(0, 3).toUpperCase()} ${String(year).slice(-2)}`);
-
-    // Descargar
+    const sheetName = `${monthLabel.slice(0, 4).toUpperCase()} ${String(year).slice(-2)}`;
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
     XLSX.writeFile(wb, `Toneladas_${monthLabel}_${year}.xlsx`);
     toast.success("Excel exportado");
   };
