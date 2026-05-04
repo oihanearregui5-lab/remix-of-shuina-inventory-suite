@@ -29,7 +29,7 @@ type WorkspaceMode = "worker" | "admin";
 const sections: AppShellSection<AppSection>[] = [
   { key: "dashboard", label: "Inicio", description: "Estado actual y accesos rápidos.", icon: LayoutDashboard, workspace: "worker", mobilePrimary: true },
   { key: "workReports", label: "Parte", description: "Iniciar, seguir y finalizar trabajo.", icon: FileText, workspace: "worker", mobilePrimary: true },
-  { key: "tasks", label: "Tareas", description: "Pendientes y prioridades del día.", icon: ClipboardList, workspace: "worker", mobilePrimary: true },
+  { key: "tasks", label: "Tareas", description: "Pendientes y prioridades del equipo.", icon: ClipboardList, workspace: "admin", mobilePrimary: true },
   { key: "chat", label: "Chat", description: "Mensajes internos del equipo.", icon: MessageSquare, workspace: "worker", mobilePrimary: true },
   { key: "tonnage", label: "Viajes", description: "Registra viajes durante el día y consulta tu actividad.", icon: Scale, workspace: "worker", mobilePrimary: true },
   { key: "notes", label: "Mi espacio", description: "Notas privadas, rápidas y personales.", icon: NotebookPen, workspace: "worker", mobilePrimary: true },
@@ -95,9 +95,9 @@ const Index = () => {
       "albaranes",      // ambos
       "analytics",      // admin
     ];
-    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
-      ? ["fichajes", "admin", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
+      ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
     const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
     const allowed = unifiedOrder.filter((k) => allowedSet.has(k));
@@ -126,9 +126,9 @@ const Index = () => {
       "dashboard", "admin", "fichajes", "workReports", "tasks", "chat", "tonnage",
       "notes", "machines", "gasoline", "staff", "vacations", "albaranes", "analytics",
     ];
-    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
-      ? ["fichajes", "admin", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
+      ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
     const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
     const allowed = unifiedOrder.filter((k) => allowedSet.has(k));

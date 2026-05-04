@@ -31,7 +31,7 @@ interface TaskItem {
 interface ReportItem { id: string; description: string; started_at: string; ended_at: string | null; }
 interface HighlightItem { id: string; title: string; summary: string | null; category: string; highlight_date: string; }
 
-const DashboardView = ({ onNavigate }: DashboardViewProps) => {
+const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
   const { user, profile, isAdmin } = useAuth();
   const db = supabase as any;
   const { reminders } = useSmartReminders();
@@ -42,6 +42,8 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [highlights, setHighlights] = useState<HighlightItem[]>([]);
   const [entries, setEntries] = useState<Array<{ clock_in: string; clock_out: string | null }>>([]);
+  const [myStaffId, setMyStaffId] = useState<string | null>(null);
+  const [completedAssignmentTaskIds, setCompletedAssignmentTaskIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,17 +52,30 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
     const load = async () => {
       setLoading(true);
       const monthStart = startOfMonth(new Date()).toISOString();
-      const [entriesRes, tasksRes, reportsRes, highlightsRes] = await Promise.all([
+      const [entriesRes, tasksRes, reportsRes, highlightsRes, staffRes] = await Promise.all([
         db.from("time_entries").select("clock_in, clock_out").gte("clock_in", monthStart).order("clock_in", { ascending: false }).limit(60),
         db.from("tasks").select("id, title, due_date, status, priority, scope").neq("status", "cancelled").order("due_date", { ascending: true, nullsFirst: false }).limit(20),
         db.from("work_reports").select("id, description, started_at, ended_at").order("started_at", { ascending: false }).limit(5),
         db.from("daily_highlights").select("id, title, summary, category, highlight_date").order("highlight_date", { ascending: false }).limit(4),
+        db.from("staff_directory").select("id").eq("linked_user_id", user.id).maybeSingle(),
       ]);
       if (!active) return;
       setEntries((entriesRes.data ?? []) as Array<{ clock_in: string; clock_out: string | null }>);
       setTasks((tasksRes.data ?? []) as TaskItem[]);
       setReports((reportsRes.data ?? []) as ReportItem[]);
       setHighlights((highlightsRes.data ?? []) as HighlightItem[]);
+      const staffId = (staffRes.data?.id as string | undefined) ?? null;
+      setMyStaffId(staffId);
+      if (staffId) {
+        const { data: assignRows } = await db
+          .from("task_assignments")
+          .select("task_id, completed_at")
+          .eq("staff_id", staffId)
+          .not("completed_at", "is", null);
+        if (active) {
+          setCompletedAssignmentTaskIds(new Set(((assignRows ?? []) as Array<{ task_id: string }>).map((row) => row.task_id)));
+        }
+      }
       setLoading(false);
     };
     void load();
@@ -70,6 +85,7 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "time_entries" }, () => void load())
       .on("postgres_changes", { event: "*", schema: "public", table: "work_reports" }, () => void load())
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_assignments" }, () => void load())
       .subscribe();
 
     return () => {
@@ -77,6 +93,35 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
       void supabase.removeChannel(channel);
     };
   }, [db, user]);
+
+  const completeTask = async (taskId: string) => {
+    if (!myStaffId) return;
+    // Optimista
+    setCompletedAssignmentTaskIds((current) => {
+      const next = new Set(current);
+      next.add(taskId);
+      return next;
+    });
+    const { data: existing } = await db
+      .from("task_assignments")
+      .select("staff_id")
+      .eq("task_id", taskId)
+      .eq("staff_id", myStaffId)
+      .maybeSingle();
+    if (existing) {
+      await db
+        .from("task_assignments")
+        .update({ completed_at: new Date().toISOString() })
+        .eq("task_id", taskId)
+        .eq("staff_id", myStaffId);
+    } else {
+      await db.from("task_assignments").insert({
+        task_id: taskId,
+        staff_id: myStaffId,
+        completed_at: new Date().toISOString(),
+      });
+    }
+  };
 
   const activeReport = useMemo(() => reports.find((report) => !report.ended_at) ?? null, [reports]);
   const today = new Date();
@@ -92,13 +137,17 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
   const hours = Math.floor(workedTodayMinutes / 60);
   const minutes = workedTodayMinutes % 60;
 
+  const visibleTasks = useMemo(
+    () => tasks.filter((task) => task.status !== "completed" && !completedAssignmentTaskIds.has(task.id)),
+    [tasks, completedAssignmentTaskIds],
+  );
   const tasksToday = useMemo(
-    () => tasks.filter((task) => task.due_date && isSameDay(new Date(task.due_date), today) && task.status !== "completed"),
-    [tasks, today],
+    () => visibleTasks.filter((task) => task.due_date && isSameDay(new Date(task.due_date), today)),
+    [visibleTasks, today],
   );
   const pendingTasks = useMemo(
-    () => tasks.filter((task) => task.status !== "completed" && !tasksToday.includes(task)).slice(0, isSimple ? 3 : 6),
-    [tasks, tasksToday, isSimple],
+    () => visibleTasks.filter((task) => !tasksToday.includes(task)).slice(0, isSimple ? 3 : 6),
+    [visibleTasks, tasksToday, isSimple],
   );
   const todayHighlights = useMemo(() => highlights.filter((item) => isSameDay(new Date(item.highlight_date), today)), [highlights, today]);
 
@@ -178,71 +227,89 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
               </p>
             </button>
 
-            <button
-              type="button"
-              onClick={() => onNavigate("tasks")}
-              className="rounded-2xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/40"
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tareas hoy</span>
+            {canViewAdmin ? (
+              <button
+                type="button"
+                onClick={() => onNavigate("tasks")}
+                className="rounded-2xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/40"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tareas hoy</span>
+                </div>
+                <p className="text-lg font-semibold text-foreground">{tasksToday.length}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {tasksToday.length === 0 ? "Nada con fecha de hoy" : tasksToday[0]?.title}
+                </p>
+              </button>
+            ) : (
+              <div className="rounded-2xl border border-border bg-background p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tareas hoy</span>
+                </div>
+                <p className="text-lg font-semibold text-foreground">{tasksToday.length}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {tasksToday.length === 0 ? "Nada con fecha de hoy" : tasksToday[0]?.title}
+                </p>
               </div>
-              <p className="text-lg font-semibold text-foreground">{tasksToday.length}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {tasksToday.length === 0 ? "Nada con fecha de hoy" : tasksToday[0]?.title}
-              </p>
-            </button>
+            )}
           </div>
         )}
       </section>
 
-      {/* PENDIENTES */}
+      {/* MIS TAREAS / PENDIENTES */}
       <section className="panel-surface p-5">
         <header className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-primary" />
             <div>
-              <h2 className="text-base font-semibold text-foreground">Pendientes</h2>
-              <p className="text-xs text-muted-foreground">Próximas tareas asignadas a ti.</p>
+              <h2 className="text-base font-semibold text-foreground">Mis tareas</h2>
+              <p className="text-xs text-muted-foreground">
+                {canViewAdmin ? "Próximas tareas asignadas a ti." : "Lo que la administración te ha asignado."}
+              </p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => onNavigate("tasks")}>
-            Ver todas <ArrowRight className="h-4 w-4" />
-          </Button>
+          {canViewAdmin ? (
+            <Button variant="ghost" size="sm" onClick={() => onNavigate("tasks")}>
+              Ver todas <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : null}
         </header>
 
         {loading ? (
           <div className="space-y-2">
             {[0, 1, 2].map((i) => <div key={i} className="h-14 animate-pulse rounded-xl bg-muted/60" />)}
           </div>
-        ) : pendingTasks.length === 0 ? (
-          <EmptyState icon={CheckCircle2} title="Todo al día" description="No tienes tareas pendientes asignadas." />
+        ) : pendingTasks.length === 0 && tasksToday.length === 0 ? (
+          <EmptyState icon={CheckCircle2} title="No tienes tareas pendientes" description="Cuando te asignen trabajo aparecerá aquí." />
         ) : (
           <ul className="divide-y divide-border">
-            {pendingTasks.map((task) => (
-              <li key={task.id}>
+            {[...tasksToday, ...pendingTasks].slice(0, isSimple ? 5 : 10).map((task) => (
+              <li key={task.id} className="flex items-center gap-3 py-3">
                 <button
                   type="button"
-                  onClick={() => onNavigate("tasks")}
-                  className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-muted/40"
+                  onClick={() => void completeTask(task.id)}
+                  className="flex h-6 w-6 flex-none items-center justify-center rounded-full border border-border transition-colors hover:border-primary hover:bg-primary/10"
+                  aria-label="Marcar como completada"
                 >
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${task.priority === "urgent" || task.priority === "high" ? "bg-destructive" : "bg-primary/60"}`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
-                      {task.scope === "general" && (
-                        <span className="shrink-0 rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-secondary-foreground">
-                          General
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {task.due_date ? format(new Date(task.due_date), "d MMM", { locale: es }) : "Sin fecha"} ·{" "}
-                      {task.status === "in_progress" ? "En curso" : task.status === "blocked" ? "Bloqueada" : "Pendiente"}
-                    </p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                 </button>
+                <span className={`h-2 w-2 shrink-0 rounded-full ${task.priority === "urgent" || task.priority === "high" ? "bg-destructive" : "bg-primary/60"}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
+                    {task.scope === "general" && (
+                      <span className="shrink-0 rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-secondary-foreground">
+                        General
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {task.due_date ? format(new Date(task.due_date), "d MMM", { locale: es }) : "Sin fecha"} ·{" "}
+                    {task.status === "in_progress" ? "En curso" : task.status === "blocked" ? "Bloqueada" : "Pendiente"}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
