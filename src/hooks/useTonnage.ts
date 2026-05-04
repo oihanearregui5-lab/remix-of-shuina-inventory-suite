@@ -78,7 +78,13 @@ export interface TonnageTripInput {
 // ============================================================
 // HOOK
 // ============================================================
-export const useTonnage = (monthDate: Date) => {
+export interface UseTonnageOptions {
+  /** Si true, incluye camiones inactivos (p.ej. el histórico). Por defecto false. */
+  includeInactive?: boolean;
+}
+
+export const useTonnage = (monthDate: Date, options: UseTonnageOptions = {}) => {
+  const { includeInactive = false } = options;
   const { user } = useAuth();
   const db = supabase as any;
   const [trucks, setTrucks] = useState<TonnageTruck[]>([]);
@@ -90,18 +96,21 @@ export const useTonnage = (monthDate: Date) => {
   const monthEnd = useMemo(() => format(endOfMonth(monthDate), "yyyy-MM-dd"), [monthDate]);
 
   const loadTrucks = useCallback(async () => {
-    const { data, error } = await db
+    let query = db
       .from("tonnage_trucks")
       .select("id, truck_number, label, material, is_active, sort_order, notes, default_driver_user_id")
-      .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("truck_number", { ascending: true });
+    if (!includeInactive) {
+      query = query.eq("is_active", true);
+    }
+    const { data, error } = await query;
     if (error) {
       toast.error("No se pudieron cargar los camiones");
       return;
     }
     setTrucks((data ?? []) as TonnageTruck[]);
-  }, [db]);
+  }, [db, includeInactive]);
 
   const loadZones = useCallback(async () => {
     const { data, error } = await db
