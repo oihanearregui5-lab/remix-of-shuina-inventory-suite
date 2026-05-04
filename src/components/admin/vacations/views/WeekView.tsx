@@ -52,32 +52,47 @@ const WeekView = ({ data, weekDays, holidaysByDate, selectedWorkerId, getDisplay
               {SHIFT_TITLES[code]}
               <div className="mt-1 text-[10px] font-medium normal-case tracking-normal">{SHIFT_HOURS[code]}</div>
             </div>
-            {weekDays.map((date) => (
-              <div
-                key={`${code}-${date.toISOString()}`}
-                className={cn(
-                  "flex min-h-[72px] items-center justify-center border-l border-t border-border px-3 py-3",
-                  (date.getDay() === 0 || date.getDay() === 6) && "bg-muted/20",
-                  isSameDay(date, new Date()) && "bg-secondary/20",
-                )}
-              >
-                <ShiftPill
-                  shifts={getShiftsFor(data, date)}
-                  code={code}
-                  compact
-                  selectedWorkerId={selectedWorkerId}
-                  getDisplayWorker={getDisplayWorker}
-                  onClickWorker={onClickWorker}
-                  date={date}
-                  editMode={editMode}
-                  override={getOverride?.(toDateKey(date), code) ?? null}
-                  allWorkers={allWorkers}
-                  onAssign={onAssign}
-                  onClear={onClear}
-                  onRestore={onRestore}
-                />
-              </div>
-            ))}
+            {weekDays.map((date) => {
+              const dShifts = getShiftsFor(data, date);
+              const dHoliday = holidaysByDate.get(toDateKey(date));
+              const isClosure = (!dShifts || (!dShifts.M && !dShifts.T && !dShifts.N)) && dHoliday;
+              return (
+                <div
+                  key={`${code}-${date.toISOString()}`}
+                  className={cn(
+                    "flex min-h-[72px] items-center justify-center border-l border-t border-border px-3 py-3",
+                    (date.getDay() === 0 || date.getDay() === 6) && "bg-muted/20",
+                    isSameDay(date, new Date()) && "bg-secondary/20",
+                  )}
+                >
+                  {isClosure ? (
+                    code === "M" ? (
+                      <span className="text-center text-[10px] font-medium uppercase tracking-wider italic text-muted-foreground">
+                        {dHoliday!.label}
+                      </span>
+                    ) : (
+                      <span className="text-xs italic text-muted-foreground">—</span>
+                    )
+                  ) : (
+                    <ShiftPill
+                      shifts={dShifts}
+                      code={code}
+                      compact
+                      selectedWorkerId={selectedWorkerId}
+                      getDisplayWorker={getDisplayWorker}
+                      onClickWorker={onClickWorker}
+                      date={date}
+                      editMode={editMode}
+                      override={getOverride?.(toDateKey(date), code) ?? null}
+                      allWorkers={allWorkers}
+                      onAssign={onAssign}
+                      onClear={onClear}
+                      onRestore={onRestore}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
