@@ -132,7 +132,26 @@ export const useWorkerProfile = (staffId: string | null) => {
       userId
         ? db.from("work_reports").select("id, description, started_at, ended_at, machine").eq("user_id", userId).order("started_at", { ascending: false }).limit(20)
         : Promise.resolve({ data: [] }),
-      db.from("tasks").select("id, title, status, due_date, completed_at").eq("assigned_staff_id", staffId).order("updated_at", { ascending: false }).limit(20),
+      // Multi-asignación: tareas asignadas vía task_assignments + las del modo 'all'
+      (async () => {
+        const { data: assignedRows } = await db
+          .from("task_assignments")
+          .select("task_id, tasks(id, title, status, due_date, completed_at, assignment_mode)")
+          .eq("staff_id", staffId);
+        const assigned = ((assignedRows ?? []) as Array<{ tasks: any }>)
+          .map((row) => row.tasks)
+          .filter(Boolean);
+        const { data: allRows } = await db
+          .from("tasks")
+          .select("id, title, status, due_date, completed_at, assignment_mode")
+          .eq("assignment_mode", "all")
+          .order("updated_at", { ascending: false })
+          .limit(20);
+        const merged = [...assigned, ...((allRows ?? []) as any[])];
+        const seen = new Set<string>();
+        const unique = merged.filter((task) => (seen.has(task.id) ? false : (seen.add(task.id), true)));
+        return { data: unique.slice(0, 20) };
+      })(),
       userId
         ? db.from("vacation_requests").select("id, request_type, start_date, end_date, status, reason, admin_response").eq("requester_user_id", userId).order("start_date", { ascending: false }).limit(40)
         : Promise.resolve({ data: [] }),
