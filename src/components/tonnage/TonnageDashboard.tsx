@@ -84,7 +84,7 @@ const TonnageDashboard = () => {
       const raw = (t.material_snapshot ?? "").toString().trim().toLowerCase();
       if (raw.startsWith("torta")) tortas += 1;
       else if (raw.startsWith("sulfat")) sulfatos += 1;
-      else arenas += 1; // "arenas", "arena", "arenas a/b", vacío, etc.
+      else if (raw.startsWith("arena")) arenas += 1; // "general" y otros NO cuentan
     });
     return { arenas, tortas, sulfatos };
   }, [filteredTrips]);
