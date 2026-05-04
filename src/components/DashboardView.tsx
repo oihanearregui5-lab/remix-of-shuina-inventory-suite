@@ -31,7 +31,7 @@ interface TaskItem {
 interface ReportItem { id: string; description: string; started_at: string; ended_at: string | null; }
 interface HighlightItem { id: string; title: string; summary: string | null; category: string; highlight_date: string; }
 
-const DashboardView = ({ onNavigate }: DashboardViewProps) => {
+const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
   const { user, profile, isAdmin } = useAuth();
   const db = supabase as any;
   const { reminders } = useSmartReminders();
@@ -42,6 +42,8 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [highlights, setHighlights] = useState<HighlightItem[]>([]);
   const [entries, setEntries] = useState<Array<{ clock_in: string; clock_out: string | null }>>([]);
+  const [myStaffId, setMyStaffId] = useState<string | null>(null);
+  const [completedAssignmentTaskIds, setCompletedAssignmentTaskIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,17 +52,30 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
     const load = async () => {
       setLoading(true);
       const monthStart = startOfMonth(new Date()).toISOString();
-      const [entriesRes, tasksRes, reportsRes, highlightsRes] = await Promise.all([
+      const [entriesRes, tasksRes, reportsRes, highlightsRes, staffRes] = await Promise.all([
         db.from("time_entries").select("clock_in, clock_out").gte("clock_in", monthStart).order("clock_in", { ascending: false }).limit(60),
         db.from("tasks").select("id, title, due_date, status, priority, scope").neq("status", "cancelled").order("due_date", { ascending: true, nullsFirst: false }).limit(20),
         db.from("work_reports").select("id, description, started_at, ended_at").order("started_at", { ascending: false }).limit(5),
         db.from("daily_highlights").select("id, title, summary, category, highlight_date").order("highlight_date", { ascending: false }).limit(4),
+        db.from("staff_directory").select("id").eq("linked_user_id", user.id).maybeSingle(),
       ]);
       if (!active) return;
       setEntries((entriesRes.data ?? []) as Array<{ clock_in: string; clock_out: string | null }>);
       setTasks((tasksRes.data ?? []) as TaskItem[]);
       setReports((reportsRes.data ?? []) as ReportItem[]);
       setHighlights((highlightsRes.data ?? []) as HighlightItem[]);
+      const staffId = (staffRes.data?.id as string | undefined) ?? null;
+      setMyStaffId(staffId);
+      if (staffId) {
+        const { data: assignRows } = await db
+          .from("task_assignments")
+          .select("task_id, completed_at")
+          .eq("staff_id", staffId)
+          .not("completed_at", "is", null);
+        if (active) {
+          setCompletedAssignmentTaskIds(new Set(((assignRows ?? []) as Array<{ task_id: string }>).map((row) => row.task_id)));
+        }
+      }
       setLoading(false);
     };
     void load();
@@ -70,6 +85,7 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "time_entries" }, () => void load())
       .on("postgres_changes", { event: "*", schema: "public", table: "work_reports" }, () => void load())
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_assignments" }, () => void load())
       .subscribe();
 
     return () => {
@@ -77,6 +93,35 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
       void supabase.removeChannel(channel);
     };
   }, [db, user]);
+
+  const completeTask = async (taskId: string) => {
+    if (!myStaffId) return;
+    // Optimista
+    setCompletedAssignmentTaskIds((current) => {
+      const next = new Set(current);
+      next.add(taskId);
+      return next;
+    });
+    const { data: existing } = await db
+      .from("task_assignments")
+      .select("staff_id")
+      .eq("task_id", taskId)
+      .eq("staff_id", myStaffId)
+      .maybeSingle();
+    if (existing) {
+      await db
+        .from("task_assignments")
+        .update({ completed_at: new Date().toISOString() })
+        .eq("task_id", taskId)
+        .eq("staff_id", myStaffId);
+    } else {
+      await db.from("task_assignments").insert({
+        task_id: taskId,
+        staff_id: myStaffId,
+        completed_at: new Date().toISOString(),
+      });
+    }
+  };
 
   const activeReport = useMemo(() => reports.find((report) => !report.ended_at) ?? null, [reports]);
   const today = new Date();
