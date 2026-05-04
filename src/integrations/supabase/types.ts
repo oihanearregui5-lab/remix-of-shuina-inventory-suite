@@ -532,6 +532,33 @@ export type Database = {
         }
         Relationships: []
       }
+      fuel_recharges: {
+        Row: {
+          amount_eur: number
+          created_at: string
+          created_by_user_id: string
+          id: string
+          notes: string | null
+          recharge_date: string
+        }
+        Insert: {
+          amount_eur: number
+          created_at?: string
+          created_by_user_id: string
+          id?: string
+          notes?: string | null
+          recharge_date?: string
+        }
+        Update: {
+          amount_eur?: number
+          created_at?: string
+          created_by_user_id?: string
+          id?: string
+          notes?: string | null
+          recharge_date?: string
+        }
+        Relationships: []
+      }
       fuel_records: {
         Row: {
           amount: number
@@ -540,6 +567,7 @@ export type Database = {
           created_by_user_id: string
           extra_info: string | null
           id: string
+          kilometers: number | null
           liters: number | null
           observations: string | null
           receipt_photo_name: string | null
@@ -556,6 +584,7 @@ export type Database = {
           created_by_user_id: string
           extra_info?: string | null
           id?: string
+          kilometers?: number | null
           liters?: number | null
           observations?: string | null
           receipt_photo_name?: string | null
@@ -572,6 +601,7 @@ export type Database = {
           created_by_user_id?: string
           extra_info?: string | null
           id?: string
+          kilometers?: number | null
           liters?: number | null
           observations?: string | null
           receipt_photo_name?: string | null
@@ -590,6 +620,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fuel_settings: {
+        Row: {
+          id: number
+          threshold_warning: number
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          id?: number
+          threshold_warning?: number
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          id?: number
+          threshold_warning?: number
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: []
       }
       holidays: {
         Row: {
@@ -2155,6 +2206,18 @@ export type Database = {
         Args: { _full_name?: string }
         Returns: undefined
       }
+      get_consumption_average: { Args: { _card_id: string }; Returns: number }
+      get_fuel_balance: {
+        Args: never
+        Returns: {
+          current_balance: number
+          is_below_threshold: boolean
+          is_negative: boolean
+          last_recharge_amount: number
+          last_recharge_date: string
+          threshold: number
+        }[]
+      }
       get_or_create_direct_channel: {
         Args: { _other_user_id: string }
         Returns: string
@@ -2230,6 +2293,7 @@ export type Database = {
         | "machine_incident"
         | "work_report"
         | "delivery_note"
+        | "fuel_alert"
       shift_default_type: "dia" | "tarde" | "noche" | "variable"
       shift_slot: "dia" | "tarde" | "noche"
       staff_event_status: "planned" | "active" | "completed" | "cancelled"
@@ -2424,6 +2488,7 @@ export const Constants = {
         "machine_incident",
         "work_report",
         "delivery_note",
+        "fuel_alert",
       ],
       shift_default_type: ["dia", "tarde", "noche", "variable"],
       shift_slot: ["dia", "tarde", "noche"],
