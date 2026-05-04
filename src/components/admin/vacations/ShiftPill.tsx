@@ -57,13 +57,45 @@ const ShiftPill = ({
 
   const baseSize = compact ? "w-full justify-center px-3 py-2 text-sm" : "px-2 py-1 text-[10px]";
 
+  // Turno compartido: id con "/" (ej: "andriy/silvio")
+  const isShared = typeof effectiveWorkerId === "string" && effectiveWorkerId.includes("/");
+  const sharedWorkers = isShared
+    ? effectiveWorkerId!.split("/").map((s) => {
+        const id = s.trim().toLowerCase();
+        return { id, w: getDisplayWorker(id) };
+      })
+    : [];
+
   const filteredWorkers = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return allWorkers;
     return allWorkers.filter((w) => w.name.toLowerCase().includes(q));
   }, [allWorkers, query]);
 
+  const renderSharedPill = () => (
+    <span
+      className={cn("flex max-w-full items-center gap-1.5 rounded-md bg-muted font-bold", baseSize)}
+      title={`Turno compartido: ${sharedWorkers.map((s) => s.w?.name ?? s.id).join(" / ")}`}
+    >
+      <span className="flex -space-x-1">
+        {sharedWorkers.map((s, i) => (
+          <span
+            key={i}
+            className="flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-extrabold ring-1 ring-card"
+            style={{ backgroundColor: s.w?.color ?? "hsl(var(--muted))", color: s.w ? getContrastTextColor(s.w.color) : "inherit" }}
+          >
+            {(s.w?.name ?? s.id).charAt(0).toUpperCase()}
+          </span>
+        ))}
+      </span>
+      <span className="truncate text-[10px] font-semibold text-foreground">
+        {sharedWorkers.map((s) => (s.w?.name ?? s.id).split(" ")[0]).join("/")}
+      </span>
+    </span>
+  );
+
   const renderPill = () => {
+    if (isShared) return renderSharedPill();
     if (!worker || isFiltered) {
       return (
         <span className={cn("italic text-muted-foreground", compact ? "text-xs" : "text-[10px]")}>—</span>
@@ -86,6 +118,7 @@ const ShiftPill = ({
 
   // Modo solo-lectura: clic abre la ficha del trabajador.
   if (!editMode || !date || !onAssign) {
+    if (isShared) return renderSharedPill();
     if (!worker || isFiltered) {
       return <span className={cn("italic text-muted-foreground", compact ? "text-xs" : "text-[10px]")}>—</span>;
     }

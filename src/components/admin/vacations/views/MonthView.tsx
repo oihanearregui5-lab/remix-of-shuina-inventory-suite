@@ -65,27 +65,33 @@ const MonthView = ({ data, monthGrid, currentMonth, holidaysByDate, selectedWork
                   <span>{date.getDate()}</span>
                   <span className="truncate text-[10px]">{holiday?.label ?? ""}</span>
                 </div>
-                <div className="grid grid-rows-3">
-                  {SHIFT_CODES.map((code) => (
-                    <div key={`${key}-${code}`} className="grid grid-cols-[18px_1fr] items-center gap-2 border-t border-dashed border-border px-2 py-1 first:border-t-0">
-                      <span className="text-[9px] font-bold text-muted-foreground">{code}</span>
-                      <ShiftPill
-                        shifts={shifts}
-                        code={code}
-                        selectedWorkerId={selectedWorkerId}
-                        getDisplayWorker={getDisplayWorker}
-                        onClickWorker={onClickWorker}
-                        date={date}
-                        editMode={editMode}
-                        override={getOverride?.(key, code) ?? null}
-                        allWorkers={allWorkers}
-                        onAssign={onAssign}
-                        onClear={onClear}
-                        onRestore={onRestore}
-                      />
-                    </div>
-                  ))}
-                </div>
+                {(!shifts || (!shifts.M && !shifts.T && !shifts.N)) && holiday ? (
+                  <div className="flex h-full items-center justify-center px-2 text-center text-[10px] font-medium uppercase tracking-wider italic text-muted-foreground">
+                    {holiday.label}
+                  </div>
+                ) : (
+                  <div className="grid grid-rows-3">
+                    {SHIFT_CODES.map((code) => (
+                      <div key={`${key}-${code}`} className="grid grid-cols-[18px_1fr] items-center gap-2 border-t border-dashed border-border px-2 py-1 first:border-t-0">
+                        <span className="text-[9px] font-bold text-muted-foreground">{code}</span>
+                        <ShiftPill
+                          shifts={shifts}
+                          code={code}
+                          selectedWorkerId={selectedWorkerId}
+                          getDisplayWorker={getDisplayWorker}
+                          onClickWorker={onClickWorker}
+                          date={date}
+                          editMode={editMode}
+                          override={getOverride?.(key, code) ?? null}
+                          allWorkers={allWorkers}
+                          onAssign={onAssign}
+                          onClear={onClear}
+                          onRestore={onRestore}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
