@@ -204,7 +204,7 @@ const TonnageMonthlyTable = () => {
       const raw = (trip.material_snapshot ?? "").toString().trim().toLowerCase();
       if (raw.startsWith("torta")) cur.tortas += 1;
       else if (raw.startsWith("sulfat")) cur.sulfatos += 1;
-      else cur.arenas += 1;
+      else if (raw.startsWith("arena")) cur.arenas += 1;
       map.set(trip.trip_date, cur);
     });
     return map;
