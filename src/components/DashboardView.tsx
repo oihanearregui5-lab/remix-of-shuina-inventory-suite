@@ -178,71 +178,89 @@ const DashboardView = ({ onNavigate }: DashboardViewProps) => {
               </p>
             </button>
 
-            <button
-              type="button"
-              onClick={() => onNavigate("tasks")}
-              className="rounded-2xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/40"
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tareas hoy</span>
+            {canViewAdmin ? (
+              <button
+                type="button"
+                onClick={() => onNavigate("tasks")}
+                className="rounded-2xl border border-border bg-background p-4 text-left transition-colors hover:border-primary/40"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tareas hoy</span>
+                </div>
+                <p className="text-lg font-semibold text-foreground">{tasksToday.length}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {tasksToday.length === 0 ? "Nada con fecha de hoy" : tasksToday[0]?.title}
+                </p>
+              </button>
+            ) : (
+              <div className="rounded-2xl border border-border bg-background p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tareas hoy</span>
+                </div>
+                <p className="text-lg font-semibold text-foreground">{tasksToday.length}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {tasksToday.length === 0 ? "Nada con fecha de hoy" : tasksToday[0]?.title}
+                </p>
               </div>
-              <p className="text-lg font-semibold text-foreground">{tasksToday.length}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {tasksToday.length === 0 ? "Nada con fecha de hoy" : tasksToday[0]?.title}
-              </p>
-            </button>
+            )}
           </div>
         )}
       </section>
 
-      {/* PENDIENTES */}
+      {/* MIS TAREAS / PENDIENTES */}
       <section className="panel-surface p-5">
         <header className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-primary" />
             <div>
-              <h2 className="text-base font-semibold text-foreground">Pendientes</h2>
-              <p className="text-xs text-muted-foreground">Próximas tareas asignadas a ti.</p>
+              <h2 className="text-base font-semibold text-foreground">Mis tareas</h2>
+              <p className="text-xs text-muted-foreground">
+                {canViewAdmin ? "Próximas tareas asignadas a ti." : "Lo que la administración te ha asignado."}
+              </p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => onNavigate("tasks")}>
-            Ver todas <ArrowRight className="h-4 w-4" />
-          </Button>
+          {canViewAdmin ? (
+            <Button variant="ghost" size="sm" onClick={() => onNavigate("tasks")}>
+              Ver todas <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : null}
         </header>
 
         {loading ? (
           <div className="space-y-2">
             {[0, 1, 2].map((i) => <div key={i} className="h-14 animate-pulse rounded-xl bg-muted/60" />)}
           </div>
-        ) : pendingTasks.length === 0 ? (
-          <EmptyState icon={CheckCircle2} title="Todo al día" description="No tienes tareas pendientes asignadas." />
+        ) : pendingTasks.length === 0 && tasksToday.length === 0 ? (
+          <EmptyState icon={CheckCircle2} title="No tienes tareas pendientes" description="Cuando te asignen trabajo aparecerá aquí." />
         ) : (
           <ul className="divide-y divide-border">
-            {pendingTasks.map((task) => (
-              <li key={task.id}>
+            {[...tasksToday, ...pendingTasks].slice(0, isSimple ? 5 : 10).map((task) => (
+              <li key={task.id} className="flex items-center gap-3 py-3">
                 <button
                   type="button"
-                  onClick={() => onNavigate("tasks")}
-                  className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-muted/40"
+                  onClick={() => void completeTask(task.id)}
+                  className="flex h-6 w-6 flex-none items-center justify-center rounded-full border border-border transition-colors hover:border-primary hover:bg-primary/10"
+                  aria-label="Marcar como completada"
                 >
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${task.priority === "urgent" || task.priority === "high" ? "bg-destructive" : "bg-primary/60"}`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
-                      {task.scope === "general" && (
-                        <span className="shrink-0 rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-secondary-foreground">
-                          General
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {task.due_date ? format(new Date(task.due_date), "d MMM", { locale: es }) : "Sin fecha"} ·{" "}
-                      {task.status === "in_progress" ? "En curso" : task.status === "blocked" ? "Bloqueada" : "Pendiente"}
-                    </p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                 </button>
+                <span className={`h-2 w-2 shrink-0 rounded-full ${task.priority === "urgent" || task.priority === "high" ? "bg-destructive" : "bg-primary/60"}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
+                    {task.scope === "general" && (
+                      <span className="shrink-0 rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-secondary-foreground">
+                        General
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {task.due_date ? format(new Date(task.due_date), "d MMM", { locale: es }) : "Sin fecha"} ·{" "}
+                    {task.status === "in_progress" ? "En curso" : task.status === "blocked" ? "Bloqueada" : "Pendiente"}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
