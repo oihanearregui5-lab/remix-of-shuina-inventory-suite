@@ -76,8 +76,19 @@ const TonnageDashboard = () => {
   const totalTrips = filteredTrips.length;
   const totalKg = filteredTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
 
-  // Materiales (cantidades agregadas)
-  const materials = useMemo(() => computeMaterialQuantities(filteredTrips), [filteredTrips]);
+  // Materiales — conteo de viajes por material_snapshot (case-insensitive).
+  // "tortas" y "sulfatos" se cuentan explícitamente; cualquier otro valor
+  // (incluido vacío o "Arenas A/B") se cuenta como "arenas".
+  const materials = useMemo(() => {
+    let tortas = 0, sulfatos = 0, arenas = 0;
+    filteredTrips.forEach((t) => {
+      const raw = (t.material_snapshot ?? "").toString().trim().toLowerCase();
+      if (raw.startsWith("torta")) tortas += 1;
+      else if (raw.startsWith("sulfat")) sulfatos += 1;
+      else arenas += 1; // "arenas", "arena", "arenas a/b", vacío, etc.
+    });
+    return { arenas, tortas, sulfatos };
+  }, [filteredTrips]);
 
   // Zonas (carga)
   const loadZoneSummaries = useMemo(
