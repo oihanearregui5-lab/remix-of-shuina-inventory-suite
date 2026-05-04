@@ -110,7 +110,7 @@ export const useTonnage = (monthDate: Date, options: UseTonnageOptions = {}) => 
       return;
     }
     setTrucks((data ?? []) as TonnageTruck[]);
-  }, [db]);
+  }, [db, includeInactive]);
 
   const loadZones = useCallback(async () => {
     const { data, error } = await db
