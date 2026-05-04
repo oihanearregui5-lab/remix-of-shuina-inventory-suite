@@ -29,7 +29,7 @@ type WorkspaceMode = "worker" | "admin";
 const sections: AppShellSection<AppSection>[] = [
   { key: "dashboard", label: "Inicio", description: "Estado actual y accesos rápidos.", icon: LayoutDashboard, workspace: "worker", mobilePrimary: true },
   { key: "workReports", label: "Parte", description: "Iniciar, seguir y finalizar trabajo.", icon: FileText, workspace: "worker", mobilePrimary: true },
-  { key: "tasks", label: "Tareas", description: "Pendientes y prioridades del día.", icon: ClipboardList, workspace: "worker", mobilePrimary: true },
+  { key: "tasks", label: "Tareas", description: "Pendientes y prioridades del equipo.", icon: ClipboardList, workspace: "admin", mobilePrimary: true },
   { key: "chat", label: "Chat", description: "Mensajes internos del equipo.", icon: MessageSquare, workspace: "worker", mobilePrimary: true },
   { key: "tonnage", label: "Viajes", description: "Registra viajes durante el día y consulta tu actividad.", icon: Scale, workspace: "worker", mobilePrimary: true },
   { key: "notes", label: "Mi espacio", description: "Notas privadas, rápidas y personales.", icon: NotebookPen, workspace: "worker", mobilePrimary: true },
