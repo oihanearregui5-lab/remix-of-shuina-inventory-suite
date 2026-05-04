@@ -242,7 +242,14 @@ const TonnageTrucksManager = () => {
                       #{t.truck_number}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{t.label}</p>
+                      <p className="truncate text-sm font-medium">
+                        {t.label}
+                        {t.truck_number === 999 && (
+                          <span className="ml-2 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Solo lectura
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {materialLabel[t.material]}{driverName ? ` · ${driverName}` : ""}
                       </p>
