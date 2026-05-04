@@ -37,31 +37,45 @@ const DayView = ({ data, anchorDate, holidaysByDate, selectedWorkerId, getDispla
           </p>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        {SHIFT_CODES.map((code) => (
-          <div key={code} className="rounded-xl border border-border bg-muted/30 p-6 text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-muted-foreground">{SHIFT_TITLES[code]}</p>
-            <p className="mt-2 text-xs text-muted-foreground">{SHIFT_HOURS[code]}</p>
-            <div className="mt-6">
-              <ShiftPill
-                shifts={getShiftsFor(data, anchorDate)}
-                code={code}
-                compact
-                selectedWorkerId={selectedWorkerId}
-                getDisplayWorker={getDisplayWorker}
-                onClickWorker={onClickWorker}
-                date={anchorDate}
-                editMode={editMode}
-                override={getOverride?.(toDateKey(anchorDate), code) ?? null}
-                allWorkers={allWorkers}
-                onAssign={onAssign}
-                onClear={onClear}
-                onRestore={onRestore}
-              />
+      {(() => {
+        const dShifts = getShiftsFor(data, anchorDate);
+        const isClosure = (!dShifts || (!dShifts.M && !dShifts.T && !dShifts.N)) && holiday;
+        if (isClosure) {
+          return (
+            <div className="rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-10 text-center">
+              <p className="text-lg font-bold uppercase tracking-[0.18em] text-destructive">{holiday!.label}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Sin turnos asignados este día.</p>
             </div>
+          );
+        }
+        return (
+          <div className="grid gap-4 md:grid-cols-3">
+            {SHIFT_CODES.map((code) => (
+              <div key={code} className="rounded-xl border border-border bg-muted/30 p-6 text-center">
+                <p className="text-sm font-bold uppercase tracking-[0.18em] text-muted-foreground">{SHIFT_TITLES[code]}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{SHIFT_HOURS[code]}</p>
+                <div className="mt-6">
+                  <ShiftPill
+                    shifts={dShifts}
+                    code={code}
+                    compact
+                    selectedWorkerId={selectedWorkerId}
+                    getDisplayWorker={getDisplayWorker}
+                    onClickWorker={onClickWorker}
+                    date={anchorDate}
+                    editMode={editMode}
+                    override={getOverride?.(toDateKey(anchorDate), code) ?? null}
+                    allWorkers={allWorkers}
+                    onAssign={onAssign}
+                    onClear={onClear}
+                    onRestore={onRestore}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        );
+      })()}
     </div>
   );
 };
