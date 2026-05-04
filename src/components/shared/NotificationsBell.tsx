@@ -20,6 +20,7 @@ const kindIcon: Record<NotificationKind, React.ComponentType<{ className?: strin
   machine_incident: Truck,
   work_report: FileText,
   delivery_note: ReceiptText,
+  fuel_alert: Fuel,
 };
 
 const kindAccent: Record<NotificationKind, string> = {
@@ -29,6 +30,7 @@ const kindAccent: Record<NotificationKind, string> = {
   machine_incident: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
   work_report: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
   delivery_note: "bg-primary/15 text-primary",
+  fuel_alert: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
 };
 
 const NotificationsBell = ({ onNavigate }: NotificationsBellProps) => {
