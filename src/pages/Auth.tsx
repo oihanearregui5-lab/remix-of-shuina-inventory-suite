@@ -196,7 +196,19 @@ const Auth = () => {
         data: { force_password_change: false },
       });
       if (updErr) {
-        setError(mapAuthError(updErr.message));
+        const raw = updErr.message ?? "";
+        const lower = raw.toLowerCase();
+        if (lower.includes("password should be at least") || lower.includes("password is too short")) {
+          setError("El PIN no cumple los requisitos del sistema. Inténtalo de nuevo o pídele a Raquel que te resetee.");
+        } else if (lower.includes("pwned") || lower.includes("compromised") || lower.includes("leaked")) {
+          setError("Este PIN aparece en listas de contraseñas filtradas. Elige otro distinto.");
+        } else if (lower.includes("same") && lower.includes("password")) {
+          setError("El PIN nuevo debe ser distinto al anterior.");
+        } else if (raw) {
+          setError(`No se ha podido guardar el PIN: ${raw}`);
+        } else {
+          setError("No se ha podido guardar el PIN. Inténtalo de nuevo o pídele a Raquel que te resetee.");
+        }
         return;
       }
       if (data.user) await checkRoleAndContinue(data.user.id);
