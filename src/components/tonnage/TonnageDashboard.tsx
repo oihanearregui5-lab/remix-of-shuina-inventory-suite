@@ -16,7 +16,6 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  computeMaterialQuantities,
   computeZoneSummaries,
   formatKg,
   formatTons,
