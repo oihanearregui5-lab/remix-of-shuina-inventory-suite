@@ -164,7 +164,13 @@ const CellDialog = ({ open, date, truck, trips, onOpenChange, onAdd, onUpdate, o
 
 const TonnageMonthlyTable = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
-  const { trucks, trips, loading, addTrip, updateTrip, deleteTrip } = useTonnage(currentMonth, { includeInactive: true });
+  const { trucks: allTrucks, trips, loading, addTrip, updateTrip, deleteTrip } = useTonnage(currentMonth, { includeInactive: true });
+
+  // Solo mostramos camiones que tengan al menos un viaje en el mes seleccionado.
+  const trucks = useMemo(() => {
+    const truckIdsWithTrips = new Set(trips.map((t) => t.truck_id));
+    return allTrucks.filter((t) => truckIdsWithTrips.has(t.id));
+  }, [allTrucks, trips]);
 
   const [cellDialog, setCellDialog] = useState<{ date: string; truckId: string } | null>(null);
 
@@ -189,14 +195,16 @@ const TonnageMonthlyTable = () => {
     return map;
   }, [trips]);
 
-  // Cantidades de material por día (suma de qty_arenas_a + qty_arenas_b, qty_tortas, qty_sulfatos)
+  // Conteo de viajes por material (no de unidades) usando material_snapshot
+  // case-insensitive. "tortas"/"sulfatos" explícitos; resto = "arenas".
   const materialDayMap = useMemo(() => {
     const map = new Map<string, { arenas: number; tortas: number; sulfatos: number }>();
     trips.forEach((trip) => {
       const cur = map.get(trip.trip_date) ?? { arenas: 0, tortas: 0, sulfatos: 0 };
-      cur.arenas += Number(trip.qty_arenas_a || 0) + Number(trip.qty_arenas_b || 0);
-      cur.tortas += Number(trip.qty_tortas || 0);
-      cur.sulfatos += Number(trip.qty_sulfatos || 0);
+      const raw = (trip.material_snapshot ?? "").toString().trim().toLowerCase();
+      if (raw.startsWith("torta")) cur.tortas += 1;
+      else if (raw.startsWith("sulfat")) cur.sulfatos += 1;
+      else cur.arenas += 1;
       map.set(trip.trip_date, cur);
     });
     return map;

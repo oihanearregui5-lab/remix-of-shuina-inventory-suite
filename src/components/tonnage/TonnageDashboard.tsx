@@ -16,7 +16,6 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  computeMaterialQuantities,
   computeZoneSummaries,
   formatKg,
   formatTons,
@@ -76,8 +75,19 @@ const TonnageDashboard = () => {
   const totalTrips = filteredTrips.length;
   const totalKg = filteredTrips.reduce((acc, t) => acc + Number(t.weight_kg), 0);
 
-  // Materiales (cantidades agregadas)
-  const materials = useMemo(() => computeMaterialQuantities(filteredTrips), [filteredTrips]);
+  // Materiales — conteo de viajes por material_snapshot (case-insensitive).
+  // "tortas" y "sulfatos" se cuentan explícitamente; cualquier otro valor
+  // (incluido vacío o "Arenas A/B") se cuenta como "arenas".
+  const materials = useMemo(() => {
+    let tortas = 0, sulfatos = 0, arenas = 0;
+    filteredTrips.forEach((t) => {
+      const raw = (t.material_snapshot ?? "").toString().trim().toLowerCase();
+      if (raw.startsWith("torta")) tortas += 1;
+      else if (raw.startsWith("sulfat")) sulfatos += 1;
+      else arenas += 1; // "arenas", "arena", "arenas a/b", vacío, etc.
+    });
+    return { arenas, tortas, sulfatos };
+  }, [filteredTrips]);
 
   // Zonas (carga)
   const loadZoneSummaries = useMemo(
@@ -386,19 +396,15 @@ const TonnageDashboard = () => {
       {/* Materiales y zonas */}
       <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="panel-surface p-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Materiales (unidades)</p>
-          <div className="grid grid-cols-2 gap-2">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Materiales (viajes)</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-2xl bg-warning/15 p-3">
+              <p className="text-xs uppercase tracking-wide text-foreground/80">Arenas</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{materials.arenas || "--"}</p>
+            </div>
             <div className="rounded-2xl bg-primary/10 p-3">
               <p className="text-xs uppercase tracking-wide text-primary">Tortas</p>
               <p className="mt-1 text-2xl font-bold text-foreground">{materials.tortas || "--"}</p>
-            </div>
-            <div className="rounded-2xl bg-warning/15 p-3">
-              <p className="text-xs uppercase tracking-wide text-foreground/80">Arenas A</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{materials.arenas_a || "--"}</p>
-            </div>
-            <div className="rounded-2xl bg-warning/25 p-3">
-              <p className="text-xs uppercase tracking-wide text-foreground/80">Arenas B</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{materials.arenas_b || "--"}</p>
             </div>
             <div className="rounded-2xl bg-success/15 p-3">
               <p className="text-xs uppercase tracking-wide text-success">Sulfatos</p>
