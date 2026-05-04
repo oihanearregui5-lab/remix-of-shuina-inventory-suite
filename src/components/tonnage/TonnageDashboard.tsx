@@ -397,19 +397,15 @@ const TonnageDashboard = () => {
       {/* Materiales y zonas */}
       <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="panel-surface p-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Materiales (unidades)</p>
-          <div className="grid grid-cols-2 gap-2">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Materiales (viajes)</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-2xl bg-warning/15 p-3">
+              <p className="text-xs uppercase tracking-wide text-foreground/80">Arenas</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{materials.arenas || "--"}</p>
+            </div>
             <div className="rounded-2xl bg-primary/10 p-3">
               <p className="text-xs uppercase tracking-wide text-primary">Tortas</p>
               <p className="mt-1 text-2xl font-bold text-foreground">{materials.tortas || "--"}</p>
-            </div>
-            <div className="rounded-2xl bg-warning/15 p-3">
-              <p className="text-xs uppercase tracking-wide text-foreground/80">Arenas A</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{materials.arenas_a || "--"}</p>
-            </div>
-            <div className="rounded-2xl bg-warning/25 p-3">
-              <p className="text-xs uppercase tracking-wide text-foreground/80">Arenas B</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{materials.arenas_b || "--"}</p>
             </div>
             <div className="rounded-2xl bg-success/15 p-3">
               <p className="text-xs uppercase tracking-wide text-success">Sulfatos</p>
