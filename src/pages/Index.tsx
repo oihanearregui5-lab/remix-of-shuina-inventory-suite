@@ -95,9 +95,9 @@ const Index = () => {
       "albaranes",      // ambos
       "analytics",      // admin
     ];
-    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "tasks", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
-      ? ["fichajes", "admin", "workReports", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
+      ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
     const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
     const allowed = unifiedOrder.filter((k) => allowedSet.has(k));
