@@ -34,7 +34,7 @@ const ALL_VALUE = "__all__";
 
 const TonnageDashboard = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
-  const { trucks, zones, trips, loading, reload } = useTonnage(currentMonth);
+  const { trucks, zones, trips, loading, reload } = useTonnage(currentMonth, { includeInactive: true });
 
   // Filtros del dashboard
   const [filterDay, setFilterDay] = useState<string>(ALL_VALUE);

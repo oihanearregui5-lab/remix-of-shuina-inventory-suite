@@ -164,7 +164,7 @@ const CellDialog = ({ open, date, truck, trips, onOpenChange, onAdd, onUpdate, o
 
 const TonnageMonthlyTable = () => {
   const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
-  const { trucks, trips, loading, addTrip, updateTrip, deleteTrip } = useTonnage(currentMonth);
+  const { trucks, trips, loading, addTrip, updateTrip, deleteTrip } = useTonnage(currentMonth, { includeInactive: true });
 
   const [cellDialog, setCellDialog] = useState<{ date: string; truckId: string } | null>(null);
 

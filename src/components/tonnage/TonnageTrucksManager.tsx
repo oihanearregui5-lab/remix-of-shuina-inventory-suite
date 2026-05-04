@@ -28,7 +28,7 @@ const zoneTypeLabel: Record<ZoneType, string> = {
 };
 
 const TonnageTrucksManager = () => {
-  const { trucks, zones, reload } = useTonnage(new Date());
+  const { trucks, zones, reload } = useTonnage(new Date(), { includeInactive: true });
   const db = supabase as any;
 
   // Conductores disponibles para asignar
