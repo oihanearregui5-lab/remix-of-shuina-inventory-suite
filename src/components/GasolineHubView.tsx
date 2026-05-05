@@ -530,19 +530,45 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
               </div>
               <div className="space-y-1.5">
                 <Label>Gasolinera</Label>
-                <Input value={draft.station} onChange={(e) => setDraft((d) => ({ ...d, station: e.target.value }))} placeholder="Repsol, Cepsa…" />
+                {(() => {
+                  const STATIONS = ["Repsol", "Cepsa", "BP", "Shell", "Galp", "Petronor", "Avia", "Plenoil"];
+                  const isOther = draft.station !== "" && !STATIONS.includes(draft.station);
+                  const selectValue = draft.station === "" ? "" : isOther ? "__other__" : draft.station;
+                  return (
+                    <>
+                      <Select
+                        value={selectValue}
+                        onValueChange={(v) => setDraft((d) => ({ ...d, station: v === "__other__" ? (isOther ? d.station : "") : v }))}
+                      >
+                        <SelectTrigger className="h-12"><SelectValue placeholder="Elige gasolinera" /></SelectTrigger>
+                        <SelectContent className="z-[100]">
+                          {STATIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          <SelectItem value="__other__">Otra…</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {(isOther || selectValue === "__other__") && (
+                        <Input
+                          className="mt-2 h-12"
+                          value={draft.station}
+                          onChange={(e) => setDraft((d) => ({ ...d, station: e.target.value }))}
+                          placeholder="Escribe el nombre"
+                        />
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               <div className="space-y-1.5">
                 <Label>Litros</Label>
-                <Input type="number" step="0.01" value={draft.liters} onChange={(e) => setDraft((d) => ({ ...d, liters: e.target.value }))} placeholder="0,00" />
+                <Input type="number" inputMode="decimal" step="0.01" value={draft.liters} onChange={(e) => setDraft((d) => ({ ...d, liters: e.target.value }))} placeholder="0,00" />
               </div>
               <div className="space-y-1.5">
                 <Label>Importe (€)</Label>
-                <Input type="number" step="0.01" value={draft.amount} onChange={(e) => setDraft((d) => ({ ...d, amount: e.target.value }))} placeholder="0,00" />
+                <Input type="number" inputMode="decimal" step="0.01" value={draft.amount} onChange={(e) => setDraft((d) => ({ ...d, amount: e.target.value }))} placeholder="0,00" />
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label>Kilómetros del vehículo</Label>
-                <Input type="number" value={draft.kilometers} onChange={(e) => setDraft((d) => ({ ...d, kilometers: e.target.value }))} placeholder="Opcional" />
+                <Input type="number" inputMode="numeric" value={draft.kilometers} onChange={(e) => setDraft((d) => ({ ...d, kilometers: e.target.value }))} placeholder="Opcional" />
               </div>
             </div>
             <div className="space-y-1.5">
