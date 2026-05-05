@@ -29,6 +29,7 @@ const MyJourneyView = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [anchor, setAnchor] = useState<Date>(() => new Date());
   const [myStaffId, setMyStaffId] = useState<string | null>(null);
+  const [myStaffColor, setMyStaffColor] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Map<string, OverrideRow>>(new Map());
   const [loadingOverrides, setLoadingOverrides] = useState(false);
 
