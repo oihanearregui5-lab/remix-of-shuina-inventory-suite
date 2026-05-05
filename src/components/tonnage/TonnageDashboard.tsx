@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, Filter, RefreshCw } from "lucide-react";
+import { Calendar, Download, Filter, Package, RefreshCw, Truck, User, X } from "lucide-react";
 import { format, getDaysInMonth, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import XLSX from "xlsx-js-style";
