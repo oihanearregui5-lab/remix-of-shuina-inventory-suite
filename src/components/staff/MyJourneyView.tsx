@@ -354,7 +354,7 @@ const ShiftCell = ({ code, color, textColor, compact = false }: { code: ShiftCod
   );
 };
 
-const WeekGrid = ({ anchor, getMyShiftForDay, myColor, myColorText }: ViewProps & { anchor: Date }) => {
+const WeekGrid = ({ anchor, getMyShiftForDay, myColor, myColorText, holidaysByDate }: ViewProps & { anchor: Date }) => {
   const days = eachDayOfInterval({
     start: startOfWeek(anchor, { weekStartsOn: 1 }),
     end: endOfWeek(anchor, { weekStartsOn: 1 }),
@@ -364,12 +364,24 @@ const WeekGrid = ({ anchor, getMyShiftForDay, myColor, myColorText }: ViewProps 
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            {days.map((d) => (
-              <th key={d.toISOString()} className="border-b border-border px-2 py-2 text-center text-xs font-semibold text-muted-foreground">
-                <div className="capitalize">{format(d, "EEE", { locale: es })}</div>
-                <div className="text-base font-bold text-foreground">{format(d, "d")}</div>
-              </th>
-            ))}
+            {days.map((d) => {
+              const h = holidaysByDate.get(format(d, "yyyy-MM-dd"));
+              return (
+                <th key={d.toISOString()} className="border-b border-border px-2 py-2 text-center text-xs font-semibold text-muted-foreground">
+                  <div className="capitalize">{format(d, "EEE", { locale: es })}</div>
+                  <div className="text-base font-bold text-foreground">{format(d, "d")}</div>
+                  {h ? (
+                    <div
+                      className="mt-0.5 truncate rounded px-1 py-0.5 text-[9px] font-semibold"
+                      style={{ backgroundColor: h.color || "hsl(var(--muted))", color: getContrastTextColor(h.color || "#888") }}
+                      title={h.label}
+                    >
+                      {h.label}
+                    </div>
+                  ) : null}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -378,9 +390,17 @@ const WeekGrid = ({ anchor, getMyShiftForDay, myColor, myColorText }: ViewProps 
               {days.map((d) => {
                 const my = getMyShiftForDay(d);
                 const active = my === code;
+                const h = holidaysByDate.get(format(d, "yyyy-MM-dd"));
+                const closure = h && isFactoryClosure(h.type) && !my;
                 return (
                   <td key={d.toISOString()} className="border-b border-border/50 p-2 text-center">
-                    {active ? (
+                    {closure && code === "M" ? (
+                      <span className="block rounded bg-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+                        Cierre fábrica
+                      </span>
+                    ) : closure ? (
+                      <span className="text-[11px] italic text-muted-foreground/40">—</span>
+                    ) : active ? (
                       <ShiftCell code={code} color={myColor} textColor={myColorText} />
                     ) : (
                       <span className="text-[11px] italic text-muted-foreground/60">{code}</span>
@@ -396,7 +416,7 @@ const WeekGrid = ({ anchor, getMyShiftForDay, myColor, myColorText }: ViewProps 
   );
 };
 
-const MonthGrid = ({ anchor, getMyShiftForDay, myColor, myColorText }: ViewProps & { anchor: Date }) => {
+const MonthGrid = ({ anchor, getMyShiftForDay, myColor, myColorText, holidaysByDate }: ViewProps & { anchor: Date }) => {
   const grid = getMonthMatrix(anchor);
   const monthIndex = anchor.getMonth();
   const weekHeaders = ["L", "M", "X", "J", "V", "S", "D"];
