@@ -431,19 +431,39 @@ const MonthGrid = ({ anchor, getMyShiftForDay, myColor, myColorText, holidaysByD
         {grid.flat().map((d) => {
           const inMonth = d.getMonth() === monthIndex;
           const my = getMyShiftForDay(d);
+          const h = holidaysByDate.get(format(d, "yyyy-MM-dd"));
+          const closure = h && isFactoryClosure(h.type);
           return (
             <div
               key={d.toISOString()}
               className={cn(
                 "flex min-h-[68px] flex-col items-stretch gap-1 rounded-lg border border-border/60 p-1.5",
                 inMonth ? "bg-card" : "bg-muted/40",
+                closure && inMonth ? "bg-muted" : "",
               )}
             >
-              <span className={cn("text-xs font-semibold", inMonth ? "text-foreground" : "text-muted-foreground/60")}>
-                {d.getDate()}
-              </span>
+              <div className="flex items-center justify-between gap-1">
+                <span className={cn("text-xs font-semibold", inMonth ? "text-foreground" : "text-muted-foreground/60")}>
+                  {d.getDate()}
+                </span>
+                {h && !closure && inMonth ? (
+                  <span
+                    className="truncate rounded px-1 text-[9px] font-semibold"
+                    style={{ backgroundColor: h.color || "hsl(var(--primary))", color: getContrastTextColor(h.color || "#888") }}
+                    title={h.label}
+                  >
+                    {h.label}
+                  </span>
+                ) : null}
+              </div>
               <div className="flex flex-1 items-center justify-center">
-                <ShiftCell code={my} color={myColor} textColor={myColorText} />
+                {closure && !my ? (
+                  <span className="rounded bg-muted-foreground/15 px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+                    Cierre fábrica
+                  </span>
+                ) : (
+                  <ShiftCell code={my} color={myColor} textColor={myColorText} />
+                )}
               </div>
             </div>
           );
@@ -453,7 +473,7 @@ const MonthGrid = ({ anchor, getMyShiftForDay, myColor, myColorText, holidaysByD
   );
 };
 
-const YearGrid = ({ year, getMyShiftForDay, myColor, myColorText }: ViewProps & { year: number }) => {
+const YearGrid = ({ year, getMyShiftForDay, myColor, myColorText, holidaysByDate }: ViewProps & { year: number }) => {
   const months = Array.from({ length: 12 }, (_, m) => m);
   return (
     <div className="overflow-x-auto">
