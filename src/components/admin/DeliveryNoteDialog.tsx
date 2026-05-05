@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export type DeliveryNoteCompany = "sirek" | "wurth" | "mainate" | "acedesa";
+export type DeliveryNoteCompany = "acedesa" | "sirek" | "wurth" | "mainate";
+
+const DEFAULT_COMPANY: DeliveryNoteCompany = "acedesa";
 
 export type DeliveryNoteExpenseTarget = "maquina" | "taller" | "otros";
 
