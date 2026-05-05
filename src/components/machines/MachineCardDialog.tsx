@@ -376,7 +376,7 @@ const MachineCardDialog = ({ machineId, open, onOpenChange, onChanged }: Machine
                         </div>
                         <div>
                           <Label className="text-[11px]">Horas siguiente</Label>
-                          <Input type="number" step="0.1" value={draft.oil_next_hours ?? ""} onChange={(e) => setDraft((d) => ({ ...d, oil_next_hours: e.target.value ? parseFloat(e.target.value) : null }))} className="h-8" />
+                          <Input type="number" inputMode="decimal" step="0.1" value={draft.oil_next_hours ?? ""} onChange={(e) => setDraft((d) => ({ ...d, oil_next_hours: e.target.value ? parseFloat(e.target.value) : null }))} className="h-8" />
                         </div>
                       </div>
                     </div>
