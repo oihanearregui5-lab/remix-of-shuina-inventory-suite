@@ -10,6 +10,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import WelcomeBanner from "@/components/shared/WelcomeBanner";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import MachineExpiriesWidget from "@/components/dashboard/MachineExpiriesWidget";
+import DashboardTaskDialog from "@/components/tasks/DashboardTaskDialog";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
 import { useClockEntry } from "@/hooks/useClockEntry";
 import { useUIMode } from "@/hooks/useUIMode";
@@ -23,6 +24,7 @@ interface DashboardViewProps {
 interface TaskItem {
   id: string;
   title: string;
+  description?: string | null;
   due_date: string | null;
   status: string;
   priority: string;
@@ -45,6 +47,7 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
   const [myStaffId, setMyStaffId] = useState<string | null>(null);
   const [completedAssignmentTaskIds, setCompletedAssignmentTaskIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -54,7 +57,7 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
       const monthStart = startOfMonth(new Date()).toISOString();
       const [entriesRes, tasksRes, reportsRes, highlightsRes, staffRes] = await Promise.all([
         db.from("time_entries").select("clock_in, clock_out").gte("clock_in", monthStart).order("clock_in", { ascending: false }).limit(60),
-        db.from("tasks").select("id, title, due_date, status, priority, scope").neq("status", "cancelled").order("due_date", { ascending: true, nullsFirst: false }).limit(20),
+        db.from("tasks").select("id, title, description, due_date, status, priority, scope").neq("status", "cancelled").order("due_date", { ascending: true, nullsFirst: false }).limit(20),
         db.from("work_reports").select("id, description, started_at, ended_at").order("started_at", { ascending: false }).limit(5),
         db.from("daily_highlights").select("id, title, summary, category, highlight_date").order("highlight_date", { ascending: false }).limit(4),
         db.from("staff_directory").select("id").eq("linked_user_id", user.id).maybeSingle(),
@@ -296,7 +299,11 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
                   <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                 </button>
                 <span className={`h-2 w-2 shrink-0 rounded-full ${task.priority === "urgent" || task.priority === "high" ? "bg-destructive" : "bg-primary/60"}`} />
-                <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTask(task)}
+                  className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left"
+                >
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
                     {task.scope === "general" && (
@@ -309,7 +316,7 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
                     {task.due_date ? format(new Date(task.due_date), "d MMM", { locale: es }) : "Sin fecha"} ·{" "}
                     {task.status === "in_progress" ? "En curso" : task.status === "blocked" ? "Bloqueada" : "Pendiente"}
                   </p>
-                </div>
+                </button>
               </li>
             ))}
           </ul>
@@ -369,6 +376,14 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
           </Button>
         </section>
       )}
+
+      <DashboardTaskDialog
+        task={selectedTask}
+        open={!!selectedTask}
+        onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+        onToggleComplete={(id) => void completeTask(id)}
+        isCompleted={selectedTask ? completedAssignmentTaskIds.has(selectedTask.id) : false}
+      />
     </div>
   );
 };
