@@ -60,7 +60,7 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
   const isEditing = Boolean(note);
 
   const [orderNumber, setOrderNumber] = useState("");
-  const [company, setCompany] = useState<DeliveryNoteCompany>("acedesa");
+  const [company, setCompany] = useState<DeliveryNoteCompany>(DEFAULT_COMPANY);
   const [expenseTarget, setExpenseTarget] = useState<DeliveryNoteExpenseTarget>("taller");
   const [machineAssetId, setMachineAssetId] = useState<string>("none");
   const [amount, setAmount] = useState("");
