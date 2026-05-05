@@ -36,7 +36,7 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
   const [panelOpen, setPanelOpen] = useState(false);
   const [modalWorkerId, setModalWorkerId] = useState<string | null>(null);
   // Edición instantánea para admin: ya no hay toggle de "modo edición".
-  const [staffMembers, setStaffMembers] = useState<Array<{ id: string; full_name: string; color_tag: string | null }>>([]);
+  const [staffMembers, setStaffMembers] = useState<Array<{ id: string; full_name: string; color_tag: string | null; color: string | null }>>([]);
   const { canViewAdmin } = useAuth();
 
   const excelWorkers = data?.workers ?? [];
