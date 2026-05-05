@@ -1464,6 +1464,7 @@ export type Database = {
           created_by_user_id: string
           description: string | null
           due_date: string | null
+          estimated_minutes: number | null
           id: string
           is_all_day: boolean
           priority: Database["public"]["Enums"]["task_priority"]
@@ -1484,6 +1485,7 @@ export type Database = {
           created_by_user_id: string
           description?: string | null
           due_date?: string | null
+          estimated_minutes?: number | null
           id?: string
           is_all_day?: boolean
           priority?: Database["public"]["Enums"]["task_priority"]
@@ -1504,6 +1506,7 @@ export type Database = {
           created_by_user_id?: string
           description?: string | null
           due_date?: string | null
+          estimated_minutes?: number | null
           id?: string
           is_all_day?: boolean
           priority?: Database["public"]["Enums"]["task_priority"]
