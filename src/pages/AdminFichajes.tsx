@@ -263,20 +263,20 @@ const AdminFichajes = () => {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_160px_1fr_180px]">
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Desde</label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-12 md:h-10" />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Hasta</label>
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-12 md:h-10" />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground flex items-center gap-1"><Search className="h-3 w-3" /> Buscar trabajador</label>
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nombre…" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nombre…" className="h-12 md:h-10" />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground flex items-center gap-1"><Filter className="h-3 w-3" /> Estado</label>
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-12 md:h-10"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="open">En curso</SelectItem>
