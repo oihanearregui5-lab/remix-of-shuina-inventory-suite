@@ -41,7 +41,7 @@ const MonthView = ({ data, monthGrid, currentMonth, holidaysByDate, selectedWork
         ))}
       </div>
       {monthGrid.map((week, weekIndex) => (
-        <div key={weekIndex} className="grid grid-cols-7 gap-1">
+        <div key={weekIndex} className="grid grid-cols-7 gap-px bg-border">
           {week.map((date) => {
             const key = toDateKey(date);
             const holiday = holidaysByDate.get(key);
@@ -54,16 +54,16 @@ const MonthView = ({ data, monthGrid, currentMonth, holidaysByDate, selectedWork
               <div
                 key={key}
                 className={cn(
-                  "grid min-h-[80px] grid-rows-[24px_1fr] overflow-hidden rounded-md md:rounded-lg border bg-card md:min-h-[118px]",
+                  "grid min-h-[72px] grid-rows-[20px_1fr] overflow-hidden rounded-sm md:rounded-md border bg-card md:min-h-[100px]",
                   !isCurrentMonth && "opacity-35",
                   isWeekend && "bg-muted/30",
                   holiday ? "border-destructive" : "border-border",
                   isCurrentDay && "ring-2 ring-secondary",
                 )}
               >
-                <div className={cn("flex items-center justify-between px-1.5 md:px-2 text-[10px] md:text-[11px] font-bold", holiday ? "bg-destructive text-destructive-foreground" : isCurrentDay ? "bg-secondary text-secondary-foreground" : "bg-muted text-foreground")}>
+                <div className={cn("flex items-center justify-between gap-1 px-1 md:px-1.5 text-[9px] md:text-[10px] font-bold", holiday ? "bg-destructive text-destructive-foreground" : isCurrentDay ? "bg-secondary text-secondary-foreground" : "bg-muted text-foreground")}>
                   <span>{date.getDate()}</span>
-                  <span className="hidden truncate text-[10px] md:inline">{holiday?.label ?? ""}</span>
+                  <span className="hidden truncate text-[9px] md:inline">{holiday?.label ?? ""}</span>
                 </div>
                 {(!shifts || (!shifts.M && !shifts.T && !shifts.N)) && holiday ? (
                   <div className="flex h-full items-center justify-center px-1 text-center text-[9px] md:text-[10px] font-medium uppercase tracking-wider italic text-muted-foreground">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, Filter, RefreshCw } from "lucide-react";
+import { Calendar, Download, Filter, Package, RefreshCw, Truck, User, X } from "lucide-react";
 import { format, getDaysInMonth, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import XLSX from "xlsx-js-style";
@@ -270,28 +270,49 @@ const TonnageDashboard = () => {
   return (
     <div className="space-y-4">
       {/* FILTROS */}
-      <section className="panel-surface p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <section className="rounded-2xl border border-border bg-muted/30 p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <Filter className="h-3.5 w-3.5" /> Filtros
+          </p>
+          <div className="flex items-center gap-1">
+            {(filterDay !== ALL_VALUE || filterDriverId !== ALL_VALUE || filterTruckId !== ALL_VALUE || filterType !== ALL_VALUE) && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/5"
+                onClick={() => { setFilterDay(ALL_VALUE); setFilterDriverId(ALL_VALUE); setFilterTruckId(ALL_VALUE); setFilterType(ALL_VALUE); }}
+              >
+                <X className="h-3.5 w-3.5" /> Limpiar
+              </Button>
+            )}
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => void reload()} title="Actualizar">
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            </Button>
           </div>
+        </div>
 
+        <div className="flex flex-wrap gap-2">
           <Select value={String(monthIdx)} onValueChange={(v) => setCurrentMonth(new Date(year, parseInt(v, 10), 1))}>
-            <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-auto rounded-full bg-background px-3 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent className="z-[100]">
               {MONTHS.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}
             </SelectContent>
           </Select>
 
           <Select value={String(year)} onValueChange={(v) => setCurrentMonth(new Date(parseInt(v, 10), monthIdx, 1))}>
-            <SelectTrigger className="w-24 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-auto rounded-full bg-background px-3 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent className="z-[100]">
               {[2024, 2025, 2026, 2027].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
 
           <Select value={filterDay} onValueChange={setFilterDay}>
-            <SelectTrigger className="w-28 h-9"><SelectValue placeholder="Día" /></SelectTrigger>
+            <SelectTrigger className={cn("h-9 w-auto rounded-full border-dashed bg-background px-3 text-xs", filterDay !== ALL_VALUE && "border-solid border-primary text-primary")}>
+              <Calendar className="mr-1 h-3.5 w-3.5" />
+              <SelectValue placeholder="Día" />
+            </SelectTrigger>
             <SelectContent className="z-[100]">
               <SelectItem value={ALL_VALUE}>Todos los días</SelectItem>
               {Array.from({ length: daysInMonth }, (_, i) => (
@@ -301,7 +322,10 @@ const TonnageDashboard = () => {
           </Select>
 
           <Select value={filterDriverId} onValueChange={setFilterDriverId}>
-            <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Trabajador" /></SelectTrigger>
+            <SelectTrigger className={cn("h-9 w-auto rounded-full border-dashed bg-background px-3 text-xs", filterDriverId !== ALL_VALUE && "border-solid border-primary text-primary")}>
+              <User className="mr-1 h-3.5 w-3.5" />
+              <SelectValue placeholder="Trabajador" />
+            </SelectTrigger>
             <SelectContent className="z-[100]">
               <SelectItem value={ALL_VALUE}>Todos los trabajadores</SelectItem>
               {Array.from(driverNames.entries()).map(([id, name]) => (
@@ -311,7 +335,10 @@ const TonnageDashboard = () => {
           </Select>
 
           <Select value={filterTruckId} onValueChange={setFilterTruckId}>
-            <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Camión" /></SelectTrigger>
+            <SelectTrigger className={cn("h-9 w-auto rounded-full border-dashed bg-background px-3 text-xs", filterTruckId !== ALL_VALUE && "border-solid border-primary text-primary")}>
+              <Truck className="mr-1 h-3.5 w-3.5" />
+              <SelectValue placeholder="Camión" />
+            </SelectTrigger>
             <SelectContent className="z-[100]">
               <SelectItem value={ALL_VALUE}>Todos los camiones</SelectItem>
               {trucks.map((t) => <SelectItem key={t.id} value={t.id}>#{t.truck_number} {t.label}</SelectItem>)}
@@ -319,7 +346,10 @@ const TonnageDashboard = () => {
           </Select>
 
           <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
-            <SelectTrigger className="w-32 h-9"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectTrigger className={cn("h-9 w-auto rounded-full border-dashed bg-background px-3 text-xs", filterType !== ALL_VALUE && "border-solid border-primary text-primary")}>
+              <Package className="mr-1 h-3.5 w-3.5" />
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
             <SelectContent className="z-[100]">
               <SelectItem value={ALL_VALUE}>Todos los tipos</SelectItem>
               <SelectItem value="tolva">Tolva (facturable)</SelectItem>
@@ -329,7 +359,7 @@ const TonnageDashboard = () => {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" size="sm" variant="default" className="ml-auto gap-1.5">
+              <Button type="button" size="sm" variant="default" className="ml-auto h-9 gap-1.5 rounded-full px-3 text-xs">
                 <Download className="h-3.5 w-3.5" /> Exportar Excel
               </Button>
             </DropdownMenuTrigger>
@@ -338,19 +368,6 @@ const TonnageDashboard = () => {
               <DropdownMenuItem onClick={() => exportMonthExcel("all")}>TODOS los viajes</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => { setFilterDay(ALL_VALUE); setFilterDriverId(ALL_VALUE); setFilterTruckId(ALL_VALUE); setFilterType(ALL_VALUE); }}
-            className="text-destructive border-destructive/40 hover:bg-destructive/5"
-          >
-            Borrar filtros
-          </Button>
-          <Button type="button" variant="ghost" size="icon" className="h-9 w-9" onClick={() => void reload()} title="Actualizar">
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-          </Button>
         </div>
       </section>
 
