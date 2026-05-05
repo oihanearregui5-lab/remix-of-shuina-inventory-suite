@@ -312,10 +312,37 @@ const TaskComposerDialog = ({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Tiempo estimado */}
+          <div className="space-y-2">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" /> Tiempo estimado
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Select value={String(estimatedHours)} onValueChange={(v) => setEstimated(Number(v), estimatedMinutesPart)}>
+                <SelectTrigger className="h-12 rounded-2xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0 horas</SelectItem>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                    <SelectItem key={h} value={String(h)}>{h} hora{h > 1 ? "s" : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(estimatedMinutesPart)} onValueChange={(v) => setEstimated(estimatedHours, Number(v))}>
+                <SelectTrigger className="h-12 rounded-2xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0 min</SelectItem>
+                  <SelectItem value="15">15 min</SelectItem>
+                  <SelectItem value="30">30 min</SelectItem>
+                  <SelectItem value="45">45 min</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-2 border-t border-border px-5 py-4">
-          <Button className="h-12 flex-1 rounded-2xl" onClick={() => onSubmit(form)} disabled={saving || !formValid}>
+          <Button className="h-12 flex-1 rounded-2xl" onClick={handleSubmit} disabled={saving}>
             {editing ? "Guardar" : "Crear tarea"}
           </Button>
           <Button variant="outline" className="h-12 rounded-2xl" onClick={() => onOpenChange(false)}>
@@ -323,6 +350,31 @@ const TaskComposerDialog = ({
           </Button>
         </div>
       </DialogContent>
+
+      <AlertDialog
+        open={emptyFieldsConfirm.open}
+        onOpenChange={(open) => setEmptyFieldsConfirm((s) => ({ ...s, open }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Crear la tarea con campos sin rellenar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a crear una tarea sin: {emptyFieldsConfirm.fields.join(", ")}. ¿Seguro que quieres continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, vuelvo a editar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setEmptyFieldsConfirm({ open: false, fields: [] });
+                onSubmit(form);
+              }}
+            >
+              Sí, crear así
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };
