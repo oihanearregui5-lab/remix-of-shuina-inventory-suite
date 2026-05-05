@@ -54,26 +54,26 @@ const MonthView = ({ data, monthGrid, currentMonth, holidaysByDate, selectedWork
               <div
                 key={key}
                 className={cn(
-                  "grid min-h-[118px] grid-rows-[28px_1fr] overflow-hidden rounded-lg border bg-card",
+                  "grid min-h-[80px] grid-rows-[24px_1fr] overflow-hidden rounded-md md:rounded-lg border bg-card md:min-h-[118px]",
                   !isCurrentMonth && "opacity-35",
                   isWeekend && "bg-muted/30",
                   holiday ? "border-destructive" : "border-border",
                   isCurrentDay && "ring-2 ring-secondary",
                 )}
               >
-                <div className={cn("flex items-center justify-between px-2 text-[11px] font-bold", holiday ? "bg-destructive text-destructive-foreground" : isCurrentDay ? "bg-secondary text-secondary-foreground" : "bg-muted text-foreground")}>
+                <div className={cn("flex items-center justify-between px-1.5 md:px-2 text-[10px] md:text-[11px] font-bold", holiday ? "bg-destructive text-destructive-foreground" : isCurrentDay ? "bg-secondary text-secondary-foreground" : "bg-muted text-foreground")}>
                   <span>{date.getDate()}</span>
-                  <span className="truncate text-[10px]">{holiday?.label ?? ""}</span>
+                  <span className="hidden truncate text-[10px] md:inline">{holiday?.label ?? ""}</span>
                 </div>
                 {(!shifts || (!shifts.M && !shifts.T && !shifts.N)) && holiday ? (
-                  <div className="flex h-full items-center justify-center px-2 text-center text-[10px] font-medium uppercase tracking-wider italic text-muted-foreground">
+                  <div className="flex h-full items-center justify-center px-1 text-center text-[9px] md:text-[10px] font-medium uppercase tracking-wider italic text-muted-foreground">
                     {holiday.label}
                   </div>
                 ) : (
                   <div className="grid grid-rows-3">
                     {SHIFT_CODES.map((code) => (
-                      <div key={`${key}-${code}`} className="grid grid-cols-[18px_1fr] items-center gap-2 border-t border-dashed border-border px-2 py-1 first:border-t-0">
-                        <span className="text-[9px] font-bold text-muted-foreground">{code}</span>
+                      <div key={`${key}-${code}`} className="grid grid-cols-[14px_1fr] md:grid-cols-[18px_1fr] items-center gap-1 md:gap-2 border-t border-dashed border-border px-1 md:px-2 py-0.5 md:py-1 first:border-t-0">
+                        <span className="text-[8px] md:text-[9px] font-bold text-muted-foreground">{code}</span>
                         <ShiftPill
                           shifts={shifts}
                           code={code}
