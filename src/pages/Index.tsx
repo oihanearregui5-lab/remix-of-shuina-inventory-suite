@@ -59,7 +59,7 @@ const Index = () => {
     const stored = window.sessionStorage.getItem(WORKSPACE_KEY);
     return stored === "worker" || stored === "admin" ? (stored as WorkspaceMode) : null;
   });
-  const { canViewAdmin, isAdmin, profile, role, signOut } = useAuth();
+  const { canViewAdmin, isAdmin, isKioskViajes, profile, role, signOut } = useAuth();
   const { prefs: navPrefs } = useNavPreferences(workspaceMode === "admin" && canViewAdmin ? "admin" : "worker");
   const { isSimple } = useUIMode();
 
@@ -70,6 +70,17 @@ const Index = () => {
       if (typeof window !== "undefined") window.sessionStorage.removeItem(WORKSPACE_KEY);
     }
   }, [canViewAdmin, workspaceMode]);
+
+  // Kiosko: forzar workspace worker y sección tonnage
+  useEffect(() => {
+    if (isKioskViajes) {
+      if (workspaceMode !== "worker") {
+        setWorkspaceMode("worker");
+        if (typeof window !== "undefined") window.sessionStorage.setItem(WORKSPACE_KEY, "worker");
+      }
+      if (currentSection !== "tonnage") setCurrentSection("tonnage");
+    }
+  }, [isKioskViajes, workspaceMode, currentSection]);
 
   const handleSectionChange = (section: AppSection) => {
     setCurrentSection(section);
@@ -95,7 +106,9 @@ const Index = () => {
       "albaranes",      // ambos
       "analytics",      // admin
     ];
-    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+    const workerAllowed = new Set<AppSection>(isKioskViajes
+      ? ["tonnage"]
+      : ["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
       ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
@@ -115,7 +128,7 @@ const Index = () => {
     return orderedKeys
       .map((k) => baseOrdered.find((s) => s.key === k))
       .filter((s): s is typeof baseOrdered[number] => Boolean(s));
-  }, [canViewAdmin, role, workspaceMode, isSimple, navPrefs]);
+  }, [canViewAdmin, role, workspaceMode, isSimple, navPrefs, isKioskViajes]);
 
   // Todas las secciones permitidas por rol/workspace SIN aplicar el filtro de "ocultas".
   // Esto se usa en el panel "Personalizar menú" para que el usuario pueda volver a mostrar
@@ -126,7 +139,9 @@ const Index = () => {
       "dashboard", "admin", "fichajes", "workReports", "tasks", "chat", "tonnage",
       "notes", "machines", "gasoline", "staff", "vacations", "albaranes", "analytics",
     ];
-    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+    const workerAllowed = new Set<AppSection>(isKioskViajes
+      ? ["tonnage"]
+      : ["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
       ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
@@ -140,7 +155,7 @@ const Index = () => {
     return allowed
       .map((k) => filtered.find((s) => s.key === k))
       .filter((s): s is typeof filtered[number] => Boolean(s));
-  }, [canViewAdmin, role, workspaceMode]);
+  }, [canViewAdmin, role, workspaceMode, isKioskViajes]);
 
   useEffect(() => {
     if (!visibleSections.length) return;
