@@ -222,8 +222,8 @@ const AppShell = <T extends string>({
           </span>
           {!isCollapsedDesktop && (
             <span className="min-w-0 flex-1 text-left">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">{profileName ?? "Usuario"}</p>
-              <p className="truncate text-xs text-sidebar-foreground/70">
+              <p className="text-sm font-medium leading-tight text-sidebar-foreground break-words">{profileName ?? "Usuario"}</p>
+              <p className="text-xs text-sidebar-foreground/70">
                 {workspaceMode === "admin" ? "Administración" : "Trabajador"}
               </p>
             </span>
@@ -332,16 +332,29 @@ const AppShell = <T extends string>({
                   <Search className="h-4 w-4" />
                 </Button>
                 <NotificationsBell onNavigate={onNotificationNavigate} />
-                {/* En móvil: botón Mi cuenta en lugar de Cerrar sesión suelto */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label="Mi cuenta"
-                  className="md:hidden"
-                  onClick={() => setAccountDialogOpen(true)}
-                >
-                  <UserCircle className="h-4 w-4" />
-                </Button>
+                {/* En móvil: si admin, botón de cambio de workspace; si no, Mi cuenta */}
+                {onChangeWorkspace ? (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Cambiar espacio de trabajo"
+                    title={`Estás en ${workspaceMode === "admin" ? "Administración" : "Trabajador"} — pulsa para cambiar`}
+                    className="md:hidden"
+                    onClick={onChangeWorkspace}
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Mi cuenta"
+                    className="md:hidden"
+                    onClick={() => setAccountDialogOpen(true)}
+                  >
+                    <UserCircle className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </header>
