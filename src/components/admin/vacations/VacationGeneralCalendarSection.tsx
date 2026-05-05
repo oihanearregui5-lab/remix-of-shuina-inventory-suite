@@ -129,7 +129,12 @@ const VacationGeneralCalendarSection = ({ holidays, onSaveHoliday, onDeleteHolid
             </div>
             <Button type="button" variant="outline" size="icon" onClick={() => setAnchorDate(getNextAnchorDate(anchorDate, viewMode, 1))}><ChevronRight className="h-4 w-4" /></Button>
           </div>
-          <Input type="number" className="w-[120px]" value={anchorDate.getFullYear()} onChange={(event) => setAnchorDate(new Date(Number(event.target.value) || 2026, anchorDate.getMonth(), 1))} />
+          <Select value={String(anchorDate.getFullYear())} onValueChange={(v) => setAnchorDate(new Date(Number(v), anchorDate.getMonth(), 1))}>
+            <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+            <SelectContent className="z-[100]">
+              {[2024, 2025, 2026, 2027, 2028].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
 
         {viewMode === "year" ? (
