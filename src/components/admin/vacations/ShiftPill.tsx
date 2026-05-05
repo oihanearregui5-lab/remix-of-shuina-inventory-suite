@@ -94,26 +94,68 @@ const ShiftPill = ({
     </span>
   );
 
-  const renderPill = () => {
-    if (isShared) return renderSharedPill();
-    if (!worker || isFiltered) {
-      return (
-        <span className={cn("italic text-muted-foreground", compact ? "text-xs" : "text-[10px]")}>—</span>
+  const SHIFT_TITLES: Record<ShiftCode, string> = { M: "Mañana", T: "Tarde", N: "Noche" } as Record<ShiftCode, string>;
+
+  const renderWorkerPill = (w: DisplayWorker, asButton: boolean) => {
+    const textColor = getContrastTextColor(w.color);
+    const title = `${w.name} · ${SHIFT_TITLES[code] ?? code}${spec ? ` (${spec})` : ""}`;
+    const firstName = w.name?.split(" ")[0] ?? w.name;
+
+    if (compact) {
+      const Inner = (
+        <span
+          className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold leading-none"
+          style={{ backgroundColor: w.color, color: textColor }}
+          title={title}
+        >
+          {code}
+        </span>
+      );
+      return asButton ? (
+        <button type="button" onClick={() => onClickWorker(w.id)} className="inline-flex items-center justify-center">
+          {Inner}
+        </button>
+      ) : (
+        Inner
       );
     }
-    return (
+
+    const content = (
       <span
-        className={cn("flex max-w-full items-center gap-2 rounded-md font-bold", baseSize)}
-        style={{ backgroundColor: worker.color, color: getContrastTextColor(worker.color) }}
+        className={cn("inline-flex max-w-full items-center gap-1.5 rounded-md px-1.5 py-0.5 font-medium")}
+        style={{ backgroundColor: `${w.color}26` }}
+        title={title}
       >
-        <span className="truncate">{worker.name}</span>
+        <span
+          className="flex h-5 w-5 flex-none items-center justify-center rounded-full text-[10px] font-extrabold leading-none"
+          style={{ backgroundColor: w.color, color: textColor }}
+        >
+          {code}
+        </span>
+        <span className="truncate text-[11px] font-semibold text-foreground">{firstName}</span>
         {spec ? (
-          <span className="rounded-sm bg-background/25 px-1.5 py-0.5 text-[9px] font-extrabold uppercase">
+          <span className="rounded-sm bg-foreground/10 px-1 py-0.5 text-[9px] font-extrabold uppercase text-foreground">
             {spec}
           </span>
         ) : null}
       </span>
     );
+
+    return asButton ? (
+      <button type="button" onClick={() => onClickWorker(w.id)} className="flex max-w-full items-center">
+        {content}
+      </button>
+    ) : (
+      content
+    );
+  };
+
+  const renderPill = () => {
+    if (isShared) return renderSharedPill();
+    if (!worker || isFiltered) {
+      return <span className={cn("italic text-muted-foreground", compact ? "text-xs" : "text-[10px]")}>—</span>;
+    }
+    return renderWorkerPill(worker, false);
   };
 
   // Modo solo-lectura: clic abre la ficha del trabajador.
@@ -122,21 +164,7 @@ const ShiftPill = ({
     if (!worker || isFiltered) {
       return <span className={cn("italic text-muted-foreground", compact ? "text-xs" : "text-[10px]")}>—</span>;
     }
-    return (
-      <button
-        type="button"
-        onClick={() => onClickWorker(worker.id)}
-        className={cn("flex max-w-full items-center gap-2 rounded-md font-bold", baseSize)}
-        style={{ backgroundColor: worker.color, color: getContrastTextColor(worker.color) }}
-      >
-        <span className="truncate">{worker.name}</span>
-        {spec ? (
-          <span className="rounded-sm bg-background/25 px-1.5 py-0.5 text-[9px] font-extrabold uppercase">
-            {spec}
-          </span>
-        ) : null}
-      </button>
-    );
+    return renderWorkerPill(worker, true);
   }
 
   const dateKey = toDateKey(date);
