@@ -208,19 +208,19 @@ const AdminFichajes = () => {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 md:mb-6 gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Panel Admin — Fichajes</h1>
-          <p className="text-muted-foreground mt-1">Control de horas de todos los empleados {isAdmin ? "con permisos de gestión" : "en modo visualización"}</p>
+          <h1 className="text-lg md:text-2xl font-bold text-foreground">Panel Admin — Fichajes</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">Control de horas de todos los empleados {isAdmin ? "con permisos de gestión" : "en modo visualización"}</p>
         </div>
         <div className="flex flex-wrap gap-2 self-start">
           {isAdmin && (
-            <Button onClick={openCreate}>
-              <Plus className="w-4 h-4 mr-2" /> Nuevo fichaje
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="w-4 h-4 md:mr-2" /> <span className="hidden sm:inline">Nuevo fichaje</span>
             </Button>
           )}
-          <Button onClick={exportCSV} variant="outline">
-            <Download className="w-4 h-4 mr-2" /> Exportar CSV
+          <Button size="sm" onClick={exportCSV} variant="outline">
+            <Download className="w-4 h-4 md:mr-2" /> <span className="hidden sm:inline">Exportar CSV</span>
           </Button>
         </div>
       </div>
