@@ -237,7 +237,7 @@ const TonnageTrucksManager = () => {
                   ? drivers.find((d) => d.user_id === t.default_driver_user_id)?.full_name
                   : null;
                 return (
-                  <li key={t.id} className={cn("flex items-center gap-2 p-2", !t.is_active && "opacity-50")}>
+                  <li key={t.id} className={cn("flex flex-wrap items-center gap-2 p-2", !t.is_active && "opacity-50")}>
                     <div className={cn("flex h-9 w-9 flex-none items-center justify-center rounded-lg text-xs font-bold", materialBg[t.material])}>
                       #{t.truck_number}
                     </div>
@@ -250,19 +250,21 @@ const TonnageTrucksManager = () => {
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="truncate text-xs text-muted-foreground">
                         {materialLabel[t.material]}{driverName ? ` · ${driverName}` : ""}
                       </p>
                     </div>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => startEditTruck(t)} title="Editar">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => void toggleTruckActive(t)}>
-                      {t.is_active ? "Desactivar" : "Activar"}
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => void deleteTruck(t)} title="Eliminar">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex flex-none items-center gap-1">
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => startEditTruck(t)} title="Editar">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 px-2 text-xs" onClick={() => void toggleTruckActive(t)}>
+                        {t.is_active ? "Desactivar" : "Activar"}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => void deleteTruck(t)} title="Eliminar">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </li>
                 );
               })}

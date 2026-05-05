@@ -117,7 +117,7 @@ const TonnageHistory = () => {
   return (
     <div className="space-y-3">
       {/* KPIs globales del día (todos los conductores) */}
-      <header className="grid grid-cols-3 gap-3">
+      <header className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="panel-surface p-4">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Total del equipo</p>
           <p className="mt-1 text-2xl font-bold text-foreground">
@@ -208,7 +208,7 @@ const TonnageHistory = () => {
                     </p>
                   </div>
                   <span className={cn(
-                    "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                    "flex-none rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
                     t.trip_type === "tolva" ? "bg-success/15 text-success" : "bg-warning/20 text-foreground",
                   )}>
                     {t.trip_type ?? "tolva"}
