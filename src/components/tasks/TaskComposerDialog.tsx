@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, User2, Users2, Building2, Lock, Eye, Check } from "lucide-react";
+import { Plus, User2, Users2, Building2, Lock, Eye, Check, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +36,7 @@ export interface TaskComposerValues {
   priority: TaskPriority;
   assignment_mode: AssignmentMode;
   assignee_ids: string[]; // staff_directory.id[]
+  estimated_minutes: number | null;
 }
 
 interface TaskComposerDialogProps {
@@ -105,14 +116,34 @@ const TaskComposerDialog = ({
     return assignees.every((person) => person.is_admin);
   }, [isAdmin, currentUserId, form.assignment_mode, form.assignee_ids, sortedStaff]);
 
-  // Validez del formulario según el modo
-  const assigneesValid = useMemo(() => {
-    if (form.assignment_mode === "all") return true;
-    if (form.assignment_mode === "individual") return form.assignee_ids.length === 1;
-    return form.assignee_ids.length >= 2;
-  }, [form.assignment_mode, form.assignee_ids]);
+  const [emptyFieldsConfirm, setEmptyFieldsConfirm] = useState<{ open: boolean; fields: string[] }>({
+    open: false,
+    fields: [],
+  });
 
-  const formValid = form.title.trim().length > 0 && assigneesValid;
+  const estimatedHours = form.estimated_minutes != null ? Math.floor(form.estimated_minutes / 60) : 0;
+  const estimatedMinutesPart = form.estimated_minutes != null ? form.estimated_minutes % 60 : 0;
+
+  const setEstimated = (hours: number, minutes: number) => {
+    const total = hours * 60 + minutes;
+    setForm((current) => ({ ...current, estimated_minutes: total > 0 ? total : null }));
+  };
+
+  const handleSubmit = () => {
+    const empty: string[] = [];
+    if (!form.title.trim()) empty.push("título");
+    if (!form.description.trim()) empty.push("descripción");
+    if (!form.labels.trim()) empty.push("etiquetas");
+    if (!form.due_date) empty.push("fecha de vencimiento");
+    if (form.assignment_mode !== "all" && form.assignee_ids.length === 0) empty.push("asignados");
+    if (!form.estimated_minutes) empty.push("tiempo estimado");
+
+    if (empty.length > 0) {
+      setEmptyFieldsConfirm({ open: true, fields: empty });
+      return;
+    }
+    onSubmit(form);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -215,11 +246,9 @@ const TaskComposerDialog = ({
                   })}
                 </div>
               </ScrollArea>
-              {!assigneesValid ? (
-                <p className="text-xs text-destructive">
-                  {form.assignment_mode === "individual"
-                    ? "Selecciona una persona."
-                    : "Selecciona al menos 2 personas o cambia a 'Una persona'."}
+              {form.assignment_mode === "group" && form.assignee_ids.length === 1 ? (
+                <p className="text-xs text-muted-foreground">
+                  Has seleccionado solo 1. Si quieres asignar a varias, marca al menos 2.
                 </p>
               ) : null}
             </div>
@@ -283,10 +312,37 @@ const TaskComposerDialog = ({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Tiempo estimado */}
+          <div className="space-y-2">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" /> Tiempo estimado
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Select value={String(estimatedHours)} onValueChange={(v) => setEstimated(Number(v), estimatedMinutesPart)}>
+                <SelectTrigger className="h-12 rounded-2xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0 horas</SelectItem>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                    <SelectItem key={h} value={String(h)}>{h} hora{h > 1 ? "s" : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(estimatedMinutesPart)} onValueChange={(v) => setEstimated(estimatedHours, Number(v))}>
+                <SelectTrigger className="h-12 rounded-2xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0 min</SelectItem>
+                  <SelectItem value="15">15 min</SelectItem>
+                  <SelectItem value="30">30 min</SelectItem>
+                  <SelectItem value="45">45 min</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-2 border-t border-border px-5 py-4">
-          <Button className="h-12 flex-1 rounded-2xl" onClick={() => onSubmit(form)} disabled={saving || !formValid}>
+          <Button className="h-12 flex-1 rounded-2xl" onClick={handleSubmit} disabled={saving}>
             {editing ? "Guardar" : "Crear tarea"}
           </Button>
           <Button variant="outline" className="h-12 rounded-2xl" onClick={() => onOpenChange(false)}>
@@ -294,6 +350,31 @@ const TaskComposerDialog = ({
           </Button>
         </div>
       </DialogContent>
+
+      <AlertDialog
+        open={emptyFieldsConfirm.open}
+        onOpenChange={(open) => setEmptyFieldsConfirm((s) => ({ ...s, open }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Crear la tarea con campos sin rellenar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a crear una tarea sin: {emptyFieldsConfirm.fields.join(", ")}. ¿Seguro que quieres continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, vuelvo a editar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setEmptyFieldsConfirm({ open: false, fields: [] });
+                onSubmit(form);
+              }}
+            >
+              Sí, crear así
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

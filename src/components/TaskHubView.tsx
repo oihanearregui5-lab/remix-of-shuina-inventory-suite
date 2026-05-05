@@ -54,6 +54,7 @@ const emptyForm: TaskComposerValues = {
   priority: "medium",
   assignment_mode: "individual",
   assignee_ids: [],
+  estimated_minutes: null,
 };
 
 const TaskHubView = () => {
@@ -250,13 +251,14 @@ const TaskHubView = () => {
       priority: task.priority,
       assignment_mode: task.assignment_mode,
       assignee_ids: task.assignment_mode === "all" ? [] : task.assignees.map((assignee) => assignee.staff_id),
+      estimated_minutes: (task as any).estimated_minutes ?? null,
     });
     setEditingId(task.id);
     setComposerOpen(true);
   };
 
   const submitTask = async (values: TaskComposerValues) => {
-    if (!user || !values.title.trim()) return;
+    if (!user) return;
     if (!isAdmin) {
       toast.error("Solo administración puede crear tareas");
       return;
@@ -264,7 +266,7 @@ const TaskHubView = () => {
     setSaving(true);
 
     const payload = {
-      title: values.title.trim(),
+      title: values.title.trim() || "Sin título",
       description: values.description.trim() || null,
       category: serializeTaskLabels(parseTaskLabels(values.labels)) || null,
       due_date: values.due_date || null,
@@ -275,6 +277,7 @@ const TaskHubView = () => {
       scope: values.assignment_mode === "all" ? "general" : "personal",
       // assigned_staff_id deprecado: lo dejamos null
       assigned_staff_id: null,
+      estimated_minutes: values.estimated_minutes ?? null,
     };
 
     let taskId = editingId;
