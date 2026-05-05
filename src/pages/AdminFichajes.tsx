@@ -208,19 +208,19 @@ const AdminFichajes = () => {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 md:mb-6 gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Panel Admin — Fichajes</h1>
-          <p className="text-muted-foreground mt-1">Control de horas de todos los empleados {isAdmin ? "con permisos de gestión" : "en modo visualización"}</p>
+          <h1 className="text-lg md:text-2xl font-bold text-foreground">Panel Admin — Fichajes</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">Control de horas de todos los empleados {isAdmin ? "con permisos de gestión" : "en modo visualización"}</p>
         </div>
         <div className="flex flex-wrap gap-2 self-start">
           {isAdmin && (
-            <Button onClick={openCreate}>
-              <Plus className="w-4 h-4 mr-2" /> Nuevo fichaje
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="w-4 h-4 md:mr-2" /> <span className="hidden sm:inline">Nuevo fichaje</span>
             </Button>
           )}
-          <Button onClick={exportCSV} variant="outline">
-            <Download className="w-4 h-4 mr-2" /> Exportar CSV
+          <Button size="sm" onClick={exportCSV} variant="outline">
+            <Download className="w-4 h-4 md:mr-2" /> <span className="hidden sm:inline">Exportar CSV</span>
           </Button>
         </div>
       </div>
@@ -263,20 +263,20 @@ const AdminFichajes = () => {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_160px_1fr_180px]">
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Desde</label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-12 md:h-10" />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Hasta</label>
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-12 md:h-10" />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground flex items-center gap-1"><Search className="h-3 w-3" /> Buscar trabajador</label>
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nombre…" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nombre…" className="h-12 md:h-10" />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground flex items-center gap-1"><Filter className="h-3 w-3" /> Estado</label>
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-12 md:h-10"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="open">En curso</SelectItem>
@@ -297,27 +297,27 @@ const AdminFichajes = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="w-5 h-5 text-primary" />
-            <span className="text-sm text-muted-foreground">Empleados</span>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4 mb-6 md:mb-8">
+        <div className="bg-card border border-border rounded-lg p-3 md:p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-1 md:mb-2">
+            <Users className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+            <span className="text-xs md:text-sm text-muted-foreground">Empleados</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{Object.keys(byEmployee).length}</p>
+          <p className="text-lg md:text-2xl font-bold text-foreground">{Object.keys(byEmployee).length}</p>
         </div>
-        <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="w-5 h-5 text-info" />
-            <span className="text-sm text-muted-foreground">Fichajes</span>
+        <div className="bg-card border border-border rounded-lg p-3 md:p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-1 md:mb-2">
+            <Calendar className="w-4 h-4 md:w-5 md:h-5 text-info" />
+            <span className="text-xs md:text-sm text-muted-foreground">Fichajes</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{filteredEntries.length}</p>
+          <p className="text-lg md:text-2xl font-bold text-foreground">{filteredEntries.length}</p>
         </div>
-        <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-5 h-5 text-success" />
-            <span className="text-sm text-muted-foreground">Total Horas</span>
+        <div className="col-span-2 lg:col-span-1 bg-card border border-border rounded-lg p-3 md:p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-1 md:mb-2">
+            <Clock className="w-4 h-4 md:w-5 md:h-5 text-success" />
+            <span className="text-xs md:text-sm text-muted-foreground">Total Horas</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{getTotalHours()}</p>
+          <p className="text-lg md:text-2xl font-bold text-foreground tabular-nums">{getTotalHours()}</p>
         </div>
       </div>
 
@@ -422,7 +422,7 @@ const AdminFichajes = () => {
             <button
               type="button"
               onClick={() => toggleEmployee(userId)}
-              className="w-full flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors"
+              className="w-full flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors"
               style={{ borderLeft: `4px solid ${color}` }}
               onDoubleClick={(e) => {
                 e.preventDefault();
@@ -430,36 +430,36 @@ const AdminFichajes = () => {
               }}
               title={resolvedStaffId ? "Clic para abrir/cerrar · doble clic para ver ficha" : "Clic para abrir/cerrar"}
             >
-              <div className="flex items-center gap-3">
-                {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-                <h3 className="font-semibold text-foreground">{name}</h3>
-                <span className="text-xs text-muted-foreground">({empEntries.length} fichajes)</span>
+              <div className="flex min-w-0 items-center gap-2 md:gap-3">
+                {isExpanded ? <ChevronDown className="h-4 w-4 flex-none text-muted-foreground" /> : <ChevronRight className="h-4 w-4 flex-none text-muted-foreground" />}
+                <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ backgroundColor: color }} />
+                <h3 className="truncate font-semibold text-foreground text-sm md:text-base">{name}</h3>
+                <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">({empEntries.length} fichajes)</span>
               </div>
-              <span className="text-sm font-medium text-primary">
-                {Math.floor(totalMins / 60)}h {totalMins % 60}m total
+              <span className="text-xs md:text-sm font-medium text-primary tabular-nums whitespace-nowrap">
+                {Math.floor(totalMins / 60)}h {totalMins % 60}m
               </span>
             </button>
             {isExpanded && (
               <div className="mt-2 space-y-2 pl-2">
                 {empEntries.map((e) => (
-                  <div key={e.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between shadow-sm">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
+                  <div key={e.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between gap-2 shadow-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">
                         {format(new Date(e.clock_in), "EEEE d MMM", { locale: es })}
                       </p>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-foreground font-medium text-sm">
+                      <div className="flex items-center gap-2 mt-0.5 tabular-nums">
+                        <span className="text-foreground font-medium text-sm whitespace-nowrap">
                           {format(new Date(e.clock_in), "HH:mm")}
                         </span>
                         <span className="text-muted-foreground text-xs">→</span>
-                        <span className="text-foreground font-medium text-sm">
+                        <span className="text-foreground font-medium text-sm whitespace-nowrap">
                           {e.clock_out ? format(new Date(e.clock_out), "HH:mm") : "En curso"}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
+                    <div className="flex flex-none items-center gap-1.5">
+                      <span className={`text-xs md:text-sm font-semibold whitespace-nowrap tabular-nums ${e.clock_out ? "text-primary" : "text-success"}`}>
                         {formatDuration(e.clock_in, e.clock_out)}
                       </span>
                       {isAdmin && (
