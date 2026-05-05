@@ -2,14 +2,17 @@ import { useMemo } from "react";
 import type { Worker as ExcelWorker } from "@/lib/transtubari-parser";
 import type { WorkerItem } from "./vacation-types";
 import { normalizeKey } from "./journeys-constants";
+import { DEFAULT_WORKER_COLOR } from "@/lib/colors";
 
 interface StaffMemberItem {
   id: string;
   full_name: string;
   color_tag: string | null;
+  color?: string | null;
 }
 
-const colorTagToHex = (colorTag: string | null | undefined) => {
+const colorTagToHex = (colorTag: string | null | undefined): string | null => {
+  if (!colorTag) return null;
   const palette: Record<string, string> = {
     red: "#ef4444",
     indigo: "#6366f1",
@@ -25,8 +28,22 @@ const colorTagToHex = (colorTag: string | null | undefined) => {
     lime: "#84cc16",
     yellow: "#eab308",
   };
+  return palette[colorTag] ?? null;
+};
 
-  return colorTag ? palette[colorTag] ?? "hsl(var(--muted))" : "hsl(var(--muted))";
+/** Resuelve el color canónico de un trabajador. SIEMPRE prioriza staff_directory.color (Supabase). */
+const resolveWorkerColor = (
+  staffMember: StaffMemberItem | null,
+  appWorker: WorkerItem | null,
+): string => {
+  // 1. staff_directory.color (fuente de verdad)
+  if (staffMember?.color && staffMember.color.trim()) return staffMember.color;
+  // 2. fallback color_tag de staff_directory
+  const fromTag = colorTagToHex(staffMember?.color_tag);
+  if (fromTag) return fromTag;
+  // 3. fallback workers.color_hex (legacy)
+  if (appWorker?.color_hex) return appWorker.color_hex;
+  return DEFAULT_WORKER_COLOR;
 };
 
 export interface DisplayWorker {
@@ -82,7 +99,7 @@ export const useWorkerLookups = (excelWorkers: ExcelWorker[], appWorkers: Worker
         assignmentId: staffMember?.id ?? null,
         name: displayName,
         initials: initialsSource.slice(0, 2).toUpperCase(),
-        color: excelWorker?.color ?? appWorker?.color_hex ?? colorTagToHex(staffMember?.color_tag),
+        color: resolveWorkerColor(staffMember, appWorker),
         defaultShift: excelWorker?.defaultShift ?? appWorker?.shift_default,
         appWorkerId: appWorker?.id ?? null,
       };

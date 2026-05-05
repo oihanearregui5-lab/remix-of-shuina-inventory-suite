@@ -29,6 +29,7 @@ const MyJourneyView = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [anchor, setAnchor] = useState<Date>(() => new Date());
   const [myStaffId, setMyStaffId] = useState<string | null>(null);
+  const [myStaffColor, setMyStaffColor] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Map<string, OverrideRow>>(new Map());
   const [loadingOverrides, setLoadingOverrides] = useState(false);
 
@@ -38,10 +39,11 @@ const MyJourneyView = () => {
     (async () => {
       const { data: row } = await supabase
         .from("staff_directory")
-        .select("id")
+        .select("id, color")
         .eq("linked_user_id", user.id)
         .maybeSingle();
       setMyStaffId(row?.id ?? null);
+      setMyStaffColor(row?.color ?? null);
     })();
   }, [user]);
 
@@ -120,7 +122,7 @@ const MyJourneyView = () => {
     return null;
   };
 
-  const myColor = myExcelWorker?.color ?? "hsl(var(--primary))";
+  const myColor = myStaffColor ?? "hsl(var(--primary))";
   const myColorText = getContrastTextColor(myColor);
 
   const navigate = (dir: 1 | -1) => {
