@@ -38,10 +38,11 @@ const MyJourneyView = () => {
     (async () => {
       const { data: row } = await supabase
         .from("staff_directory")
-        .select("id")
+        .select("id, color")
         .eq("linked_user_id", user.id)
         .maybeSingle();
       setMyStaffId(row?.id ?? null);
+      setMyStaffColor(row?.color ?? null);
     })();
   }, [user]);
 
