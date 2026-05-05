@@ -18,6 +18,8 @@ import WeekView from "./views/WeekView";
 import MonthView from "./views/MonthView";
 import YearView from "./views/YearView";
 import JourneysSidePanel from "./JourneysSidePanel";
+import { cn } from "@/lib/utils";
+import { getContrastTextColor } from "@/lib/colors";
 import WorkerModal from "./WorkerModal";
 
 interface Props {
