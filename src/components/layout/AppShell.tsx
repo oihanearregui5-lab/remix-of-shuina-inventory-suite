@@ -222,8 +222,8 @@ const AppShell = <T extends string>({
           </span>
           {!isCollapsedDesktop && (
             <span className="min-w-0 flex-1 text-left">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">{profileName ?? "Usuario"}</p>
-              <p className="truncate text-xs text-sidebar-foreground/70">
+              <p className="text-sm font-medium leading-tight text-sidebar-foreground break-words">{profileName ?? "Usuario"}</p>
+              <p className="text-xs text-sidebar-foreground/70">
                 {workspaceMode === "admin" ? "Administración" : "Trabajador"}
               </p>
             </span>
