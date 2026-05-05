@@ -631,7 +631,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
           </DialogHeader>
           <div className="space-y-1.5">
             <Label>Umbral (€)</Label>
-            <Input type="number" min="0" value={thresholdDraft} onChange={(e) => setThresholdDraft(e.target.value)} />
+            <Input type="number" inputMode="numeric" min="0" value={thresholdDraft} onChange={(e) => setThresholdDraft(e.target.value)} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSettingsOpen(false)}>Cancelar</Button>
