@@ -460,7 +460,7 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
-          company: string
+          company?: string
           created_at?: string
           created_by_user_id?: string | null
           delivery_date?: string

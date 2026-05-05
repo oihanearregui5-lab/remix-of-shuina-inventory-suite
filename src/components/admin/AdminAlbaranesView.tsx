@@ -42,21 +42,22 @@ import { cn } from "@/lib/utils";
 // ============================================================
 // TIPOS Y CONSTANTES
 // ============================================================
-type CompanyKey = "nacohi" | "irigaray" | "hermua" | "hergoy" | "cst" | "finanzauto" | "blumaq" | "dicona" | "sadar" | "otros";
+type CompanyKey = "sirek" | "wurth" | "mainate" | "acedesa";
 type ExpenseTargetKey = "maquina" | "taller" | "otros";
 
 const COMPANIES: Array<{ key: CompanyKey; label: string }> = [
-  { key: "nacohi", label: "Nacohi" },
-  { key: "irigaray", label: "Irigaray" },
-  { key: "hermua", label: "Hermua" },
-  { key: "hergoy", label: "Hergoy" },
-  { key: "cst", label: "CST" },
-  { key: "finanzauto", label: "Finanzauto" },
-  { key: "blumaq", label: "Blumaq" },
-  { key: "dicona", label: "Dicona" },
-  { key: "sadar", label: "Sadar" },
-  { key: "otros", label: "Otros" },
+  { key: "acedesa", label: "Acedesa" },
+  { key: "sirek", label: "Sirek" },
+  { key: "wurth", label: "Würth" },
+  { key: "mainate", label: "Mainate" },
 ];
+
+const COMPANY_BADGE: Record<CompanyKey, string> = {
+  sirek: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+  wurth: "bg-red-500/15 text-red-700 dark:text-red-300",
+  mainate: "bg-emerald-600/15 text-emerald-700 dark:text-emerald-300",
+  acedesa: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+};
 
 const EXPENSE_TARGETS: Array<{ key: ExpenseTargetKey; label: string }> = [
   { key: "maquina", label: "Máquina" },
@@ -86,7 +87,7 @@ interface MachineOption {
 
 const emptyForm = {
   order_number: "",
-  company: "nacohi" as CompanyKey,
+  company: "acedesa" as CompanyKey,
   expense_target: "maquina" as ExpenseTargetKey,
   machine_asset_id: "",
   amount: "",
@@ -458,9 +459,12 @@ const AdminAlbaranesView = ({ isAdminView }: AdminAlbaranesViewProps = {}) => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-foreground">#{note.order_number}</p>
-                      <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                      <span className={cn(
+                        "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                        COMPANY_BADGE[note.company] ?? "bg-muted text-foreground",
+                      )}>
                         <Building2 className="h-3 w-3" /> {companyLabel}
-                      </p>
+                      </span>
                     </div>
                     <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
                       {targetLabel}
@@ -564,13 +568,14 @@ const AdminAlbaranesView = ({ isAdminView }: AdminAlbaranesViewProps = {}) => {
             )}
 
             {/* Fecha (e importe solo admin) */}
-            <div className={canViewAdmin ? "grid grid-cols-2 gap-2" : ""}>
+            <div className={canViewAdmin ? "grid grid-cols-1 gap-2 sm:grid-cols-2" : ""}>
               <div className="space-y-1.5">
                 <Label>Fecha</Label>
                 <Input
                   type="date"
                   value={form.delivery_date}
                   onChange={(e) => setForm((f) => ({ ...f, delivery_date: e.target.value }))}
+                  className="h-12 sm:h-10"
                 />
               </div>
               {canViewAdmin && (
@@ -582,6 +587,7 @@ const AdminAlbaranesView = ({ isAdminView }: AdminAlbaranesViewProps = {}) => {
                     placeholder="Opcional"
                     value={form.amount}
                     onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                    className="h-12 sm:h-10"
                   />
                 </div>
               )}
