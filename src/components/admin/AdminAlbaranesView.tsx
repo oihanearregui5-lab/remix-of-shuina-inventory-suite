@@ -42,21 +42,22 @@ import { cn } from "@/lib/utils";
 // ============================================================
 // TIPOS Y CONSTANTES
 // ============================================================
-type CompanyKey = "nacohi" | "irigaray" | "hermua" | "hergoy" | "cst" | "finanzauto" | "blumaq" | "dicona" | "sadar" | "otros";
+type CompanyKey = "sirek" | "wurth" | "mainate" | "acedesa";
 type ExpenseTargetKey = "maquina" | "taller" | "otros";
 
 const COMPANIES: Array<{ key: CompanyKey; label: string }> = [
-  { key: "nacohi", label: "Nacohi" },
-  { key: "irigaray", label: "Irigaray" },
-  { key: "hermua", label: "Hermua" },
-  { key: "hergoy", label: "Hergoy" },
-  { key: "cst", label: "CST" },
-  { key: "finanzauto", label: "Finanzauto" },
-  { key: "blumaq", label: "Blumaq" },
-  { key: "dicona", label: "Dicona" },
-  { key: "sadar", label: "Sadar" },
-  { key: "otros", label: "Otros" },
+  { key: "acedesa", label: "Acedesa" },
+  { key: "sirek", label: "Sirek" },
+  { key: "wurth", label: "Würth" },
+  { key: "mainate", label: "Mainate" },
 ];
+
+const COMPANY_BADGE: Record<CompanyKey, string> = {
+  sirek: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+  wurth: "bg-red-500/15 text-red-700 dark:text-red-300",
+  mainate: "bg-emerald-600/15 text-emerald-700 dark:text-emerald-300",
+  acedesa: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+};
 
 const EXPENSE_TARGETS: Array<{ key: ExpenseTargetKey; label: string }> = [
   { key: "maquina", label: "Máquina" },
