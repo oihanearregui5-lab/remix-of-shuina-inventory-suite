@@ -99,7 +99,7 @@ export const useWorkerLookups = (excelWorkers: ExcelWorker[], appWorkers: Worker
         assignmentId: staffMember?.id ?? null,
         name: displayName,
         initials: initialsSource.slice(0, 2).toUpperCase(),
-        color: excelWorker?.color ?? appWorker?.color_hex ?? colorTagToHex(staffMember?.color_tag),
+        color: resolveWorkerColor(staffMember, appWorker),
         defaultShift: excelWorker?.defaultShift ?? appWorker?.shift_default,
         appWorkerId: appWorker?.id ?? null,
       };
