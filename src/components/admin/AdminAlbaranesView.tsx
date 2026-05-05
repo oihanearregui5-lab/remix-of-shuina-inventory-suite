@@ -459,9 +459,12 @@ const AdminAlbaranesView = ({ isAdminView }: AdminAlbaranesViewProps = {}) => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-foreground">#{note.order_number}</p>
-                      <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                      <span className={cn(
+                        "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                        COMPANY_BADGE[note.company] ?? "bg-muted text-foreground",
+                      )}>
                         <Building2 className="h-3 w-3" /> {companyLabel}
-                      </p>
+                      </span>
                     </div>
                     <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
                       {targetLabel}
