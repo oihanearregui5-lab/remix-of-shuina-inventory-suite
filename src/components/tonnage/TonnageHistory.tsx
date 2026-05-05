@@ -158,7 +158,7 @@ const TonnageHistory = () => {
           </Label>
           <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
             <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100]">
               <SelectItem value={ALL}>Todos</SelectItem>
               <SelectItem value="tolva">Tolva (facturables)</SelectItem>
               <SelectItem value="acopio">Acopio</SelectItem>

@@ -179,7 +179,7 @@ const TonnageRegisterTrip = () => {
         </Label>
         <Select value={truckId} onValueChange={setTruckId}>
           <SelectTrigger className="h-12 text-base"><SelectValue placeholder="Elige el camión" /></SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[100]">
             {(["arenas", "tortas", "sulfatos"] as TonnageMaterial[]).map((mat) =>
               trucksByMaterial[mat].length > 0 ? (
                 <div key={mat}>
@@ -205,7 +205,7 @@ const TonnageRegisterTrip = () => {
         </Label>
         <Select value={driverKey} onValueChange={(v) => { setDriverKey(v); setAutoSelectedTruck(false); }}>
           <SelectTrigger className="h-12 text-base"><SelectValue placeholder="¿Quién conduce?" /></SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[100]">
             {(["principal", "ocasional"] as const).map((role) => {
               const list = drivers.filter((d) => (d.role ?? "principal") === role);
               if (list.length === 0) return null;
@@ -305,7 +305,7 @@ const TonnageRegisterTrip = () => {
             <span className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Carga *</span>
             <Select value={loadZoneId} onValueChange={setLoadZoneId}>
               <SelectTrigger className="h-11"><SelectValue placeholder="¿De dónde?" /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 {loadZones.map((z) => <SelectItem key={z.id} value={z.id}>{z.label}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -314,7 +314,7 @@ const TonnageRegisterTrip = () => {
             <span className="mb-1 block text-xs uppercase tracking-wider text-muted-foreground">Descarga *</span>
             <Select value={unloadZoneId} onValueChange={setUnloadZoneId}>
               <SelectTrigger className="h-11"><SelectValue placeholder="¿Dónde?" /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 {unloadZones.map((z) => <SelectItem key={z.id} value={z.id}>{z.label}</SelectItem>)}
               </SelectContent>
             </Select>
