@@ -332,16 +332,29 @@ const AppShell = <T extends string>({
                   <Search className="h-4 w-4" />
                 </Button>
                 <NotificationsBell onNavigate={onNotificationNavigate} />
-                {/* En móvil: botón Mi cuenta en lugar de Cerrar sesión suelto */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  aria-label="Mi cuenta"
-                  className="md:hidden"
-                  onClick={() => setAccountDialogOpen(true)}
-                >
-                  <UserCircle className="h-4 w-4" />
-                </Button>
+                {/* En móvil: si admin, botón de cambio de workspace; si no, Mi cuenta */}
+                {onChangeWorkspace ? (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Cambiar espacio de trabajo"
+                    title={`Estás en ${workspaceMode === "admin" ? "Administración" : "Trabajador"} — pulsa para cambiar`}
+                    className="md:hidden"
+                    onClick={onChangeWorkspace}
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Mi cuenta"
+                    className="md:hidden"
+                    onClick={() => setAccountDialogOpen(true)}
+                  >
+                    <UserCircle className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </header>
