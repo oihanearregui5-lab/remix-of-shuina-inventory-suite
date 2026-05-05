@@ -87,7 +87,7 @@ interface MachineOption {
 
 const emptyForm = {
   order_number: "",
-  company: "nacohi" as CompanyKey,
+  company: "acedesa" as CompanyKey,
   expense_target: "maquina" as ExpenseTargetKey,
   machine_asset_id: "",
   amount: "",
