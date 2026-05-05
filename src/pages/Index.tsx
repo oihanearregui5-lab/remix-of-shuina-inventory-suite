@@ -95,7 +95,9 @@ const Index = () => {
       "albaranes",      // ambos
       "analytics",      // admin
     ];
-    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+    const workerAllowed = new Set<AppSection>(isKioskViajes
+      ? ["tonnage"]
+      : ["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
       ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
