@@ -56,7 +56,7 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
       const monthStart = startOfMonth(new Date()).toISOString();
       const [entriesRes, tasksRes, reportsRes, highlightsRes, staffRes] = await Promise.all([
         db.from("time_entries").select("clock_in, clock_out").gte("clock_in", monthStart).order("clock_in", { ascending: false }).limit(60),
-        db.from("tasks").select("id, title, due_date, status, priority, scope").neq("status", "cancelled").order("due_date", { ascending: true, nullsFirst: false }).limit(20),
+        db.from("tasks").select("id, title, description, due_date, status, priority, scope").neq("status", "cancelled").order("due_date", { ascending: true, nullsFirst: false }).limit(20),
         db.from("work_reports").select("id, description, started_at, ended_at").order("started_at", { ascending: false }).limit(5),
         db.from("daily_highlights").select("id, title, summary, category, highlight_date").order("highlight_date", { ascending: false }).limit(4),
         db.from("staff_directory").select("id").eq("linked_user_id", user.id).maybeSingle(),
