@@ -78,19 +78,19 @@ const TonnageZoneTracking = () => {
         <div className="flex flex-wrap items-center gap-2">
           <Select value={String(monthIdx)} onValueChange={(v) => setCurrentMonth(new Date(year, parseInt(v, 10), 1))}>
             <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100]">
               {MONTHS.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={String(year)} onValueChange={(v) => setCurrentMonth(new Date(parseInt(v, 10), monthIdx, 1))}>
             <SelectTrigger className="w-24 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100]">
               {[2024, 2025, 2026, 2027].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterDay} onValueChange={setFilterDay}>
             <SelectTrigger className="w-28 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100]">
               <SelectItem value={ALL_VALUE}>Todos los días</SelectItem>
               {Array.from({ length: daysInMonth }, (_, i) => (
                 <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
@@ -99,7 +99,7 @@ const TonnageZoneTracking = () => {
           </Select>
           <Select value={filterDriverId} onValueChange={setFilterDriverId}>
             <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100]">
               <SelectItem value={ALL_VALUE}>Todos los trabajadores</SelectItem>
               {Array.from(driverNames.entries()).map(([id, name]) => (
                 <SelectItem key={id} value={id}>{name}</SelectItem>

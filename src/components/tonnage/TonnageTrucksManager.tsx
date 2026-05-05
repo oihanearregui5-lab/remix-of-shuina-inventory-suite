@@ -193,7 +193,7 @@ const TonnageTrucksManager = () => {
           </div>
           <Select value={truckForm.material} onValueChange={(v: TonnageMaterial) => setTruckForm((f) => ({ ...f, material: v }))}>
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100]">
               <SelectItem value="arenas">Arenas (material principal)</SelectItem>
               <SelectItem value="tortas">Tortas (material principal)</SelectItem>
               <SelectItem value="sulfatos">Sulfatos (material principal)</SelectItem>
@@ -206,7 +206,7 @@ const TonnageTrucksManager = () => {
               onValueChange={(v) => setTruckForm((f) => ({ ...f, default_driver_user_id: v === "__none__" ? "" : v }))}
             >
               <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 <SelectItem value="__none__">Sin asignar</SelectItem>
                 {drivers.map((d) => (
                   <SelectItem key={d.user_id} value={d.user_id}>{d.full_name}</SelectItem>
@@ -285,7 +285,7 @@ const TonnageTrucksManager = () => {
           <Input placeholder="Nombre de la zona (ej: Pozo A, Tolva)" value={zoneForm.label} onChange={(e) => setZoneForm((f) => ({ ...f, label: e.target.value }))} />
           <Select value={zoneForm.zone_type} onValueChange={(v: ZoneType) => setZoneForm((f) => ({ ...f, zone_type: v }))}>
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100]">
               <SelectItem value="carga">Solo carga</SelectItem>
               <SelectItem value="descarga">Solo descarga</SelectItem>
               <SelectItem value="ambas">Ambas (sirve como carga y como descarga)</SelectItem>

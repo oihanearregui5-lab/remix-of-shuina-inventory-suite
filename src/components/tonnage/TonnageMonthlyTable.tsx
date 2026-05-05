@@ -338,13 +338,13 @@ const TonnageMonthlyTable = () => {
         </Button>
         <Select value={String(monthIdx)} onValueChange={(v) => setCurrentMonth(new Date(year, parseInt(v, 10), 1))}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[100]">
             {MONTHS.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={String(year)} onValueChange={(v) => setCurrentMonth(new Date(parseInt(v, 10), monthIdx, 1))}>
           <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[100]">
             {[2024, 2025, 2026, 2027].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
           </SelectContent>
         </Select>

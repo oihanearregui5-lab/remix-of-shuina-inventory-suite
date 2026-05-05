@@ -178,7 +178,7 @@ const TonnageMyTrips = () => {
             <Filter className="h-3.5 w-3.5 text-muted-foreground" />
             <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
               <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 <SelectItem value={ALL}>Todos</SelectItem>
                 <SelectItem value="tolva">Tolva</SelectItem>
                 <SelectItem value="acopio">Acopio</SelectItem>
@@ -297,7 +297,7 @@ const TonnageMyTrips = () => {
               <Label className="mb-1.5 block text-xs font-medium">Camión</Label>
               <Select value={editForm.truck_id} onValueChange={(v) => setEditForm((f) => ({ ...f, truck_id: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[100]">
                   {trucks.map((t) => (
                     <SelectItem key={t.id} value={t.id}>#{t.truck_number} · {t.label}</SelectItem>
                   ))}
@@ -362,7 +362,7 @@ const TonnageMyTrips = () => {
                 <Label className="mb-1.5 block text-xs font-medium">Carga</Label>
                 <Select value={editForm.load_zone_id} onValueChange={(v) => setEditForm((f) => ({ ...f, load_zone_id: v }))}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     {loadZones.map((z) => <SelectItem key={z.id} value={z.id}>{z.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -371,7 +371,7 @@ const TonnageMyTrips = () => {
                 <Label className="mb-1.5 block text-xs font-medium">Descarga</Label>
                 <Select value={editForm.unload_zone_id} onValueChange={(v) => setEditForm((f) => ({ ...f, unload_zone_id: v }))}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     {unloadZones.map((z) => <SelectItem key={z.id} value={z.id}>{z.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
