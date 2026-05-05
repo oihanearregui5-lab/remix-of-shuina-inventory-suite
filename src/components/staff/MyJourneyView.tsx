@@ -309,15 +309,15 @@ const MyJourneyView = () => {
         ) : null}
 
         {viewMode === "week" ? (
-          <WeekGrid anchor={anchor} getMyShiftForDay={getMyShiftForDay} myColor={myColor} myColorText={myColorText} />
+          <WeekGrid anchor={anchor} getMyShiftForDay={getMyShiftForDay} myColor={myColor} myColorText={myColorText} holidaysByDate={holidaysByDate} />
         ) : null}
 
         {viewMode === "month" ? (
-          <MonthGrid anchor={anchor} getMyShiftForDay={getMyShiftForDay} myColor={myColor} myColorText={myColorText} />
+          <MonthGrid anchor={anchor} getMyShiftForDay={getMyShiftForDay} myColor={myColor} myColorText={myColorText} holidaysByDate={holidaysByDate} />
         ) : null}
 
         {viewMode === "year" ? (
-          <YearGrid year={anchor.getFullYear()} getMyShiftForDay={getMyShiftForDay} myColor={myColor} myColorText={myColorText} />
+          <YearGrid year={anchor.getFullYear()} getMyShiftForDay={getMyShiftForDay} myColor={myColor} myColorText={myColorText} holidaysByDate={holidaysByDate} />
         ) : null}
       </div>
     </div>
