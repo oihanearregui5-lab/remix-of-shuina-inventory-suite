@@ -117,7 +117,7 @@ const Index = () => {
     return orderedKeys
       .map((k) => baseOrdered.find((s) => s.key === k))
       .filter((s): s is typeof baseOrdered[number] => Boolean(s));
-  }, [canViewAdmin, role, workspaceMode, isSimple, navPrefs]);
+  }, [canViewAdmin, role, workspaceMode, isSimple, navPrefs, isKioskViajes]);
 
   // Todas las secciones permitidas por rol/workspace SIN aplicar el filtro de "ocultas".
   // Esto se usa en el panel "Personalizar menú" para que el usuario pueda volver a mostrar
