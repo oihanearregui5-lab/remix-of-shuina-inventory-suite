@@ -251,6 +251,7 @@ const TaskHubView = () => {
       priority: task.priority,
       assignment_mode: task.assignment_mode,
       assignee_ids: task.assignment_mode === "all" ? [] : task.assignees.map((assignee) => assignee.staff_id),
+      estimated_minutes: (task as any).estimated_minutes ?? null,
     });
     setEditingId(task.id);
     setComposerOpen(true);
