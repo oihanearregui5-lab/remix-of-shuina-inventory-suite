@@ -11,17 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export type DeliveryNoteCompany =
-  | "nacohi"
-  | "irigaray"
-  | "hermua"
-  | "hergoy"
-  | "cst"
-  | "finanzauto"
-  | "blumaq"
-  | "dicona"
-  | "sadar"
-  | "otros";
+export type DeliveryNoteCompany = "sirek" | "wurth" | "mainate" | "acedesa";
 
 export type DeliveryNoteExpenseTarget = "maquina" | "taller" | "otros";
 
@@ -47,16 +37,10 @@ interface DeliveryNoteDialogProps {
 }
 
 export const COMPANY_OPTIONS: { value: DeliveryNoteCompany; label: string }[] = [
-  { value: "nacohi", label: "Nacohi" },
-  { value: "irigaray", label: "Irigaray" },
-  { value: "hermua", label: "Hermua" },
-  { value: "hergoy", label: "Hergoy" },
-  { value: "cst", label: "CST" },
-  { value: "finanzauto", label: "Finanzauto" },
-  { value: "blumaq", label: "Blumaq" },
-  { value: "dicona", label: "Dicona" },
-  { value: "sadar", label: "Sadar" },
-  { value: "otros", label: "Otros" },
+  { value: "acedesa", label: "Acedesa" },
+  { value: "sirek", label: "Sirek" },
+  { value: "wurth", label: "Würth" },
+  { value: "mainate", label: "Mainate" },
 ];
 
 export const EXPENSE_TARGET_OPTIONS: { value: DeliveryNoteExpenseTarget; label: string }[] = [
