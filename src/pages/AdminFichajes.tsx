@@ -297,27 +297,27 @@ const AdminFichajes = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="w-5 h-5 text-primary" />
-            <span className="text-sm text-muted-foreground">Empleados</span>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4 mb-6 md:mb-8">
+        <div className="bg-card border border-border rounded-lg p-3 md:p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-1 md:mb-2">
+            <Users className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+            <span className="text-xs md:text-sm text-muted-foreground">Empleados</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{Object.keys(byEmployee).length}</p>
+          <p className="text-lg md:text-2xl font-bold text-foreground">{Object.keys(byEmployee).length}</p>
         </div>
-        <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="w-5 h-5 text-info" />
-            <span className="text-sm text-muted-foreground">Fichajes</span>
+        <div className="bg-card border border-border rounded-lg p-3 md:p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-1 md:mb-2">
+            <Calendar className="w-4 h-4 md:w-5 md:h-5 text-info" />
+            <span className="text-xs md:text-sm text-muted-foreground">Fichajes</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{filteredEntries.length}</p>
+          <p className="text-lg md:text-2xl font-bold text-foreground">{filteredEntries.length}</p>
         </div>
-        <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-5 h-5 text-success" />
-            <span className="text-sm text-muted-foreground">Total Horas</span>
+        <div className="col-span-2 lg:col-span-1 bg-card border border-border rounded-lg p-3 md:p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-1 md:mb-2">
+            <Clock className="w-4 h-4 md:w-5 md:h-5 text-success" />
+            <span className="text-xs md:text-sm text-muted-foreground">Total Horas</span>
           </div>
-          <p className="text-2xl font-bold text-foreground">{getTotalHours()}</p>
+          <p className="text-lg md:text-2xl font-bold text-foreground tabular-nums">{getTotalHours()}</p>
         </div>
       </div>
 
