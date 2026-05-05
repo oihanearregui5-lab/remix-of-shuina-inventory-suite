@@ -28,12 +28,12 @@ interface Props {
 
 const MonthView = ({ data, monthGrid, currentMonth, holidaysByDate, selectedWorkerId, summaryLabel, getDisplayWorker, onClickWorker, editMode, allWorkers, getOverride, onAssign, onClear, onRestore }: Props) => {
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h4 className="flex items-center gap-2 text-base font-bold text-foreground">
+    <div className="space-y-3 rounded-xl border border-border bg-card p-2 md:p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 md:gap-3">
+        <h4 className="flex items-center gap-2 text-sm md:text-base font-bold text-foreground">
           <ClipboardList className="h-4 w-4 text-primary" /> Planificación mensual
         </h4>
-        <p className="text-xs text-muted-foreground">{summaryLabel}</p>
+        <p className="text-[11px] md:text-xs text-muted-foreground">{summaryLabel}</p>
       </div>
       <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
         {WEEKDAYS_SHORT.map((day) => (
