@@ -299,7 +299,11 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
                   <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                 </button>
                 <span className={`h-2 w-2 shrink-0 rounded-full ${task.priority === "urgent" || task.priority === "high" ? "bg-destructive" : "bg-primary/60"}`} />
-                <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTask(task)}
+                  className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left"
+                >
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
                     {task.scope === "general" && (
@@ -312,7 +316,7 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
                     {task.due_date ? format(new Date(task.due_date), "d MMM", { locale: es }) : "Sin fecha"} ·{" "}
                     {task.status === "in_progress" ? "En curso" : task.status === "blocked" ? "Bloqueada" : "Pendiente"}
                   </p>
-                </div>
+                </button>
               </li>
             ))}
           </ul>
