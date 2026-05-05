@@ -443,23 +443,23 @@ const AdminFichajes = () => {
             {isExpanded && (
               <div className="mt-2 space-y-2 pl-2">
                 {empEntries.map((e) => (
-                  <div key={e.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between shadow-sm">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
+                  <div key={e.id} className="bg-card border border-border rounded-lg p-3 flex items-center justify-between gap-2 shadow-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">
                         {format(new Date(e.clock_in), "EEEE d MMM", { locale: es })}
                       </p>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-foreground font-medium text-sm">
+                      <div className="flex items-center gap-2 mt-0.5 tabular-nums">
+                        <span className="text-foreground font-medium text-sm whitespace-nowrap">
                           {format(new Date(e.clock_in), "HH:mm")}
                         </span>
                         <span className="text-muted-foreground text-xs">→</span>
-                        <span className="text-foreground font-medium text-sm">
+                        <span className="text-foreground font-medium text-sm whitespace-nowrap">
                           {e.clock_out ? format(new Date(e.clock_out), "HH:mm") : "En curso"}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-semibold ${e.clock_out ? "text-primary" : "text-success"}`}>
+                    <div className="flex flex-none items-center gap-1.5">
+                      <span className={`text-xs md:text-sm font-semibold whitespace-nowrap tabular-nums ${e.clock_out ? "text-primary" : "text-success"}`}>
                         {formatDuration(e.clock_in, e.clock_out)}
                       </span>
                       {isAdmin && (
