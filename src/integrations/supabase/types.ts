@@ -1157,6 +1157,7 @@ export type Database = {
       staff_directory: {
         Row: {
           active: boolean
+          color: string
           color_tag: string | null
           contract_type: string | null
           created_at: string
@@ -1178,6 +1179,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          color?: string
           color_tag?: string | null
           contract_type?: string | null
           created_at?: string
@@ -1199,6 +1201,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          color?: string
           color_tag?: string | null
           contract_type?: string | null
           created_at?: string
