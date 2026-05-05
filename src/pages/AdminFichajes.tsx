@@ -422,7 +422,7 @@ const AdminFichajes = () => {
             <button
               type="button"
               onClick={() => toggleEmployee(userId)}
-              className="w-full flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors"
+              className="w-full flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors"
               style={{ borderLeft: `4px solid ${color}` }}
               onDoubleClick={(e) => {
                 e.preventDefault();
@@ -430,14 +430,14 @@ const AdminFichajes = () => {
               }}
               title={resolvedStaffId ? "Clic para abrir/cerrar · doble clic para ver ficha" : "Clic para abrir/cerrar"}
             >
-              <div className="flex items-center gap-3">
-                {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-                <h3 className="font-semibold text-foreground">{name}</h3>
-                <span className="text-xs text-muted-foreground">({empEntries.length} fichajes)</span>
+              <div className="flex min-w-0 items-center gap-2 md:gap-3">
+                {isExpanded ? <ChevronDown className="h-4 w-4 flex-none text-muted-foreground" /> : <ChevronRight className="h-4 w-4 flex-none text-muted-foreground" />}
+                <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ backgroundColor: color }} />
+                <h3 className="truncate font-semibold text-foreground text-sm md:text-base">{name}</h3>
+                <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">({empEntries.length} fichajes)</span>
               </div>
-              <span className="text-sm font-medium text-primary">
-                {Math.floor(totalMins / 60)}h {totalMins % 60}m total
+              <span className="text-xs md:text-sm font-medium text-primary tabular-nums whitespace-nowrap">
+                {Math.floor(totalMins / 60)}h {totalMins % 60}m
               </span>
             </button>
             {isExpanded && (
