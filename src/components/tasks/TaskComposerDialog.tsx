@@ -246,11 +246,9 @@ const TaskComposerDialog = ({
                   })}
                 </div>
               </ScrollArea>
-              {!assigneesValid ? (
-                <p className="text-xs text-destructive">
-                  {form.assignment_mode === "individual"
-                    ? "Selecciona una persona."
-                    : "Selecciona al menos 2 personas o cambia a 'Una persona'."}
+              {form.assignment_mode === "group" && form.assignee_ids.length === 1 ? (
+                <p className="text-xs text-muted-foreground">
+                  Has seleccionado solo 1. Si quieres asignar a varias, marca al menos 2.
                 </p>
               ) : null}
             </div>
