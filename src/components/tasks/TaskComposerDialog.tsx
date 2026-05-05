@@ -116,14 +116,34 @@ const TaskComposerDialog = ({
     return assignees.every((person) => person.is_admin);
   }, [isAdmin, currentUserId, form.assignment_mode, form.assignee_ids, sortedStaff]);
 
-  // Validez del formulario según el modo
-  const assigneesValid = useMemo(() => {
-    if (form.assignment_mode === "all") return true;
-    if (form.assignment_mode === "individual") return form.assignee_ids.length === 1;
-    return form.assignee_ids.length >= 2;
-  }, [form.assignment_mode, form.assignee_ids]);
+  const [emptyFieldsConfirm, setEmptyFieldsConfirm] = useState<{ open: boolean; fields: string[] }>({
+    open: false,
+    fields: [],
+  });
 
-  const formValid = form.title.trim().length > 0 && assigneesValid;
+  const estimatedHours = form.estimated_minutes != null ? Math.floor(form.estimated_minutes / 60) : 0;
+  const estimatedMinutesPart = form.estimated_minutes != null ? form.estimated_minutes % 60 : 0;
+
+  const setEstimated = (hours: number, minutes: number) => {
+    const total = hours * 60 + minutes;
+    setForm((current) => ({ ...current, estimated_minutes: total > 0 ? total : null }));
+  };
+
+  const handleSubmit = () => {
+    const empty: string[] = [];
+    if (!form.title.trim()) empty.push("título");
+    if (!form.description.trim()) empty.push("descripción");
+    if (!form.labels.trim()) empty.push("etiquetas");
+    if (!form.due_date) empty.push("fecha de vencimiento");
+    if (form.assignment_mode !== "all" && form.assignee_ids.length === 0) empty.push("asignados");
+    if (!form.estimated_minutes) empty.push("tiempo estimado");
+
+    if (empty.length > 0) {
+      setEmptyFieldsConfirm({ open: true, fields: empty });
+      return;
+    }
+    onSubmit(form);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
