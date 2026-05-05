@@ -565,13 +565,14 @@ const AdminAlbaranesView = ({ isAdminView }: AdminAlbaranesViewProps = {}) => {
             )}
 
             {/* Fecha (e importe solo admin) */}
-            <div className={canViewAdmin ? "grid grid-cols-2 gap-2" : ""}>
+            <div className={canViewAdmin ? "grid grid-cols-1 gap-2 sm:grid-cols-2" : ""}>
               <div className="space-y-1.5">
                 <Label>Fecha</Label>
                 <Input
                   type="date"
                   value={form.delivery_date}
                   onChange={(e) => setForm((f) => ({ ...f, delivery_date: e.target.value }))}
+                  className="h-12 sm:h-10"
                 />
               </div>
               {canViewAdmin && (
@@ -583,6 +584,7 @@ const AdminAlbaranesView = ({ isAdminView }: AdminAlbaranesViewProps = {}) => {
                     placeholder="Opcional"
                     value={form.amount}
                     onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                    className="h-12 sm:h-10"
                   />
                 </div>
               )}
