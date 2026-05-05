@@ -117,7 +117,7 @@ const TonnageHistory = () => {
   return (
     <div className="space-y-3">
       {/* KPIs globales del día (todos los conductores) */}
-      <header className="grid grid-cols-3 gap-3">
+      <header className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="panel-surface p-4">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Total del equipo</p>
           <p className="mt-1 text-2xl font-bold text-foreground">
