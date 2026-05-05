@@ -208,7 +208,7 @@ const TonnageHistory = () => {
                     </p>
                   </div>
                   <span className={cn(
-                    "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                    "flex-none rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
                     t.trip_type === "tolva" ? "bg-success/15 text-success" : "bg-warning/20 text-foreground",
                   )}>
                     {t.trip_type ?? "tolva"}
