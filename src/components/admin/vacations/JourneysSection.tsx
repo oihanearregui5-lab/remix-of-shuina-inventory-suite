@@ -68,11 +68,11 @@ const JourneysSection = ({ workers, holidays, vacationSlots, summaries, onOpenWo
     const loadStaffMembers = async () => {
       const { data } = await supabase
         .from("staff_directory")
-        .select("id, full_name, color_tag")
+        .select("id, full_name, color_tag, color")
         .eq("active", true)
         .order("full_name", { ascending: true });
 
-      setStaffMembers((data ?? []) as Array<{ id: string; full_name: string; color_tag: string | null }>);
+      setStaffMembers((data ?? []) as Array<{ id: string; full_name: string; color_tag: string | null; color: string | null }>);
     };
 
     void loadStaffMembers();
