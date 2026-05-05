@@ -95,8 +95,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const roles = rolesRes.data?.map((entry) => entry.role) ?? [];
     const admin = roles.includes("admin");
     const secretary = roles.includes("secretary");
+    const kiosk = roles.includes("kiosk_viajes" as never);
     setIsAdmin(admin);
-    setRole(admin ? "admin" : secretary ? "secretary" : "worker");
+    setRole(admin ? "admin" : secretary ? "secretary" : kiosk ? "kiosk_viajes" : "worker");
     setProfile(profileRes.data ?? null);
     setLoading(false);
   };
