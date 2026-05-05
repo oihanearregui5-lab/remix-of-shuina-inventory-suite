@@ -71,6 +71,17 @@ const Index = () => {
     }
   }, [canViewAdmin, workspaceMode]);
 
+  // Kiosko: forzar workspace worker y sección tonnage
+  useEffect(() => {
+    if (isKioskViajes) {
+      if (workspaceMode !== "worker") {
+        setWorkspaceMode("worker");
+        if (typeof window !== "undefined") window.sessionStorage.setItem(WORKSPACE_KEY, "worker");
+      }
+      if (currentSection !== "tonnage") setCurrentSection("tonnage");
+    }
+  }, [isKioskViajes, workspaceMode, currentSection]);
+
   const handleSectionChange = (section: AppSection) => {
     setCurrentSection(section);
     setMobileMenuOpen(false);
