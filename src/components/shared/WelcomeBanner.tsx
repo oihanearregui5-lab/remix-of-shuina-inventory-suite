@@ -11,14 +11,15 @@ const WelcomeBanner = () => {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const dismissed = window.localStorage.getItem(STORAGE_KEY);
-    if (!dismissed) setOpen(true);
+    if (!dismissed) {
+      setOpen(true);
+      // Marcar como visto INMEDIATAMENTE al mostrarse
+      window.localStorage.setItem(STORAGE_KEY, "1");
+    }
   }, []);
 
   const dismiss = () => {
     setOpen(false);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, "1");
-    }
   };
 
   if (!open) return null;
