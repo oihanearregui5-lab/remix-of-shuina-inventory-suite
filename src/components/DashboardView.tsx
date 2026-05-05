@@ -10,6 +10,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import WelcomeBanner from "@/components/shared/WelcomeBanner";
 import SmartRemindersPanel from "@/components/shared/SmartRemindersPanel";
 import MachineExpiriesWidget from "@/components/dashboard/MachineExpiriesWidget";
+import DashboardTaskDialog from "@/components/tasks/DashboardTaskDialog";
 import { useSmartReminders } from "@/hooks/useSmartReminders";
 import { useClockEntry } from "@/hooks/useClockEntry";
 import { useUIMode } from "@/hooks/useUIMode";
