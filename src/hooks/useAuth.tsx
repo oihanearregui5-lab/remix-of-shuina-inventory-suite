@@ -7,9 +7,10 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  isKioskViajes: boolean;
   canViewAdmin: boolean;
   profile: { full_name: string } | null;
-  role: "admin" | "secretary" | "worker";
+  role: "admin" | "secretary" | "worker" | "kiosk_viajes";
   bootstrapUser: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   isAdmin: false,
+  isKioskViajes: false,
   canViewAdmin: false,
   profile: null,
   role: "worker",
@@ -31,9 +33,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [role, setRole] = useState<"admin" | "secretary" | "worker">("worker");
+  const [role, setRole] = useState<"admin" | "secretary" | "worker" | "kiosk_viajes">("worker");
   const [profile, setProfile] = useState<{ full_name: string } | null>(null);
   const canViewAdmin = role === "admin" || role === "secretary";
+  const isKioskViajes = role === "kiosk_viajes";
 
   const bootstrapUser = async () => {
     const currentUser = (await supabase.auth.getUser()).data.user;
