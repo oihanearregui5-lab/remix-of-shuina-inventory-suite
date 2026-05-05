@@ -333,17 +333,26 @@ const ConsumablesView = () => {
               </div>
               <div>
                 <Label className="text-xs">Unidad</Label>
-                <Input value={form.unit} onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))} placeholder="L, kg, ud" />
+                <Select value={form.unit} onValueChange={(v) => setForm((f) => ({ ...f, unit: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Unidad" /></SelectTrigger>
+                  <SelectContent className="z-[100]">
+                    <SelectItem value="L">L (litros)</SelectItem>
+                    <SelectItem value="kg">kg</SelectItem>
+                    <SelectItem value="ud">ud (unidades)</SelectItem>
+                    <SelectItem value="m">m (metros)</SelectItem>
+                    <SelectItem value="g">g</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Stock actual</Label>
-                <Input type="number" value={form.current_stock} onChange={(e) => setForm((f) => ({ ...f, current_stock: e.target.value }))} />
+                <Input type="number" inputMode="decimal" value={form.current_stock} onChange={(e) => setForm((f) => ({ ...f, current_stock: e.target.value }))} />
               </div>
               <div>
                 <Label className="text-xs">Stock mínimo</Label>
-                <Input type="number" value={form.min_stock} onChange={(e) => setForm((f) => ({ ...f, min_stock: e.target.value }))} />
+                <Input type="number" inputMode="decimal" value={form.min_stock} onChange={(e) => setForm((f) => ({ ...f, min_stock: e.target.value }))} />
               </div>
             </div>
             <div>
