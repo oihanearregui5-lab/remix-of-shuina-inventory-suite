@@ -115,7 +115,7 @@ const CellDialog = ({ open, date, truck, trips, onOpenChange, onAdd, onUpdate, o
                 {editingId === trip.id ? (
                   <>
                     <Input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} className="h-9 w-28" />
-                    <Input type="number" step="10" value={editKg} onChange={(e) => setEditKg(e.target.value)} className="h-9 flex-1" placeholder="kg" />
+                    <Input type="number" inputMode="decimal" step="10" value={editKg} onChange={(e) => setEditKg(e.target.value)} className="h-9 flex-1" placeholder="kg" />
                     <Button size="sm" className="h-9" onClick={() => void saveEdit()}>OK</Button>
                     <Button size="sm" variant="ghost" className="h-9 px-2" onClick={() => setEditingId(null)}>
                       <X className="h-3 w-3" />
