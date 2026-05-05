@@ -58,7 +58,7 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
   const isEditing = Boolean(note);
 
   const [orderNumber, setOrderNumber] = useState("");
-  const [company, setCompany] = useState<DeliveryNoteCompany>("nacohi");
+  const [company, setCompany] = useState<DeliveryNoteCompany>("acedesa");
   const [expenseTarget, setExpenseTarget] = useState<DeliveryNoteExpenseTarget>("taller");
   const [machineAssetId, setMachineAssetId] = useState<string>("none");
   const [amount, setAmount] = useState("");
@@ -94,7 +94,7 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
       setExistingPhotoPath(note.photo_path);
     } else {
       setOrderNumber("");
-      setCompany("nacohi");
+      setCompany("acedesa");
       setExpenseTarget("taller");
       setMachineAssetId("none");
       setAmount("");
