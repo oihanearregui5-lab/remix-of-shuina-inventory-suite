@@ -168,31 +168,42 @@ const AdminStaffSimpleView = () => {
         )}
       </section>
 
-      <section className="panel-surface p-4">
-        <h2 className="mb-3 font-semibold text-foreground">Solicitar mis propias vacaciones</h2>
-        <div className="space-y-3">
-          <Select value={requestType} onValueChange={setRequestType}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="vacation">Vacaciones</SelectItem>
-              <SelectItem value="leave">Asuntos propios</SelectItem>
-              <SelectItem value="medical">Baja / revisión</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Desde</label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+      <section className="panel-surface p-4 sm:p-6">
+        <h2 className="mb-4 font-semibold text-foreground">Solicitar mis propias vacaciones</h2>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-muted-foreground">Tipo de solicitud</label>
+            <Select value={requestType} onValueChange={setRequestType}>
+              <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vacation">Vacaciones</SelectItem>
+                <SelectItem value="leave">Asuntos propios</SelectItem>
+                <SelectItem value="medical">Baja / revisión</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-muted-foreground">Desde</label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-11 rounded-xl" />
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Hasta</label>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-muted-foreground">Hasta</label>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-11 rounded-xl" />
             </div>
           </div>
-          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo u observaciones (opcional)" className="min-h-20" />
-          <Button onClick={() => void submitRequest()} disabled={saving || !startDate || !endDate}>
-            <Send className="h-4 w-4" /> Enviar solicitud
-          </Button>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-muted-foreground">Motivo u observaciones (opcional)</label>
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Cuéntanos brevemente el motivo…" className="min-h-24 rounded-xl" />
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" className="h-11 rounded-xl" onClick={() => { setStartDate(""); setEndDate(""); setReason(""); }}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void submitRequest()} disabled={saving || !startDate || !endDate} className="h-11 rounded-xl">
+              <Send className="h-4 w-4" /> Enviar solicitud
+            </Button>
+          </div>
         </div>
 
         {own.length > 0 && (
