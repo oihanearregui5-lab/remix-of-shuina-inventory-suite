@@ -330,7 +330,11 @@ interface ViewProps {
   getMyShiftForDay: (date: Date) => ShiftCode | null;
   myColor: string;
   myColorText: string;
+  holidaysByDate: Map<string, { label: string; type: string; color: string }>;
 }
+
+const isFactoryClosure = (type: string) =>
+  type === "cierre_fabrica" || /cierre/i.test(type);
 
 const ShiftCell = ({ code, color, textColor, compact = false }: { code: ShiftCode | null; color: string; textColor: string; compact?: boolean }) => {
   if (!code) {
