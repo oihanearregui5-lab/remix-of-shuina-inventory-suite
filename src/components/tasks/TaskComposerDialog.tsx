@@ -36,6 +36,7 @@ export interface TaskComposerValues {
   priority: TaskPriority;
   assignment_mode: AssignmentMode;
   assignee_ids: string[]; // staff_directory.id[]
+  estimated_minutes: number | null;
 }
 
 interface TaskComposerDialogProps {
