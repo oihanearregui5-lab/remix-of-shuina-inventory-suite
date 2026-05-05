@@ -376,6 +376,14 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
           </Button>
         </section>
       )}
+
+      <DashboardTaskDialog
+        task={selectedTask}
+        open={!!selectedTask}
+        onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+        onToggleComplete={(id) => void completeTask(id)}
+        isCompleted={selectedTask ? completedAssignmentTaskIds.has(selectedTask.id) : false}
+      />
     </div>
   );
 };
