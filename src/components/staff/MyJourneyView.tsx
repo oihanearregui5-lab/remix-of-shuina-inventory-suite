@@ -122,7 +122,7 @@ const MyJourneyView = () => {
     return null;
   };
 
-  const myColor = myExcelWorker?.color ?? "hsl(var(--primary))";
+  const myColor = myStaffColor ?? "hsl(var(--primary))";
   const myColorText = getContrastTextColor(myColor);
 
   const navigate = (dir: 1 | -1) => {
