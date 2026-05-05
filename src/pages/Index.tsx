@@ -128,7 +128,9 @@ const Index = () => {
       "dashboard", "admin", "fichajes", "workReports", "tasks", "chat", "tonnage",
       "notes", "machines", "gasoline", "staff", "vacations", "albaranes", "analytics",
     ];
-    const workerAllowed = new Set<AppSection>(["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+    const workerAllowed = new Set<AppSection>(isKioskViajes
+      ? ["tonnage"]
+      : ["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
       ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
       : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
@@ -142,7 +144,7 @@ const Index = () => {
     return allowed
       .map((k) => filtered.find((s) => s.key === k))
       .filter((s): s is typeof filtered[number] => Boolean(s));
-  }, [canViewAdmin, role, workspaceMode]);
+  }, [canViewAdmin, role, workspaceMode, isKioskViajes]);
 
   useEffect(() => {
     if (!visibleSections.length) return;
