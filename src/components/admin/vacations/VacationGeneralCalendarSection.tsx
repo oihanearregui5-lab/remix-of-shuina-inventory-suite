@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, PencilLine, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { HolidayItem, HolidayType, VacationViewMode } from "./vacation-types";
 import {
