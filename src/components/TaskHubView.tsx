@@ -54,6 +54,7 @@ const emptyForm: TaskComposerValues = {
   priority: "medium",
   assignment_mode: "individual",
   assignee_ids: [],
+  estimated_minutes: null,
 };
 
 const TaskHubView = () => {
