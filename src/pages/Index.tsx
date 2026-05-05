@@ -59,7 +59,7 @@ const Index = () => {
     const stored = window.sessionStorage.getItem(WORKSPACE_KEY);
     return stored === "worker" || stored === "admin" ? (stored as WorkspaceMode) : null;
   });
-  const { canViewAdmin, isAdmin, profile, role, signOut } = useAuth();
+  const { canViewAdmin, isAdmin, isKioskViajes, profile, role, signOut } = useAuth();
   const { prefs: navPrefs } = useNavPreferences(workspaceMode === "admin" && canViewAdmin ? "admin" : "worker");
   const { isSimple } = useUIMode();
 
