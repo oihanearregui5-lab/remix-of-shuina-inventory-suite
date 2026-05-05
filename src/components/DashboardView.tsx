@@ -47,6 +47,7 @@ const DashboardView = ({ onNavigate, canViewAdmin }: DashboardViewProps) => {
   const [myStaffId, setMyStaffId] = useState<string | null>(null);
   const [completedAssignmentTaskIds, setCompletedAssignmentTaskIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
 
   useEffect(() => {
     if (!user) return;
