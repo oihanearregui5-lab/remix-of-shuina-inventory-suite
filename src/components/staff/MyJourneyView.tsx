@@ -139,6 +139,15 @@ const MyJourneyView = () => {
     return String(anchor.getFullYear());
   }, [viewMode, anchor]);
 
+  // Mapa de festivos/cierres por fecha (YYYY-MM-DD)
+  const holidaysByDate = useMemo(() => {
+    const map = new Map<string, { label: string; type: string; color: string }>();
+    Object.values(data?.holidays ?? {}).forEach((h: any) => {
+      map.set(h.date, { label: h.label, type: h.type, color: h.color });
+    });
+    return map;
+  }, [data?.holidays]);
+
   // Counters
   const counters = useMemo(() => {
     if (!data) return { M: 0, T: 0, N: 0, total: 0 };
