@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export type DeliveryNoteCompany = "sirek" | "wurth" | "mainate" | "acedesa";
+export type DeliveryNoteCompany = "acedesa" | "sirek" | "wurth" | "mainate";
+
+const DEFAULT_COMPANY: DeliveryNoteCompany = "acedesa";
 
 export type DeliveryNoteExpenseTarget = "maquina" | "taller" | "otros";
 
@@ -58,7 +60,7 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
   const isEditing = Boolean(note);
 
   const [orderNumber, setOrderNumber] = useState("");
-  const [company, setCompany] = useState<DeliveryNoteCompany>("acedesa");
+  const [company, setCompany] = useState<DeliveryNoteCompany>(DEFAULT_COMPANY);
   const [expenseTarget, setExpenseTarget] = useState<DeliveryNoteExpenseTarget>("taller");
   const [machineAssetId, setMachineAssetId] = useState<string>("none");
   const [amount, setAmount] = useState("");
@@ -94,7 +96,7 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
       setExistingPhotoPath(note.photo_path);
     } else {
       setOrderNumber("");
-      setCompany("acedesa");
+      setCompany(DEFAULT_COMPANY);
       setExpenseTarget("taller");
       setMachineAssetId("none");
       setAmount("");
