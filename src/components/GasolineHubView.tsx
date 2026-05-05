@@ -602,7 +602,7 @@ const GasolineHubView = ({ isAdminView = false }: GasolineHubViewProps) => {
           <div className="grid gap-3">
             <div className="space-y-1.5">
               <Label>Importe (€)</Label>
-              <Input type="number" step="0.01" value={rechargeDraft.amount_eur} onChange={(e) => setRechargeDraft((d) => ({ ...d, amount_eur: e.target.value }))} placeholder="0,00" />
+              <Input type="number" inputMode="decimal" step="0.01" value={rechargeDraft.amount_eur} onChange={(e) => setRechargeDraft((d) => ({ ...d, amount_eur: e.target.value }))} placeholder="0,00" />
             </div>
             <div className="space-y-1.5">
               <Label>Fecha</Label>
