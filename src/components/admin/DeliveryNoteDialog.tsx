@@ -96,7 +96,7 @@ const DeliveryNoteDialog = ({ open, onOpenChange, note }: DeliveryNoteDialogProp
       setExistingPhotoPath(note.photo_path);
     } else {
       setOrderNumber("");
-      setCompany("acedesa");
+      setCompany(DEFAULT_COMPANY);
       setExpenseTarget("taller");
       setMachineAssetId("none");
       setAmount("");
