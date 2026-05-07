@@ -1808,6 +1808,36 @@ export type Database = {
         }
         Relationships: []
       }
+      tutorial_videos: {
+        Row: {
+          id: string
+          is_active: boolean
+          original_filename: string
+          size_bytes: number
+          storage_path: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean
+          original_filename: string
+          size_bytes: number
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          id?: string
+          is_active?: boolean
+          original_filename?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       user_nav_preferences: {
         Row: {
           hidden_sections: string[]
