@@ -48,6 +48,8 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "albaranes", label: "Albaranes", description: "Registro de pedidos por proveedor, destino y máquina.", icon: ReceiptText, workspace: "admin" },
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
   { key: "analytics", label: "Analítica", description: "KPIs, gráficas y alertas operativas.", icon: BarChart3, workspace: "admin", adminOnly: true },
+  { key: "tutorial", label: "Tutorial", description: "Vídeo guía de la aplicación.", icon: GraduationCap, workspace: "worker" },
+  { key: "tutorial", label: "Tutorial", description: "Vídeo guía de la aplicación.", icon: GraduationCap, workspace: "admin" },
 ];
 
 const WORKSPACE_KEY = "transtubari-workspace-mode";
