@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, BarChart3 } from "lucide-react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, BarChart3, GraduationCap } from "lucide-react";
 import { useUIMode } from "@/hooks/useUIMode";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavPreferences, applyNavPrefs } from "@/hooks/useNavPreferences";
@@ -20,10 +20,11 @@ const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
 const TonnageHub = lazy(() => import("@/components/tonnage/TonnageHub"));
 const AccountSettingsView = lazy(() => import("@/components/AccountSettingsView"));
 const AnalyticsDashboardView = lazy(() => import("@/components/admin/AnalyticsDashboardView"));
+const TutorialView = lazy(() => import("@/components/tutorial/TutorialView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "account" | "analytics";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "account" | "analytics" | "tutorial";
 type WorkspaceMode = "worker" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
