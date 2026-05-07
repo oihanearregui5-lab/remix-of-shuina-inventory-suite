@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, BarChart3 } from "lucide-react";
+import { Clock, ShieldCheck, Truck, ClipboardList, LayoutDashboard, CalendarRange, MessageSquare, Fuel, FileText, ReceiptText, NotebookPen, Scale, BarChart3, GraduationCap } from "lucide-react";
 import { useUIMode } from "@/hooks/useUIMode";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavPreferences, applyNavPrefs } from "@/hooks/useNavPreferences";
@@ -20,10 +20,11 @@ const PersonalNotesView = lazy(() => import("@/components/PersonalNotesView"));
 const TonnageHub = lazy(() => import("@/components/tonnage/TonnageHub"));
 const AccountSettingsView = lazy(() => import("@/components/AccountSettingsView"));
 const AnalyticsDashboardView = lazy(() => import("@/components/admin/AnalyticsDashboardView"));
+const TutorialView = lazy(() => import("@/components/tutorial/TutorialView"));
 import AppShell, { type AppShellSection } from "@/components/layout/AppShell";
 import WorkspaceSelector from "@/components/WorkspaceSelector";
 
-type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "account" | "analytics";
+type AppSection = "dashboard" | "fichajes" | "tasks" | "machines" | "staff" | "chat" | "gasoline" | "workReports" | "admin" | "vacations" | "albaranes" | "notes" | "tonnage" | "account" | "analytics" | "tutorial";
 type WorkspaceMode = "worker" | "admin";
 
 const sections: AppShellSection<AppSection>[] = [
@@ -47,6 +48,8 @@ const sections: AppShellSection<AppSection>[] = [
   { key: "albaranes", label: "Albaranes", description: "Registro de pedidos por proveedor, destino y máquina.", icon: ReceiptText, workspace: "admin" },
   { key: "staff", label: "Trabajadores", description: "Gestión del equipo y solicitudes.", icon: CalendarRange, workspace: "admin" },
   { key: "analytics", label: "Analítica", description: "KPIs, gráficas y alertas operativas.", icon: BarChart3, workspace: "admin", adminOnly: true },
+  { key: "tutorial", label: "Tutorial", description: "Vídeo guía de la aplicación.", icon: GraduationCap, workspace: "worker" },
+  { key: "tutorial", label: "Tutorial", description: "Vídeo guía de la aplicación.", icon: GraduationCap, workspace: "admin" },
 ];
 
 const WORKSPACE_KEY = "transtubari-workspace-mode";
@@ -105,13 +108,14 @@ const Index = () => {
       "vacations",      // admin
       "albaranes",      // ambos
       "analytics",      // admin
+      "tutorial",       // ambos
     ];
     const workerAllowed = new Set<AppSection>(isKioskViajes
       ? ["tonnage"]
-      : ["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+      : ["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes", "tutorial"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
-      ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
-      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
+      ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics", "tutorial"]
+      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff", "tutorial"]);
     const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
     const allowed = unifiedOrder.filter((k) => allowedSet.has(k));
     const filtered = sections.filter((section) => {
@@ -137,14 +141,14 @@ const Index = () => {
     if (!workspaceMode) return [];
     const unifiedOrder: AppSection[] = [
       "dashboard", "admin", "fichajes", "workReports", "tasks", "chat", "tonnage",
-      "notes", "machines", "gasoline", "staff", "vacations", "albaranes", "analytics",
+      "notes", "machines", "gasoline", "staff", "vacations", "albaranes", "analytics", "tutorial",
     ];
     const workerAllowed = new Set<AppSection>(isKioskViajes
       ? ["tonnage"]
-      : ["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+      : ["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes", "tutorial"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
-      ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
-      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
+      ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics", "tutorial"]
+      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff", "tutorial"]);
     const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
     const allowed = unifiedOrder.filter((k) => allowedSet.has(k));
     const filtered = sections.filter((section) => {
@@ -222,6 +226,8 @@ const Index = () => {
         return <VacationsJourneysView />;
       case "analytics":
         return <AnalyticsDashboardView />;
+      case "tutorial":
+        return <TutorialView isAdminView={workspaceMode === "admin" && canViewAdmin} />;
       case "fichajes":
       default:
         return workspaceMode === "admin" && canViewAdmin ? <AdminFichajes /> : <Fichajes />;
