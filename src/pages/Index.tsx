@@ -141,14 +141,14 @@ const Index = () => {
     if (!workspaceMode) return [];
     const unifiedOrder: AppSection[] = [
       "dashboard", "admin", "fichajes", "workReports", "tasks", "chat", "tonnage",
-      "notes", "machines", "gasoline", "staff", "vacations", "albaranes", "analytics",
+      "notes", "machines", "gasoline", "staff", "vacations", "albaranes", "analytics", "tutorial",
     ];
     const workerAllowed = new Set<AppSection>(isKioskViajes
       ? ["tonnage"]
-      : ["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes"]);
+      : ["dashboard", "workReports", "chat", "tonnage", "notes", "machines", "gasoline", "staff", "albaranes", "tutorial"]);
     const adminAllowed = new Set<AppSection>(role === "admin"
-      ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics"]
-      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff"]);
+      ? ["fichajes", "admin", "workReports", "tasks", "tonnage", "machines", "gasoline", "vacations", "albaranes", "staff", "analytics", "tutorial"]
+      : ["fichajes", "workReports", "tonnage", "machines", "gasoline", "vacations", "staff", "tutorial"]);
     const allowedSet = workspaceMode === "admin" && canViewAdmin ? adminAllowed : workerAllowed;
     const allowed = unifiedOrder.filter((k) => allowedSet.has(k));
     const filtered = sections.filter((section) => {
