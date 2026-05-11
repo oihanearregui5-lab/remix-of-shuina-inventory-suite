@@ -690,6 +690,7 @@ const ChatHubView = () => {
               setDraft("");
             }}
             onDeleteMessage={(messageId) => void deleteMessage(messageId)}
+            onSendAudio={(blob, dur) => void sendAudio(blob, dur)}
           />
         </div>
       </section>
