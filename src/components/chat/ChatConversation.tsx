@@ -8,6 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { ChatChannelItem, ChatMessageItem } from "./chat-types";
 import { CHAT_MESSAGE_MAX_LENGTH, formatChatDayLabel } from "@/lib/chat-utils";
+import MicInput from "@/components/shared/MicInput";
+import ChatAudioBubble from "./ChatAudioBubble";
+import ChatAudioRecorder from "./ChatAudioRecorder";
 
 interface ChatConversationProps {
   channel: ChatChannelItem | null;
