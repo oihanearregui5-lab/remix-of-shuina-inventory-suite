@@ -265,7 +265,7 @@ const ChatHubView = () => {
     setLoadingMessages(true);
     const { data, error } = await db
       .from("chat_messages")
-      .select("id, channel_id, author_user_id, message, created_at, updated_at")
+      .select("id, channel_id, author_user_id, message, created_at, updated_at, type, audio_url, duration_seconds")
       .eq("channel_id", channelId)
       .order("created_at", { ascending: true })
       .limit(250);
