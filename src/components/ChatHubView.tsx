@@ -569,6 +569,33 @@ const ChatHubView = () => {
     void fetchMessages(activeChannelId, true);
   };
 
+  const sendAudio = async (blob: Blob, durationSeconds: number) => {
+    if (!user || !activeChannelId) return;
+    setSending(true);
+    const { data: created, error } = await db
+      .from("chat_messages")
+      .insert({ channel_id: activeChannelId, author_user_id: user.id, message: "", type: "audio", duration_seconds: durationSeconds })
+      .select("id")
+      .single();
+    if (error || !created) {
+      setSending(false);
+      return toast.error("No se pudo enviar el audio");
+    }
+    const path = `${user.id}/${activeChannelId}/${created.id}-${Date.now()}.webm`;
+    const { error: upErr } = await supabase.storage.from("chat-audio").upload(path, blob, {
+      contentType: blob.type || "audio/webm",
+      upsert: false,
+    });
+    if (upErr) {
+      await db.from("chat_messages").delete().eq("id", created.id);
+      setSending(false);
+      return toast.error("No se pudo subir el audio");
+    }
+    await db.from("chat_messages").update({ audio_url: path }).eq("id", created.id);
+    setSending(false);
+    void fetchMessages(activeChannelId, true);
+  };
+
   const deleteMessage = async (messageId: string) => {
     const { error } = await db.from("chat_messages").delete().eq("id", messageId);
     if (error) return toast.error("No se pudo eliminar el mensaje");
