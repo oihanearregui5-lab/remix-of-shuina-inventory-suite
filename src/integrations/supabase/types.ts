@@ -242,27 +242,36 @@ export type Database = {
       }
       chat_messages: {
         Row: {
+          audio_url: string | null
           author_user_id: string
           channel_id: string
           created_at: string
+          duration_seconds: number | null
           id: string
-          message: string
+          message: string | null
+          type: string
           updated_at: string
         }
         Insert: {
+          audio_url?: string | null
           author_user_id: string
           channel_id: string
           created_at?: string
+          duration_seconds?: number | null
           id?: string
-          message: string
+          message?: string | null
+          type?: string
           updated_at?: string
         }
         Update: {
+          audio_url?: string | null
           author_user_id?: string
           channel_id?: string
           created_at?: string
+          duration_seconds?: number | null
           id?: string
-          message?: string
+          message?: string | null
+          type?: string
           updated_at?: string
         }
         Relationships: []
@@ -289,6 +298,57 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clock_in_edits: {
+        Row: {
+          edited_at: string
+          edited_by: string | null
+          id: string
+          new_check_in: string | null
+          new_check_out: string | null
+          old_check_in: string | null
+          old_check_out: string | null
+          reason: string
+          time_entry_id: string | null
+        }
+        Insert: {
+          edited_at?: string
+          edited_by?: string | null
+          id?: string
+          new_check_in?: string | null
+          new_check_out?: string | null
+          old_check_in?: string | null
+          old_check_out?: string | null
+          reason: string
+          time_entry_id?: string | null
+        }
+        Update: {
+          edited_at?: string
+          edited_by?: string | null
+          id?: string
+          new_check_in?: string | null
+          new_check_out?: string | null
+          old_check_in?: string | null
+          old_check_out?: string | null
+          reason?: string
+          time_entry_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clock_in_edits_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clock_in_edits_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries_with_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -440,6 +500,39 @@ export type Database = {
           summary?: string | null
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      daily_other_work: {
+        Row: {
+          created_at: string
+          hours: number
+          id: string
+          minutes: number
+          updated_at: string
+          user_id: string
+          work_date: string
+          work_type: string
+        }
+        Insert: {
+          created_at?: string
+          hours?: number
+          id?: string
+          minutes?: number
+          updated_at?: string
+          user_id: string
+          work_date: string
+          work_type: string
+        }
+        Update: {
+          created_at?: string
+          hours?: number
+          id?: string
+          minutes?: number
+          updated_at?: string
+          user_id?: string
+          work_date?: string
+          work_type?: string
         }
         Relationships: []
       }
@@ -1969,6 +2062,35 @@ export type Database = {
             columns: ["worker_id"]
             isOneToOne: false
             referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_report_participants: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          work_report_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          work_report_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          work_report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_report_participants_work_report_id_fkey"
+            columns: ["work_report_id"]
+            isOneToOne: false
+            referencedRelation: "work_reports"
             referencedColumns: ["id"]
           },
         ]
