@@ -32,10 +32,11 @@ interface ChatConversationProps {
   onStartEdit: (message: ChatMessageItem) => void;
   onCancelEdit: () => void;
   onDeleteMessage: (messageId: string) => void;
+  onSendAudio?: (blob: Blob, durationSeconds: number) => void;
   listRef: RefObject<HTMLDivElement>;
 }
 
-const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, messages, loading, sending, error, draft, editingMessageId, authorNames, pendingFile, onPendingFileChange, onBack, onDraftChange, onSend, onStartEdit, onCancelEdit, onDeleteMessage, listRef }: ChatConversationProps) => {
+const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, messages, loading, sending, error, draft, editingMessageId, authorNames, pendingFile, onPendingFileChange, onBack, onDraftChange, onSend, onStartEdit, onCancelEdit, onDeleteMessage, onSendAudio, listRef }: ChatConversationProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const title = useMemo(() => {
     if (!channel) return "Selecciona una conversación";
