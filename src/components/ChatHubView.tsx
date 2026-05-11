@@ -303,6 +303,16 @@ const ChatHubView = () => {
         m.attachments = attachmentsByMsg.get(m.id) ?? [];
       });
     }
+    // Firmar audios privados del bucket chat-audio
+    const audios = loadedMessages.filter((m) => m.type === "audio" && m.audio_url);
+    if (audios.length > 0) {
+      await Promise.all(
+        audios.map(async (m) => {
+          const { data: s } = await supabase.storage.from("chat-audio").createSignedUrl(m.audio_url as string, 60 * 60);
+          m.audio_signed_url = s?.signedUrl ?? null;
+        }),
+      );
+    }
     setMessages(loadedMessages);
 
     if (markAsSeen && loadedMessages.length > 0) {
