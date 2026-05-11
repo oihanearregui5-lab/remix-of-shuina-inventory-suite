@@ -265,7 +265,7 @@ const ChatHubView = () => {
     setLoadingMessages(true);
     const { data, error } = await db
       .from("chat_messages")
-      .select("id, channel_id, author_user_id, message, created_at, updated_at")
+      .select("id, channel_id, author_user_id, message, created_at, updated_at, type, audio_url, duration_seconds")
       .eq("channel_id", channelId)
       .order("created_at", { ascending: true })
       .limit(250);
@@ -302,6 +302,16 @@ const ChatHubView = () => {
       loadedMessages.forEach((m) => {
         m.attachments = attachmentsByMsg.get(m.id) ?? [];
       });
+    }
+    // Firmar audios privados del bucket chat-audio
+    const audios = loadedMessages.filter((m) => m.type === "audio" && m.audio_url);
+    if (audios.length > 0) {
+      await Promise.all(
+        audios.map(async (m) => {
+          const { data: s } = await supabase.storage.from("chat-audio").createSignedUrl(m.audio_url as string, 60 * 60);
+          m.audio_signed_url = s?.signedUrl ?? null;
+        }),
+      );
     }
     setMessages(loadedMessages);
 
@@ -559,6 +569,33 @@ const ChatHubView = () => {
     void fetchMessages(activeChannelId, true);
   };
 
+  const sendAudio = async (blob: Blob, durationSeconds: number) => {
+    if (!user || !activeChannelId) return;
+    setSending(true);
+    const { data: created, error } = await db
+      .from("chat_messages")
+      .insert({ channel_id: activeChannelId, author_user_id: user.id, message: "", type: "audio", duration_seconds: durationSeconds })
+      .select("id")
+      .single();
+    if (error || !created) {
+      setSending(false);
+      return toast.error("No se pudo enviar el audio");
+    }
+    const path = `${user.id}/${activeChannelId}/${created.id}-${Date.now()}.webm`;
+    const { error: upErr } = await supabase.storage.from("chat-audio").upload(path, blob, {
+      contentType: blob.type || "audio/webm",
+      upsert: false,
+    });
+    if (upErr) {
+      await db.from("chat_messages").delete().eq("id", created.id);
+      setSending(false);
+      return toast.error("No se pudo subir el audio");
+    }
+    await db.from("chat_messages").update({ audio_url: path }).eq("id", created.id);
+    setSending(false);
+    void fetchMessages(activeChannelId, true);
+  };
+
   const deleteMessage = async (messageId: string) => {
     const { error } = await db.from("chat_messages").delete().eq("id", messageId);
     if (error) return toast.error("No se pudo eliminar el mensaje");
@@ -653,6 +690,7 @@ const ChatHubView = () => {
               setDraft("");
             }}
             onDeleteMessage={(messageId) => void deleteMessage(messageId)}
+            onSendAudio={(blob, dur) => void sendAudio(blob, dur)}
           />
         </div>
       </section>

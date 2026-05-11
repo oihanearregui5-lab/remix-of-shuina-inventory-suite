@@ -8,6 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { ChatChannelItem, ChatMessageItem } from "./chat-types";
 import { CHAT_MESSAGE_MAX_LENGTH, formatChatDayLabel } from "@/lib/chat-utils";
+import MicInput from "@/components/shared/MicInput";
+import ChatAudioBubble from "./ChatAudioBubble";
+import ChatAudioRecorder from "./ChatAudioRecorder";
 
 interface ChatConversationProps {
   channel: ChatChannelItem | null;
@@ -29,10 +32,11 @@ interface ChatConversationProps {
   onStartEdit: (message: ChatMessageItem) => void;
   onCancelEdit: () => void;
   onDeleteMessage: (messageId: string) => void;
+  onSendAudio?: (blob: Blob, durationSeconds: number) => void;
   listRef: RefObject<HTMLDivElement>;
 }
 
-const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, messages, loading, sending, error, draft, editingMessageId, authorNames, pendingFile, onPendingFileChange, onBack, onDraftChange, onSend, onStartEdit, onCancelEdit, onDeleteMessage, listRef }: ChatConversationProps) => {
+const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, messages, loading, sending, error, draft, editingMessageId, authorNames, pendingFile, onPendingFileChange, onBack, onDraftChange, onSend, onStartEdit, onCancelEdit, onDeleteMessage, onSendAudio, listRef }: ChatConversationProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const title = useMemo(() => {
     if (!channel) return "Selecciona una conversación";
@@ -122,7 +126,12 @@ const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, me
                           ))}
                         </div>
                       )}
-                      {message.message && (
+                      {message.type === "audio" ? (
+                        <div className="mt-2">
+                          <ChatAudioBubble src={message.audio_signed_url ?? message.audio_url ?? null} durationSeconds={message.duration_seconds ?? undefined} own={own} />
+                        </div>
+                      ) : null}
+                      {message.message && message.type !== "audio" && (
                         <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{message.message}</p>
                       )}
                       <div className="mt-3 flex items-center justify-between gap-3 text-[11px] opacity-80">
@@ -149,7 +158,7 @@ const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, me
         )}
       </div>
 
-      <div className="border-t border-border bg-background px-3 py-3 md:px-4">
+      <div className="relative border-t border-border bg-background px-3 py-3 md:px-4">
         {error ? <p className="mb-2 text-xs font-medium text-destructive">{error}</p> : null}
         {editingMessageId ? (
           <div className="mb-2 flex items-center justify-between gap-3 rounded-2xl bg-muted px-3 py-2 text-xs text-muted-foreground">
@@ -192,23 +201,35 @@ const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, me
           >
             <ImagePlus className="h-4 w-4" />
           </Button>
-          <Textarea
-            value={draft}
-            onChange={(event) => onDraftChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                void onSend();
-              }
-            }}
-            placeholder={pendingFile ? "Añade un mensaje (opcional)" : "Escribe un mensaje"}
-            className="min-h-[52px] rounded-[22px] border-border bg-card px-4 py-3 text-sm"
-            disabled={!channel || sending}
-            maxLength={CHAT_MESSAGE_MAX_LENGTH}
-          />
-          <Button size="icon" className="h-12 w-12 flex-none rounded-2xl" onClick={() => void onSend()} disabled={!canSend} aria-label={editingMessageId ? "Guardar mensaje" : "Enviar mensaje"}>
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
-          </Button>
+          <div className="relative flex-1">
+            <Textarea
+              value={draft}
+              onChange={(event) => onDraftChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void onSend();
+                }
+              }}
+              placeholder={pendingFile ? "Añade un mensaje (opcional)" : "Escribe un mensaje"}
+              className="min-h-[52px] rounded-[22px] border-border bg-card px-4 py-3 pr-14 text-sm"
+              disabled={!channel || sending}
+              maxLength={CHAT_MESSAGE_MAX_LENGTH}
+            />
+            <div className="pointer-events-auto absolute bottom-2 right-2">
+              <MicInput value={draft} onChange={onDraftChange} size={36} />
+            </div>
+          </div>
+          {onSendAudio && !editingMessageId && !draft.trim() && !pendingFile ? (
+            <ChatAudioRecorder
+              disabled={!channel || sending}
+              onRecorded={(blob, dur) => onSendAudio(blob, dur)}
+            />
+          ) : (
+            <Button size="icon" className="h-12 w-12 flex-none rounded-2xl" onClick={() => void onSend()} disabled={!canSend} aria-label={editingMessageId ? "Guardar mensaje" : "Enviar mensaje"}>
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
+            </Button>
+          )}
         </div>
         <div className="mt-2 flex items-center justify-end text-[11px] text-muted-foreground">{draft.trim().length}/{CHAT_MESSAGE_MAX_LENGTH}</div>
       </div>

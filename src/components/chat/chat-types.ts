@@ -23,6 +23,8 @@ export interface ChatMessageAttachment {
   mime_type: string | null;
 }
 
+export type ChatMessageType = "text" | "audio" | "image";
+
 export interface ChatMessageItem {
   id: string;
   channel_id: string;
@@ -30,6 +32,10 @@ export interface ChatMessageItem {
   message: string;
   created_at: string;
   updated_at: string;
+  type?: ChatMessageType;
+  audio_url?: string | null;
+  audio_signed_url?: string | null;
+  duration_seconds?: number | null;
   attachments?: ChatMessageAttachment[];
 }
 
