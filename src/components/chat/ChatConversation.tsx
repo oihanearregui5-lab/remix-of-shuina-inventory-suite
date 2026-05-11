@@ -126,7 +126,12 @@ const ChatConversation = ({ channel, currentUserId, currentUserName, isAdmin, me
                           ))}
                         </div>
                       )}
-                      {message.message && (
+                      {message.type === "audio" ? (
+                        <div className="mt-2">
+                          <ChatAudioBubble src={message.audio_signed_url ?? message.audio_url ?? null} durationSeconds={message.duration_seconds ?? undefined} own={own} />
+                        </div>
+                      ) : null}
+                      {message.message && message.type !== "audio" && (
                         <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{message.message}</p>
                       )}
                       <div className="mt-3 flex items-center justify-between gap-3 text-[11px] opacity-80">
